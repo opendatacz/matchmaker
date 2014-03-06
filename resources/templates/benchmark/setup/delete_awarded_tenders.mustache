@@ -1,0 +1,17 @@
+{{!
+@param IRI source-graph
+@param IRI sample-graph
+}}
+
+{{>prefixes}}
+
+DELETE {
+  GRAPH <{{source-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+}
+WHERE {
+  GRAPH <{{sample-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+}

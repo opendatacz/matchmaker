@@ -1,0 +1,16 @@
+{{!
+@param IRI source-graph
+@param IRI sample-graph
+}}
+
+{{>prefixes}}
+
+ASK 
+WHERE {
+  GRAPH <{{sample-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+  GRAPH <{{source-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+}

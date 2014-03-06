@@ -1,0 +1,16 @@
+{{!
+@param IRI source-graph
+@param int offset
+@param int limit
+}}
+
+{{>prefixes}}
+
+SELECT DISTINCT ?businessEntity
+WHERE {
+  GRAPH <{{source-graph}}> {
+    [] pc:supplier ?businessEntity .
+  }
+}
+OFFSET {{offset}}
+LIMIT {{limit}} 

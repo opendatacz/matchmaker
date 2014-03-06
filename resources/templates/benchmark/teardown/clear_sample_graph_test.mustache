@@ -1,0 +1,10 @@
+{{!
+@param IRI sample-graph
+}}
+
+ASK
+WHERE {
+  GRAPH <{{sample-graph}}> {
+    ?s ?p ?o .
+  }
+}

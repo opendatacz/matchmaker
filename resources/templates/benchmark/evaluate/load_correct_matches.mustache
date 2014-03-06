@@ -1,0 +1,14 @@
+{{!
+@param IRI sample-graph
+}}
+
+{{>prefixes}}
+
+SELECT ?contract ?supplier
+WHERE {
+  GRAPH <{{sample-graph}}> {
+    ?contract pc:awardedTender [
+        pc:supplier ?supplier
+      ] .
+  }
+}

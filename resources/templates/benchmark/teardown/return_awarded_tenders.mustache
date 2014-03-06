@@ -1,0 +1,17 @@
+{{!
+@param IRI source-graph
+@param IRI target-graph
+}}
+
+{{>prefixes}}
+
+INSERT {
+  GRAPH <{{source-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+}
+WHERE {
+  GRAPH <{{sample-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+}

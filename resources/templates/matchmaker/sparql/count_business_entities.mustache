@@ -1,0 +1,12 @@
+{{!
+@param IRI source-graph
+}}
+
+{{>prefixes}}
+
+SELECT (COUNT(DISTINCT ?businessEntity) AS ?count)
+WHERE {
+  GRAPH <{{source-graph}}> {
+    [] pc:supplier ?businessEntity .
+  }
+}

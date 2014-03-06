@@ -1,0 +1,39 @@
+{{!
+@param IRI source-graph
+@param IRI sample-graph
+@param int min-main-object-count
+@param int min-additional-object-count
+@param int size
+@param int offset
+}}
+
+{{>prefixes}}
+
+INSERT {
+  GRAPH <{{sample-graph}}> {
+    ?contract a pc:Contract ;
+      pc:awardedTender ?awardedTender .
+    ?awardedTender pc:supplier ?supplier . 
+  }
+}
+WHERE {
+  GRAPH <{{source-graph}}> {
+    ?contract a pc:Contract ;
+      pc:awardedTender ?awardedTender .
+    ?awardedTender pc:supplier ?supplier .
+    OPTIONAL {
+      ?contract pc:mainObject ?mainObject .
+    }
+    OPTIONAL {
+      ?contract pc:additionalObject ?additionalObject .
+    }
+  }
+}
+GROUP BY ?contract
+HAVING (
+        (COUNT(DISTINCT ?mainObject) >= {{min-main-object-count}})
+        &&
+        (COUNT(DISTINCT ?additionalObject) >= {{min-additional-object-count}})
+       )
+OFFSET {{offset}}
+LIMIT {{size}}
