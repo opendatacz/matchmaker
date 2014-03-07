@@ -4,9 +4,22 @@
             [matchmaker.benchmark.setup :as setup]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.teardown :as teardown]
+            [matchmaker.core.sparql :refer [create-matchmaker match-contract-basic-cpv]]
             [com.stuartsierra.component :as component]))
 
 ; Private functions
+
+(defn- format-number
+  "Returns @number formatted as float-like string."
+  [number]
+  (if (number? number)
+      (format "%f" (double number))
+      number))
+
+(defn- format-numbers
+  "Formats numeric values in @results."
+  [results]
+  (reduce (fn [result [k v]] (assoc result k (format-number v))) {} results))
 
 (defn- load-correct-matches
   "Load correct contract-supplier pairs into a map"
@@ -18,28 +31,53 @@
 
 (defrecord
   ^{:doc "Setup and teardown a benchmark according to @config."}
-  Benchmark [config matchmaker]
+  Benchmark [config]
   component/Lifecycle
-  (start [benchmark] (do (let [config-data (:config config)]
-                           (timbre/debug "Starting benchmark...")
-                           (ping-endpoint config-data)
-                           (setup/load-contracts config-data)
-                           (setup/delete-awarded-tenders config-data)
-                           (assoc benchmark :correct-matches (load-correct-matches config-data)))))
-  (stop [benchmark] (do (let [config-data (:config config)]
-                          (timbre/debug "Stopping benchmark...")
-                          (teardown/return-awarded-tenders config-data)
-                          (teardown/clear-graph config-data)
-                          benchmark))))
+  (start [benchmark] (do (timbre/debug "Starting benchmark...")
+                         (ping-endpoint config)
+                         (setup/load-contracts config)
+                         (setup/delete-awarded-tenders config)
+                         (assoc benchmark :correct-matches (load-correct-matches config))))
+  (stop [benchmark] (do (timbre/debug "Stopping benchmark...")
+                        (teardown/return-awarded-tenders config)
+                        (teardown/clear-graph config)
+                        benchmark)))
 
 ; Public functions
 
-(defn run-benchmark
+(defn format-results
+  "Aggregate and format @benchmark-results."
+  [benchmark-results]
+  (format-numbers (evaluate/avg-metrics benchmark-results)))
+
+(defn benchmark-matchmaking-fn
   "Run matchmaking function @matchmaking-fn using given @benchmark."
   [benchmark matchmaking-fn]
-  (let [config (-> benchmark :config :config)
-        evaluation-results (evaluate/evaluate-rank benchmark
+  (let [config (:config benchmark)
+        evaluation-results (evaluate/evaluate-rank config
                                                    matchmaking-fn
                                                    (:correct-matches benchmark))
         evaluation-metrics (-> config :benchmark :evaluation-metrics)]
     (evaluate/compute-metrics evaluation-results evaluation-metrics)))
+
+(defn compute-benchmark
+  "Constructs benchmark from @config and tests @matchmaking-fn,
+  setting up and tearing down whole benchmark.
+  May run multiple times, if @number-of-times is provided."
+  ([config matchmaking-fn]
+    (let [benchmark (component/start (->Benchmark config))]
+      (try
+        (benchmark-matchmaking-fn benchmark matchmaking-fn)
+        (finally (component/stop benchmark)))))
+  ([config matchmaking-fn
+    ^Integer number-of-runs]
+    (doall (repeatedly number-of-runs #(compute-benchmark config matchmaking-fn)))))
+ 
+(defn run-benchmark
+  "Wrapper function to run benchmark for given @matchmaking-fn.
+  Format benchmark results using @formatting-fn."
+  [config matchmaking-fn formatting-fn]
+  (let [number-of-runs (-> config :benchmark :number-of-runs)
+        matchmaker (create-matchmaker config)
+        benchmark-results (compute-benchmark config matchmaking-fn number-of-runs)]
+    (formatting-fn benchmark-results)))

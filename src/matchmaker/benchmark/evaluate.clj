@@ -9,9 +9,9 @@
 (def ^{:doc "Keyword to function lookup for evaluation metrics"
        :private true}
   metric-fns
-  {:avg-rank avg-rank
-   :avg-response-time avg-response-time
-   :matches-found matches-found})
+  {:avg-rank #'avg-rank
+   :avg-response-time #'avg-response-time
+   :matches-found #'matches-found})
 
 ; Private functions
 
@@ -19,13 +19,6 @@
   "Count business entities available in configured dataset."
   [config]
   (Integer. (select-1-value config ["matchmaker" "sparql" "count_business_entities"])))
-
-(defn- format-number
-  "Returns @number formatted as float-like string."
-  [number]
-  (if (number? number)
-      (format "%f" (double number))
-      number))
 
 (defn- found?
   "Predicate returning true for @evaluation-result that found correct match."
@@ -78,23 +71,21 @@
 
 (defn evaluate-rank
   "Evaluate @matchmaking-fn using @correct-matches."
-  [benchmark matchmaking-fn correct-matches]
-  (let [matchmaker (-> benchmark :matchmaker)]
-    (doall (for [correct-match correct-matches 
-                 :let [[resource correct-value] correct-match
-                        matches (matchmaking-fn matchmaker resource)
-                        start-time (System/nanoTime)]]
-                {:rank (rank matches correct-value)
-                 :time (time-difference start-time)}))))
+  [config matchmaking-fn correct-matches]
+  (doall (for [correct-match correct-matches 
+               :let [[resource correct-match] correct-match
+                      matches (matchmaking-fn config resource)
+                      start-time (System/nanoTime)]]
+              {:rank (rank matches correct-match)
+               :time (time-difference start-time)})))
 
-(defn format-results
-  "Formats numeric values in results"
-  [results]
-  (reduce (fn [result [k v]] (assoc result k (format-number v))) {} results))
-
-(defn compute-metrics-random-baseline
-  "Compute metrics for random matchmaking"
-  [config]
-  (let [business-entity-count (count-business-entities config)
-        limit (-> config :matchmaker :limit)]
-    ))
+(comment
+  (defn compute-metrics-random-baseline
+    "Compute metrics for random matchmaking"
+    [config]
+    (let [business-entity-count (count-business-entities config)
+          limit (-> config :matchmaker :limit)]
+      {:matches-found (/ limit business-entity-count)
+       :avg-rank "" ;; TODO
+       }))
+  )

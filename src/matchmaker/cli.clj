@@ -2,7 +2,9 @@
   (:require [clojure.tools.cli :refer [parse-opts]]
             [taoensso.timbre :as timbre]
             [matchmaker.lib.util :refer [exit join-file-path]]
-            [matchmaker.core.sparql :as sparql])
+            [matchmaker.common.config :refer [load-config]]
+            [matchmaker.benchmark.core :refer [format-results run-benchmark]]
+            [matchmaker.core.sparql :as sparql-matchmaker])
   (:gen-class))
 
 ; Disable output to STDOUT
@@ -20,7 +22,7 @@
 (def ^{:doc "Keyword to function lookup for matchmaking functions"
        :private true}
   matchmaking-fns
-  {:match-contract-basic-cpv sparql/match-contract-basic-cpv})
+  {:match-contract-basic-cpv sparql-matchmaker/match-contract-basic-cpv})
 
 (def ^:private
   main-cli-options
@@ -34,10 +36,10 @@
 (defn- resolve-matchmaking-fn
   "Maps matchmaking function string to function."
   [^String matchmaking-fn]
-  (let [available-matchmaking-fns (clojure.string/join ", " (keys matchmaking-fns))
+  (let [available-matchmaking-fns (clojure.string/join ", " (map name (keys matchmaking-fns)))
         unavailable-error (str "Matchmaking function not available. Available functions: "
                                 available-matchmaking-fns)]
-    (or (matchmaking-fns matchmaking-fn)
+    (or ((keyword matchmaking-fn) matchmaking-fns)
         (exit 1 unavailable-error))))
 
 (defn- error-msg
@@ -57,11 +59,11 @@
         "Actions:"]
        (clojure.string/join \newline)))
 
-(defn- run-benchmark
-  "Wrapper function to run benchmark for given @matchmaking-fn."
-  [matchmaking-fn]
-
-  )
+(defn- benchmark
+  [matchmaking-fn-key]
+  (let [config (load-config "config.edn")
+        matchmaking-fn (resolve-matchmaking-fn matchmaking-fn-key)]
+    (run-benchmark config matchmaking-fn format-results)))
 
 ; Public functions
 
@@ -72,6 +74,6 @@
       (not (seq args)) (exit 1 (str "No command to run. Available commands: " available-commands-list))
       (first args) (case (first args)
                          "benchmark" (if-let [matchmaking-fn (second args)]
-                                             (run-benchmark (resolve-matchmaking-fn matchmaking-fn))
+                                             (benchmark matchmaking-fn)
                                              (exit 1 "Missing matchmaking function to benchmark."))
                          (exit 1 (str "Command not recognized. Available commands: " available-commands-list))))))

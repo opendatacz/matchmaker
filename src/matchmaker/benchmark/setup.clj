@@ -6,7 +6,7 @@
 (defn- count-contracts
   "Get count of relevant contracts"
   [config]
-  (let [sample (get-in config [:benchmark :sample])
+  (let [sample (-> config :benchmark :sample)
         data (select-keys sample [:min-additional-object-count :min-main-object-count])]
     (Integer. (select-1-value config
                               ["benchmark" "setup" "count_contracts"]
@@ -17,8 +17,8 @@
 (defn load-contracts
   "Request to input pc:Contracts into test (target) graph"
   [config]
-  (let [sample (select-keys (get-in config [:benchmark :sample])
-                          [:min-additional-object-count :min-main-object-count :size])
+  (let [sample (select-keys (-> config :benchmark :sample)
+                            [:min-additional-object-count :min-main-object-count :size])
         contract-count (count-contracts config)
         offset (rand-int (- contract-count (:size sample)))]
     (sparql-update config
