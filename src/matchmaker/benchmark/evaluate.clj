@@ -69,6 +69,14 @@
   (into {} (for [metric metrics]
                 [metric ((metric metric-fns) results)])))
 
+(defn compute-metrics-random
+  "Compute metrics for random matchmaking given @config."
+  [config]
+  (let [business-entity-count (count-business-entities config)
+        limit (-> config :matchmaker :limit)]
+    {:matches-found (/ limit business-entity-count)
+     :avg-rank (/ (inc business-entity-count) 2)})) ;; FIXME
+
 (defn evaluate-rank
   "Evaluate @matchmaking-fn using @correct-matches."
   [config matchmaking-fn correct-matches]
@@ -78,14 +86,3 @@
                       start-time (System/nanoTime)]]
               {:rank (rank matches correct-match)
                :time (time-difference start-time)})))
-
-(comment
-  (defn compute-metrics-random-baseline
-    "Compute metrics for random matchmaking"
-    [config]
-    (let [business-entity-count (count-business-entities config)
-          limit (-> config :matchmaker :limit)]
-      {:matches-found (/ limit business-entity-count)
-       :avg-rank "" ;; TODO
-       }))
-  )
