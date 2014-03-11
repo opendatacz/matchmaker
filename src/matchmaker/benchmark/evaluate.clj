@@ -1,11 +1,13 @@
 (ns matchmaker.benchmark.evaluate
   (:require [matchmaker.lib.util :refer [avg time-difference]]
-            [matchmaker.lib.sparql :refer [select-1-value select-query]]))
+            [matchmaker.lib.sparql :refer [select-1-value select-query]]
+            [incanter.core :as incanter]
+            [incanter.charts :as charts]
+            [incanter.stats :refer [linear-model]]))
 
 (declare avg-rank avg-response-time matches-found)
 
 ; Private vars
-
 (def ^{:doc "Keyword to function lookup for evaluation metrics"
        :private true}
   metric-fns
@@ -52,6 +54,13 @@
     (/ (count (filter found? ranks))
        (count ranks))))
 
+(defn- compute-metrics
+  "Compute @metrics ([:metric-name]) looked up from metric-fns
+   for given evaluation @results ({:rank rank :time time})."
+  [results metrics]
+  (into {} (for [metric metrics]
+                [metric ((metric metric-fns) results)])))
+
 ; Public functions
 
 (defn avg-metrics
@@ -62,13 +71,6 @@
     (into {} (for [[k v] summed-results]
                   [k (/ v results-count)]))))
 
-(defn compute-metrics
-  "Compute @metrics ([:metric-name]) looked up from metric-fns
-   for given evaluation @results ({:rank rank :time time})."
-  [results metrics]
-  (into {} (for [metric metrics]
-                [metric ((metric metric-fns) results)])))
-
 (defn compute-metrics-random
   "Compute metrics for random matchmaking given @config."
   [config]
@@ -76,6 +78,12 @@
         limit (-> config :matchmaker :limit)]
     {:matches-found (/ limit business-entity-count)
      :avg-rank (/ (inc business-entity-count) 2)})) ;; FIXME
+
+(defn compute-avg-rank-metrics
+  ""
+  [config benchmark-results]
+  (let [evaluation-metrics (-> config :benchmark :evaluation-metrics)]
+    (compute-metrics benchmark-results evaluation-metrics)))
 
 (defn evaluate-rank
   "Evaluate @matchmaking-fn using @correct-matches."
@@ -86,3 +94,30 @@
                       start-time (System/nanoTime)]]
               {:rank (rank matches correct-match)
                :time (time-difference start-time)})))
+
+(defn top-n-curve-data
+  "Compute ratios of cases when match is found in top n positions."
+  [benchmark-results]
+  (let [ranks (map :rank benchmark-results)
+        ranks-count (count ranks)
+        rank-freqs (frequencies (filter found? ranks))
+        sum-up (fn [rank] [rank (* (/ (apply +
+                                          (map second
+                                                (filter #(<= (first %) rank) rank-freqs)))
+                                    ranks-count)
+                                   100)])]
+    (into {} (map #(sum-up (first %)) rank-freqs))))
+
+(defn top-n-curve-chart
+  "Create line chart for top N results in @benchmark-results."
+  [benchmark-results]
+  (let [data (top-n-curve-data benchmark-results)
+        x (keys data)
+        y (vals data)
+        regression-line (:fitted (linear-model y x))
+        plot (charts/scatter-plot x
+                                  y
+                                  :title "Ratio of match found in top N results"
+                                  :x-label "Number of top results (N)"
+                                  :y-label "Percentage of cases when match is found")]
+    (charts/add-lines plot x regression-line)))

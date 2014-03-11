@@ -50,16 +50,6 @@
   [benchmark-results]
   (format-numbers (evaluate/avg-metrics benchmark-results)))
 
-(defn benchmark-matchmaking-fn
-  "Run matchmaking function @matchmaking-fn using given @benchmark."
-  [benchmark matchmaking-fn]
-  (let [config (:config benchmark)
-        evaluation-results (evaluate/evaluate-rank config
-                                                   matchmaking-fn
-                                                   (:correct-matches benchmark))
-        evaluation-metrics (-> config :benchmark :evaluation-metrics)]
-    (evaluate/compute-metrics evaluation-results evaluation-metrics)))
-
 (defn compute-benchmark
   "Constructs benchmark from @config and tests @matchmaking-fn,
   setting up and tearing down whole benchmark.
@@ -67,7 +57,7 @@
   ([config matchmaking-fn]
     (let [benchmark (component/start (->Benchmark config))]
       (try
-        (benchmark-matchmaking-fn benchmark matchmaking-fn)
+        (evaluate/evaluate-rank config matchmaking-fn (:correct-matches benchmark))
         (finally (component/stop benchmark)))))
   ([config matchmaking-fn
     ^Integer number-of-runs]
@@ -75,9 +65,13 @@
  
 (defn run-benchmark
   "Wrapper function to run benchmark for given @matchmaking-fn.
-  Format benchmark results using @formatting-fn."
-  [config matchmaking-fn formatting-fn]
+  Aggregate benchmark results using @aggregation-fn and format them using @formatting-fn."
+  [config matchmaking-fn & {:keys [aggregation-fn formatting-fn]
+                            :or {aggregation-fn identity
+                                 formatting-fn identity}}]
   (let [number-of-runs (-> config :benchmark :number-of-runs)
-        matchmaker (create-matchmaker config)
-        benchmark-results (compute-benchmark config matchmaking-fn number-of-runs)]
-    (formatting-fn benchmark-results)))
+        matchmaker (create-matchmaker config)]
+    (-> (compute-benchmark config matchmaking-fn number-of-runs)
+        flatten
+        aggregation-fn
+        formatting-fn)))
