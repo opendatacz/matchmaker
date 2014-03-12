@@ -39,14 +39,17 @@
 (defn execute-query
   "Execute SPARQL @query-string on @endpoint. Optional arguments may specify @username
   and @password for HTTP Digest Authentication, which are by default taken from configuration."
-  [query-string endpoint & {:keys [method username password]
+  [query-string endpoint & {:keys [method query-param username password]
                             :or {method :GET}}]
   (let [authentication [username password]
         authentication? (not-any? nil? authentication)
-        params (merge {:query-params {"query" query-string}
+        [method-fn params-key query-key] (case method
+                                              :GET [client/get :query-params "query"]
+                                              ; Fuseki requires form-encoded params
+                                              :POST [client/post :form-params "update"]) 
+        params (merge {params-key {query-key query-string}
                        :throw-entire-message? true}
                        (when authentication? {:digest-auth authentication}))
-        method-fn ({:GET client/get :POST client/post} method)
         _ (timbre/debug (str "Executing query:\n" query-string)) 
         _ (timbre/debug (str "Sent to endpoint <" endpoint ">"
                           (when authentication?
@@ -54,16 +57,17 @@
                           "."))]
     (try+
       (-> (method-fn endpoint params)
-         :body)
+          :body)
       (catch [:status 400] {:keys [body]}
         (timbre/error body)
         (throw+))))) ;; TODO: Needs better HTTP error handling
 
 (defn sparql-query
   "Render @template using @data and @partials and execute the resulting SPARQL query." 
-  [config template-path & {:keys [endpoint data partials username password]}]
+  [config template-path & {:keys [endpoint method data partials username password]}]
   (let [query (render-sparql config template-path :data data :partials partials)]
     (execute-query query (or endpoint (get-in config [:sparql-endpoint :query-url]))
+                   :method method
                    :username username
                    :password password)))
 
@@ -98,6 +102,7 @@
     (sparql-query config
                   template-path
                   :endpoint update-url
+                  :method :POST
                   :data data
                   :partials partials
                   :username username

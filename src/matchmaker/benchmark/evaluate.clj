@@ -117,7 +117,7 @@
         regression-line (:fitted (linear-model y x))
         plot (charts/scatter-plot x
                                   y
-                                  :title "Ratio of match found in top N results"
+                                  :title "Ratio of matches found in top N results"
                                   :x-label "Number of top results (N)"
                                   :y-label "Percentage of cases when match is found")]
     (charts/add-lines plot x regression-line)))

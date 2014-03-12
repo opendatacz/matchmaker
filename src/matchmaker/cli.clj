@@ -3,8 +3,10 @@
             [taoensso.timbre :as timbre]
             [matchmaker.lib.util :refer [exit join-file-path]]
             [matchmaker.common.config :refer [load-config]]
+            [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.core :refer [format-results run-benchmark]]
-            [matchmaker.core.sparql :as sparql-matchmaker])
+            [matchmaker.core.sparql :as sparql-matchmaker]
+            [incanter.core :refer [view]])
   (:gen-class))
 
 ; Disable output to STDOUT
@@ -77,3 +79,11 @@
                                              (benchmark matchmaking-fn)
                                              (exit 1 "Missing matchmaking function to benchmark."))
                          (exit 1 (str "Command not recognized. Available commands: " available-commands-list))))))
+
+(comment
+  (def config (load-config "config.edn"))
+  (def results (run-benchmark config sparql-matchmaker/match-contract-basic-cpv))
+
+  (evaluate/compute-avg-rank-metrics config results)
+  (view (evaluate/top-n-curve-chart results))
+  )
