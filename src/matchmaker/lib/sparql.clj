@@ -39,8 +39,7 @@
 (defn execute-query
   "Execute SPARQL @query-string on @endpoint. Optional arguments may specify @username
   and @password for HTTP Digest Authentication, which are by default taken from configuration."
-  [query-string endpoint & {:keys [method query-param username password]
-                            :or {method :GET}}]
+  [query-string endpoint & {:keys [method query-param username password]}]
   (let [authentication [username password]
         authentication? (not-any? nil? authentication)
         [method-fn params-key query-key] (case method
@@ -64,7 +63,8 @@
 
 (defn sparql-query
   "Render @template using @data and @partials and execute the resulting SPARQL query." 
-  [config template-path & {:keys [endpoint method data partials username password]}]
+  [config template-path & {:keys [endpoint method data partials username password]
+                           :or {method :GET}}]
   (let [query (render-sparql config template-path :data data :partials partials)]
     (execute-query query (or endpoint (get-in config [:sparql-endpoint :query-url]))
                    :method method
