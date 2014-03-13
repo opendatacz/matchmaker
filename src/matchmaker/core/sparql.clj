@@ -26,19 +26,20 @@
                                ["matchmaker" "sparql" "awarded_tender_test"])]}
   {:config config})
 
-(defn match-contract-basic-cpv
+(defn match-contract-exact-cpv
   "Match @contract using basic CPV SPARQL query."
   [config contract]
   (match-contract config
                   contract
-                  ["matchmaker" "sparql" "basic_cpv"]))
+                  ["matchmaker" "sparql" "exact_cpv"]))
 
-(defn match-contract-fuzzy-cpv
-  "Match @contract using partial CPV overlap"
+(defn match-contract-broader-cpv
+  "Match @contract using CPV expanded to broader CPV"
   [config contract]
-  (let [cpv-overlap-length (-> config :matchmaker :sparql :cpv-overlap-length)
-        cpv-overlap-length-str (str "{" cpv-overlap-length "}")]
+  (let [sparql-params (-> config :matchmaker :sparql)
+        {:keys [cpv-broader-steps cpv-graph]} (select-keys sparql-params [:cpv-broader-steps :cpv-graph])]
     (match-contract config
                     contract
-                    ["matchmaker" "sparql" "fuzzy_cpv"]
-                    :cpv-overlap-length cpv-overlap-length)))
+                    ["matchmaker" "sparql" "broader_cpv"]
+                    :cpv-graph cpv-graph
+                    :cpv-broader-steps cpv-broader-steps)))

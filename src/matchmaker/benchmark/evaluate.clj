@@ -80,7 +80,7 @@
      :avg-rank (/ (inc business-entity-count) 2)})) ;; FIXME
 
 (defn compute-avg-rank-metrics
-  ""
+  "Average rank metrics for @benchmark-results."
   [config benchmark-results]
   (let [evaluation-metrics (-> config :benchmark :evaluation-metrics)]
     (compute-metrics benchmark-results evaluation-metrics)))
@@ -89,9 +89,9 @@
   "Evaluate @matchmaking-fn using @correct-matches."
   [config matchmaking-fn correct-matches]
   (doall (for [correct-match correct-matches 
-               :let [[resource correct-match] correct-match
-                      matches (matchmaking-fn config resource)
-                      start-time (System/nanoTime)]]
+               :let [start-time (System/nanoTime)
+                     [resource correct-match] correct-match
+                     matches (matchmaking-fn config resource)]]
               {:rank (rank matches correct-match)
                :time (time-difference start-time)})))
 
@@ -114,10 +114,13 @@
   (let [data (top-n-curve-data benchmark-results)
         x (keys data)
         y (vals data)
-        regression-line (:fitted (linear-model y x))
+        regression-line (if (> (count data) 3) ; At least 4 points are needed for the linear model to work
+                            (:fitted (linear-model y x)))
         plot (charts/scatter-plot x
                                   y
                                   :title "Ratio of matches found in top N results"
                                   :x-label "Number of top results (N)"
                                   :y-label "Percentage of cases when match is found")]
-    (charts/add-lines plot x regression-line)))
+    (if regression-line
+        (charts/add-lines plot x regression-line)
+        plot)))
