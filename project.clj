@@ -11,7 +11,7 @@
                  [slingshot "0.10.3"]
                  [clj-http "0.6.3"]
                  [com.stuartsierra/component "0.2.1"]
-                 [de.ubercode.clostache/clostache "1.3.1"]
+                 [stencil "0.3.3"]
                  [incanter/incanter-core "1.5.4"]
                  [incanter/incanter-charts "1.5.4"]]
   :main matchmaker.cli

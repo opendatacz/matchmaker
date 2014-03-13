@@ -1,7 +1,8 @@
 (ns matchmaker.lib.template
   (:require [matchmaker.lib.util :refer [join-file-path]]
             [clojure.java.io :as io]
-            [clostache.parser :refer [render-resource]]))
+            [stencil.core :refer [render-file]]
+            [stencil.loader :refer [register-template]]))
 
 ; Private functions
 
@@ -21,6 +22,13 @@
         (throw (Exception. (str "Template file " template " doesn't exist.")))))
     template-file))
 
+(defn- register-partial
+  "Load and register template partial under @partial-name."
+  [partial-name]
+  (let [partial-name-str (name partial-name)
+        partial-body (slurp (get-template [partial-name-str]))]
+    (register-template partial-name-str partial-body)))
+
 ; Public functions
 
 (defn render-template
@@ -28,17 +36,10 @@
   filename extension), the @data for the template (a map), and a list of
   @partials (keywords) corresponding to like-named template filenames.
 
-  Use: (render-template [path to template-file-name] {:key value} [:file-name-of-partial])
-
-  Adapted from: <https://github.com/fhd/clostache/wiki/Using-Partials-as-Includes>"
+  Use: (render-template [path to template-file-name] :data {:key value} :partials [:file-name-of-partial])"
   [template-path & {:keys [data partials]}]
-  (render-resource
-    (get-template-path template-path)
-    data
-    (reduce (fn [accum pt] ;; "pt" is the name (as a keyword) of the partial.
-              (assoc accum pt (slurp (get-template [(name pt)]))))
-            {}
-            partials)))
+  (let [_ (doall (map register-partial partials))] ; Nasty side-effecting registration of template partials
+    (render-file (get-template-path template-path) data)))
 
 (defn render-sparql
   "Render SPARQL @template-path using @data with prefixes added automatically."
