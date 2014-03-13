@@ -1,0 +1,55 @@
+{{!
+@param IRI contract
+@param IRI source-graph
+@param int limit
+@param int additional-object-inhibition
+@parem int cpv-overlap-length 
+}}
+
+{{>prefixes}}
+
+SELECT ?businessEntity
+WHERE {
+  {
+    SELECT ?businessEntity ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+    WHERE {
+      {
+        SELECT DISTINCT ?cpvFragment ?inScoreModifier 
+        WHERE {
+          GRAPH <{{source-graph}}> {
+            VALUES (?objectProperty     ?inScoreModifier) {
+                   (pc:mainObject       1)
+                   (pc:additionalObject {{additional-object-inhibition}})    
+            }
+            <{{contract}}> ?objectProperty ?CPVObject .
+            BIND (REPLACE(STR(?CPVObject),
+                          {{=<% %>=}}
+                          "^.*\\/(\\d{<%cpv-overlap-length%>})\\d*$",
+                          <%={{ }}=%>
+                          "$1") AS ?sourceCPVFragment)
+          }
+        }
+      }
+      GRAPH <{{source-graph}}> {
+        VALUES (?objectProperty     ?outScoreModifier) {
+               (pc:mainObject       1)
+               (pc:additionalObject {{additional-object-inhibition}})
+        }
+        ?contract pc:awardedTender [
+            pc:supplier ?businessEntity
+          ] ;
+          ?objectProperty ?CPVObject .
+          BIND (REPLACE(STR(?CPVObject),
+                        {{=<% %>=}}
+                        "^.*\\/(\\d{<%cpv-overlap-length%>})\\d*$",
+                        <%={{ }}=%>
+                        "$1") AS ?targetCPVFragment)
+      }
+      FILTER (?sourceCPVFragment = ?targetCPVFragment)
+    }
+    GROUP BY ?businessEntity ?inScoreModifier ?outScoreModifier
+  }
+}
+GROUP BY ?businessEntity
+ORDER BY DESC(SUM(?inScoreModifier * ?outScoreModifier * ?contractCount))
+LIMIT {{limit}} 
