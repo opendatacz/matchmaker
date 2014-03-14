@@ -4,7 +4,7 @@
             [matchmaker.benchmark.setup :as setup]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.teardown :as teardown]
-            [matchmaker.core.sparql :refer [create-matchmaker match-contract-basic-cpv]]
+            [matchmaker.core.sparql :refer [create-matchmaker]]
             [com.stuartsierra.component :as component]))
 
 ; Private functions

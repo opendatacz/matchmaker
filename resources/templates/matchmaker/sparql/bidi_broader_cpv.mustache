@@ -1,0 +1,55 @@
+{{!
+@param IRI contract
+@param IRI source-graph
+@param IRI cpv-graph
+@param int limit
+@param int additional-object-inhibition
+@param int cpv-broader-steps
+}}
+
+{{>prefixes}}
+
+SELECT ?businessEntity
+WHERE {
+  {
+    SELECT ?businessEntity ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+    WHERE {
+      {
+        SELECT DISTINCT ?CPVObject ?inScoreModifier 
+        WHERE {
+          GRAPH <{{source-graph}}> {
+            VALUES (?objectProperty     ?inScoreModifier) {
+                   (pc:mainObject       1)
+                   (pc:additionalObject {{additional-object-inhibition}})    
+            }
+            <{{contract}}> ?objectProperty ?sourceObject .
+          }
+          GRAPH <{{cpv-graph}}> {
+            {{=<% %>=}}
+              ?sourceObject skos:broaderTransitive{0,<%cpv-broader-steps%>} ?CPVObject .
+            <%={{ }}=%>
+          }
+        }
+      }
+      GRAPH <{{source-graph}}> {
+        VALUES (?objectProperty     ?outScoreModifier) {
+               (pc:mainObject       1)
+               (pc:additionalObject {{additional-object-inhibition}})
+        }
+        ?contract pc:awardedTender [
+            pc:supplier ?businessEntity
+          ] ;
+          ?objectProperty ?targetObject .
+      }
+      GRAPH <{{cpv-graph}}> {
+        {{=<% %>=}}
+          ?targetObject skos:broaderTransitive{0,<%cpv-broader-steps%>} ?CPVObject .
+        <%={{ }}=%>
+      }
+    }
+    GROUP BY ?businessEntity ?inScoreModifier ?outScoreModifier
+  }
+}
+GROUP BY ?businessEntity
+ORDER BY DESC(SUM(?inScoreModifier * ?outScoreModifier * ?contractCount))
+LIMIT {{limit}} 
