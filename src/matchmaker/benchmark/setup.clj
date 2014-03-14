@@ -20,6 +20,8 @@
   (let [sample (select-keys (-> config :benchmark :sample)
                             [:min-additional-object-count :min-main-object-count :size])
         contract-count (count-contracts config)
+        _ (if (= contract-count 0)
+              (throw (Exception. "Found 0 contracts matching the configuration.")))
         offset (rand-int (- contract-count (:size sample)))]
     (sparql-update config
                    ["benchmark" "setup" "load_contracts"]
