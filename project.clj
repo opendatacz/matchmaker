@@ -4,7 +4,6 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [org.clojure/core.typed "0.2.34"]
                  [com.taoensso/timbre "3.1.1"]
                  [org.clojure/tools.cli "0.3.0"]
                  [org.clojure/data.zip "0.1.1"]
@@ -13,8 +12,17 @@
                  [com.stuartsierra/component "0.2.1"]
                  [stencil "0.3.3"]
                  [incanter/incanter-core "1.5.4"]
-                 [incanter/incanter-charts "1.5.4"]]
-  :main matchmaker.cli
-  :plugins [[speclj "2.5.0"]]
-  :profiles {:dev {:dependencies [[speclj "2.5.0"]]}}
+                 [incanter/incanter-charts "1.5.4"]
+                 [ring "1.2.2"]
+                 [compojure "1.1.6"]
+                 [ring/ring-json "0.2.0"]]
+  ;:main matchmaker.cli
+  :plugins [[speclj "2.5.0"]
+            [lein-ring "0.8.10"]]
+  :profiles {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
+                                  [ring-mock "0.1.5"]
+                                  [speclj "2.5.0"]]
+                   :resource-paths ["spec/resources"]}}
+  :ring {:handler matchmaker.web.handler/app
+         :init matchmaker.web.handler/init}
   :test-paths ["spec"])
