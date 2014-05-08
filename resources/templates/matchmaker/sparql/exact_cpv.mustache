@@ -5,39 +5,58 @@
 @param int additional-object-inhibition
 }}
 
-{{>prefixes}}
+{{> templates/prefixes.mustache}}
 
-SELECT ?businessEntity
+CONSTRUCT {
+  ?businessEntity gr:legalName ?legalName ;
+    vrank:hasRank [
+        vrank:rankValue ?score 
+      ] .
+}
 WHERE {
   {
-    SELECT ?businessEntity ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+    SELECT ?businessEntity (SAMPLE(?_legalName) AS ?legalName) ?score
     WHERE {
       {
-        SELECT ?cpvObject ?inScoreModifier 
+        SELECT ?businessEntity (SUM(?inScoreModifier * ?outScoreModifier * ?contractCount) AS ?score) 
         WHERE {
-          GRAPH <{{source-graph}}> {
-            VALUES (?objectProperty     ?inScoreModifier) {
-                   (pc:mainObject       1)
-                   (pc:additionalObject {{additional-object-inhibition}})    
+          {
+            SELECT ?businessEntity ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+            WHERE {
+              {
+                SELECT ?cpvObject ?inScoreModifier 
+                WHERE {
+                  GRAPH <{{source-graph}}> {
+                    VALUES (?objectProperty     ?inScoreModifier) {
+                          (pc:mainObject       1)
+                          (pc:additionalObject {{additional-object-inhibition}})    
+                    }
+                    <{{contract}}> ?objectProperty ?cpvObject .
+                  }
+                }
+              }
+              GRAPH <{{source-graph}}> {
+                VALUES (?objectProperty     ?outScoreModifier) {
+                      (pc:mainObject       1)
+                      (pc:additionalObject {{additional-object-inhibition}})
+                }
+                ?contract pc:awardedTender [
+                    pc:supplier ?businessEntity
+                  ] ;
+                  ?objectProperty ?cpvObject .
+              }
             }
-            <{{contract}}> ?objectProperty ?cpvObject .
+            GROUP BY ?businessEntity ?inScoreModifier ?outScoreModifier
           }
         }
+        GROUP BY ?businessEntity
+        ORDER BY DESC(?score)
+        LIMIT {{limit}}
       }
       GRAPH <{{source-graph}}> {
-        VALUES (?objectProperty     ?outScoreModifier) {
-               (pc:mainObject       1)
-               (pc:additionalObject {{additional-object-inhibition}})
-        }
-        ?contract pc:awardedTender [
-            pc:supplier ?businessEntity
-          ] ;
-          ?objectProperty ?cpvObject .
+        ?businessEntity gr:legalName ?_legalName .
       }
     }
-    GROUP BY ?businessEntity ?inScoreModifier ?outScoreModifier
+    GROUP BY ?businessEntity ?score
   }
 }
-GROUP BY ?businessEntity
-ORDER BY DESC(SUM(?inScoreModifier * ?outScoreModifier * ?contractCount))
-LIMIT {{limit}} 

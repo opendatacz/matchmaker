@@ -1,0 +1,64 @@
+{{!
+@param IRI business-entity
+@param IRI source-graph
+}}
+
+{{> templates/prefixes.mustache}}
+PREFIX med: <http://rdf.freebase.com/ns/medicine.>
+
+SELECT ?contract 
+WHERE {
+  {
+    SELECT DISTINCT ?offering
+    WHERE {
+      GRAPH <{{source-graph}}> {
+        <{{business-entity}}> a gr:BusinessEntity ;
+          gr:offers ?offering .
+      }
+    }
+  }
+  
+  GRAPH <{{source-graph}}> {
+    ?contract a pc:Contract ;
+      pc:item ?contractItem .
+    
+    OPTIONAL {
+      ?contractItem gr:includesObject ?contractItemObject .
+      ?offering gr:includesObject ?offeringObject .
+      ?contractItemObject gr:typeOfGood [] .
+      ?offeringObject gr:typeOfGood [] .
+
+      # Properties of objects:
+      #
+      # gr:typeOfGood
+      #   rdfs:label
+      #   med:manufactured_drug_form.size
+      #   med:manufactured_drug_form.manufactured_form_of
+      #   med:drug_formulation.strength
+      #     med:drug_formulation.active_ingredient
+      #     rdfs:label
+      #     gr:hasValueFloat
+      #     gr:hasUnitOfMeasurement
+      #   med:drug_formulation.active_ingredient
+      # gr:amountOfThisGood # Irrelevant?
+      # gr:hasUnitOfMeasurement # Irrelevant?
+      # med:drug_formulation.strength
+      # med:manufactured_drug_form.manufactured_form_of
+      # med:manufactured_drug_form.size
+
+
+    }
+    OPTIONAL {
+      ?contractItem gr:hasPriceSpecification ?contractItemPriceSpec .
+      ?offering gr:hasPriceSpecification ?offeringPriceSpec .
+      OPTIONAL {
+        # Match on currency code
+        ?contractItemPriceSpec gr:hasCurrency/^gr:hasCurrency ?offeringPriceSpec .
+
+        ?contractItemPriceSpec gr:hasCurrencyValue ?contractItemPrice .
+        ?offeringPriceSpec gr:hasCurrencyValue ?offeringPrice .
+        BIND (ABS(?contractItemPrice - ?offeringPrice) AS ?priceDifference)
+      }
+    }
+  }
+}

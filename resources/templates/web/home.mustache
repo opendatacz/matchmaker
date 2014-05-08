@@ -1,7 +1,14 @@
-{{>head}}
+{{> web/head.mustache}}
 
 <div class="starter-template">
-  <h1>Bork mork&hellip;</h1>
+  <form role="form" class="form-inline" method="GET" action="">
+    <select class="form-control">
+      <option>Match contract</option>
+    </select>
+    <div class="form-group">
+      <input id="contract" type="url" autofocus placeholder="Contract URI">
+    </div>
+  </form>
 </div>
 
-{{>footer}}
+{{> web/footer.mustache}}

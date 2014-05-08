@@ -2,7 +2,7 @@
 @param IRI source-graph
 }}
 
-{{>prefixes}}
+{{> templates/prefixes.mustache}}
 
 SELECT (COUNT(DISTINCT ?businessEntity) AS ?count)
 WHERE {
