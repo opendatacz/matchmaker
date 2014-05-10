@@ -1,6 +1,5 @@
 (ns matchmaker.lib.rdf
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
-           [org.apache.jena.riot RDFDataMgr]
            [com.github.jsonldjava.jena JenaJSONLD]))
 
 (JenaJSONLD/init) ; Initialization of the JSON-LD library
@@ -8,14 +7,8 @@
 ; Public vars
 
 (def ^{:doc "Set of available RDF serialization syntaxes."}
-      rdf-syntaxes #{"TURTLE" 
-                     "JSON-LD"})
-
-; Private functions
-
-(defn syntax-available?
-  [rdf-syntax]
-  (contains? rdf-syntaxes rdf-syntax))
+      syntax-available? #{"TURTLE" 
+                          "JSON-LD"})
 
 ; Public functions
 
