@@ -1,0 +1,21 @@
+; Do not overwrite this file. Copy this file, save it as config/config-private.edn and make your changes there.
+{:api {:version "0.1"}
+ :benchmark {:evaluation-metrics [:avg-rank
+                                  :avg-response-time
+                                  :matches-found]
+             :sample {:min-main-object-count 0
+                      :min-additional-object-count 0
+                      :size 100}
+             :number-of-runs 10
+             :sleep 1}
+ :data {:source-graph ""}
+ :sparql-endpoint {:query-url  ""
+                   :update-url ""
+                   :username  ""
+                   :password  ""}
+ :matchmaker {:sparql {; Use to set penalty for pc:additionalObject compared to pc:mainObject.
+                       :additional-object-inhibition 0.8
+                       :cpv-graph ""
+                       :cpv-broader-steps 4}
+              ; Set number of results.
+              :limit 100}}

@@ -14,6 +14,13 @@
       (/ (apply + coll)
          (count coll)))))
 
+(defn deep-merge
+  "Deep merge maps"
+  [& maps]
+  (if (every? map? maps)
+    (apply merge-with deep-merge maps)
+    (last maps)))
+
 (defn exit
   "Exit with @status and message @msg"
   [^Integer status

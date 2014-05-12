@@ -1,3 +1,5 @@
+/resources/config/config-private.edn
+
 /target
 /lib
 /classes

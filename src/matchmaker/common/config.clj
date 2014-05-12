@@ -1,11 +1,14 @@
 (ns matchmaker.common.config
   (:require [taoensso.timbre :as timbre]
-            [clojure.edn :as edn]))
+            [clojure.java.io :as io]
+            [clojure.edn :as edn]
+            [matchmaker.lib.util :as util]))
 
 (defn load-config
   "Loads configuration"
   [filename]
-  (let [data (edn/read-string (slurp filename))
+  (let [filenames [(util/join-file-path "config" "config-public.edn") filename]
+        data (reduce util/deep-merge (map (comp edn/read-string slurp io/resource) filenames))
         source-graph (-> data :data :source-graph)
         sample-graph (str source-graph
                           (if-not (= (last source-graph) \/) \/)
