@@ -1,10 +1,9 @@
 (ns matchmaker.benchmark.core
   (:require [taoensso.timbre :as timbre]
-            [matchmaker.lib.sparql :refer [ping-endpoint select-query]]
+            [matchmaker.lib.sparql :as sparql]
             [matchmaker.benchmark.setup :as setup]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.teardown :as teardown]
-            [matchmaker.core.sparql :refer [create-matchmaker]]
             [com.stuartsierra.component :as component]))
 
 ; Private functions
@@ -24,8 +23,23 @@
 (defn- load-correct-matches
   "Load correct contract-supplier pairs into a map"
   [config]
-  (let [sparql-results (select-query config ["benchmark" "evaluate" "load_correct_matches"])]
+  (let [sparql-results (sparql/select-query config ["benchmark" "evaluate" "load_correct_matches"])]
     (into {} (:results sparql-results))))
+
+(defn- sparql-endpoint-alive?
+  "Raises an exception if SPARQL endpoint described in @config is not responding."
+  [config]
+  (let [sparql-endpoint-url (-> config :sparql-endpoint :query-url)]
+    (assert (sparql/ping-endpoint config)
+            (str "SPARQL endpoint <" sparql-endpoint-url "> is not responding."))))
+
+(defn- sufficient-data?
+  "Raises an exception if SPARQL endpoint described in @config provides insufficient data for matchmaking."
+  (let [source-graph (-> config :data :source-graph)]
+    (assert (sparql/sparql-assert config 
+                                  true?
+                                  (str "Data in source graph <" source-graph "> isn't sufficient for matchmaking.")
+                                  ["matchmaker" "sparql" "awarded_tender_test"]))))
 
 ; Records
 
@@ -34,7 +48,8 @@
   Benchmark [config]
   component/Lifecycle
   (start [benchmark] (do (timbre/debug "Starting benchmark...")
-                         (ping-endpoint config)
+                         (sparql-endpoint-alive? config)
+                         (sufficient-data? config)
                          (setup/load-contracts config)
                          (setup/delete-awarded-tenders config)
                          (assoc benchmark :correct-matches (load-correct-matches config))))
@@ -69,8 +84,7 @@
   [config matchmaking-fn & {:keys [aggregation-fn formatting-fn]
                             :or {aggregation-fn identity
                                  formatting-fn identity}}]
-  (let [number-of-runs (-> config :benchmark :number-of-runs)
-        matchmaker (create-matchmaker config)]
+  (let [number-of-runs (-> config :benchmark :number-of-runs)]
     (-> (compute-benchmark config matchmaking-fn number-of-runs)
         flatten
         aggregation-fn

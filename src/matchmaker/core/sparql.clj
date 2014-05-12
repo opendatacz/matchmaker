@@ -11,9 +11,9 @@
         additional-data {:additional-object-inhibition additional-object-inhibition
                          :contract contract
                          :limit limit}]
-    (sparql/select-1-variable config
-                              template-path
-                              :data (merge data additional-data))))
+    (sparql/select-query config
+                         template-path
+                         :data (merge data additional-data))))
 
 (defn- match-contract-broader-cpv
   "Match @contract using CPV expanded to broader CPV"
@@ -26,15 +26,6 @@
                     :cpv-graph cpv-graph
                     :cpv-broader-steps cpv-broader-steps)))
 ; Public functions
-
-(defn create-matchmaker
-  "Matchmaker constructor"
-  [config]
-  {:pre [(sparql/sparql-assert config 
-                               true?
-                               "Data in source graph isn't sufficient for matchmaking."
-                               ["matchmaker" "sparql" "awarded_tender_test"])]}
-  {:config config})
 
 (defn match-contract-exact-cpv
   "Match @contract using exact CPV matches SPARQL query."
