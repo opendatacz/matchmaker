@@ -14,3 +14,5 @@
                           (if-not (= (last source-graph) \/) \/)
                           "benchmark")]
     (assoc-in data [:benchmark :sample :graph] sample-graph)))
+
+(defonce config (load-config (util/join-file-path "config" "config-private.edn")))

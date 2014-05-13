@@ -15,7 +15,8 @@
          (count coll)))))
 
 (defn deep-merge
-  "Deep merge maps"
+  "Deep merge maps.
+  Stolen from <https://github.com/clojure-cookbook/clojure-cookbook/blob/master/04_local-io/4-15_edn-config.asciidoc>."
   [& maps]
   (if (every? map? maps)
     (apply merge-with deep-merge maps)

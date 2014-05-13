@@ -9,10 +9,10 @@
 
 {{> templates/prefixes.mustache}}
 
-SELECT ?businessEntity
+SELECT ?match
 WHERE {
   {
-    SELECT ?businessEntity ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+    SELECT ?match ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
     WHERE {
       {
         SELECT DISTINCT ?CPVObject ?inScoreModifier 
@@ -37,14 +37,14 @@ WHERE {
                (pc:additionalObject {{additional-object-inhibition}})
         }
         ?contract pc:awardedTender [
-            pc:supplier ?businessEntity
+            pc:supplier ?match
           ] ;
           ?objectProperty ?CPVObject .
       }
     }
-    GROUP BY ?businessEntity ?inScoreModifier ?outScoreModifier
+    GROUP BY ?match ?inScoreModifier ?outScoreModifier
   }
 }
-GROUP BY ?businessEntity
+GROUP BY ?match
 ORDER BY DESC(SUM(?inScoreModifier * ?outScoreModifier * ?contractCount))
 LIMIT {{limit}} 

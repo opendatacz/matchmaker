@@ -35,6 +35,7 @@
 
 (defn- sufficient-data?
   "Raises an exception if SPARQL endpoint described in @config provides insufficient data for matchmaking."
+  [config]
   (let [source-graph (-> config :data :source-graph)]
     (assert (sparql/sparql-assert config 
                                   true?

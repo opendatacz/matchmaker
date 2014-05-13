@@ -1,6 +1,6 @@
 (ns matchmaker.benchmark.evaluate
   (:require [matchmaker.lib.util :refer [avg time-difference]]
-            [matchmaker.lib.sparql :refer [select-1-value select-query]]
+            [matchmaker.lib.sparql :refer [select-query]]
             [incanter.core :as incanter]
             [incanter.charts :as charts]
             [incanter.stats :refer [linear-model]]))
@@ -20,7 +20,10 @@
 (defn- count-business-entities
   "Count business entities available in configured dataset."
   [config]
-  (Integer. (select-1-value config ["matchmaker" "sparql" "count_business_entities"])))
+  (-> (select-query config ["benchmark" "evaluate" "count_business_entities"])
+      first
+      :count
+      Integer.))
 
 (defn- found?
   "Predicate returning true for @evaluation-result that found correct match."
@@ -90,9 +93,9 @@
   [config matchmaking-fn correct-matches]
   (doall (for [correct-match correct-matches 
                :let [start-time (System/nanoTime)
-                     [resource correct-match] correct-match
-                     matches (matchmaking-fn config resource)]]
-              {:rank (rank matches correct-match)
+                     [resource correct-match-resource] correct-match
+                     matches (map :match (matchmaking-fn config resource))]] 
+              {:rank (rank matches correct-match-resource)
                :time (time-difference start-time)})))
 
 (defn top-n-curve-data

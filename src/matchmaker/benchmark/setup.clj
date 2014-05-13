@@ -1,5 +1,5 @@
 (ns matchmaker.benchmark.setup
-  (:require [matchmaker.lib.sparql :refer [select-1-value sparql-assert sparql-update]]))
+  (:require [matchmaker.lib.sparql :refer [select-query sparql-assert sparql-update]]))
 
 ; Private functions
 
@@ -8,9 +8,12 @@
   [config]
   (let [sample (-> config :benchmark :sample)
         data (select-keys sample [:min-additional-object-count :min-main-object-count])]
-    (Integer. (select-1-value config
-                              ["benchmark" "setup" "count_contracts"]
-                              :data data))))
+    (-> (select-query config
+                      ["benchmark" "setup" "count_contracts"]
+                      :data data)
+        first
+        :count
+        Integer.)))
 
 ; Public functions
 
