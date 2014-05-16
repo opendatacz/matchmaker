@@ -30,5 +30,5 @@
 (def app
   (-> (handler/api api-routes)
       (wrap-resource "public") ; Serve static files from /resources/public/ in server root
-      (wrap-content-type)
+      (wrap-content-type :mime-types {"jsonld" "application/ld+json"})
       (wrap-not-modified)))

@@ -1,24 +1,13 @@
 (ns matchmaker.web.views
   (:require [matchmaker.lib.template :refer [render-template]]
-            [matchmaker.lib.util :as util]
-            [clojure.java.io :as io]
             [cheshire.core :as json]))
-
-; Public vars
-
-(defonce match-contract-context
-  (let [context-path ["jsonld_contexts" "match_contract_results.jsonld"]]
-    (-> (apply util/join-file-path context-path) 
-        io/resource
-        slurp
-        json/parse-string)))
 
 ; Private functions
 
 (defn- ->json-ld
-  "Convert Clojure data structure @body into JSON-LD response with @jsonld-context."
-  [body jsonld-context]
-  (let [body-in-context (assoc body "@context" jsonld-context)
+  "Convert Clojure data structure @body into JSON-LD response with @jsonld-context-uri."
+  [body jsonld-context-uri]
+  (let [body-in-context (assoc body "@context" jsonld-context-uri)
         json-string (json/generate-string body-in-context {:escape-non-ascii true})]
     {:headers {"Content-Type" "application/json"} ; TODO: Only for dev, use: {"Content-Type" "application/ld+json"} 
      :body json-string}))
@@ -50,4 +39,4 @@
         search-action-results {"@type" "schema:SearchAction"
                                "schema:query" uri
                                "schema:result" matches}]
-    (->json-ld search-action-results match-contract-context)))
+    (->json-ld search-action-results "/jsonld_contexts/match_contract_results.jsonld")))
