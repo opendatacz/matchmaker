@@ -18,11 +18,13 @@
   (init-logger))
 
 (defroutes api-routes
-  (context (str "/api/" (-> config :api :version)) [] 
+  (context (str "/" (-> config :api :version)) [] 
           (GET "/" [] (controllers/home))
           (context "/match" {{uri :uri} :params}
-                    (GET "/contract" [] 
-                        (controllers/match-contract uri))))
+                   (GET "/contract" [] 
+                        (controllers/match-contract uri))
+                   (GET "/business-entity" []
+                        (controllers/match-business-entity uri))))
   (route/not-found (controllers/not-found)))
 
 ; Public vars

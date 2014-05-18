@@ -9,7 +9,14 @@
   []
   (views/home))
 
+(defn match-business-entity
+  "Match business entity identified via @uri to relevant public contracts."
+  [uri]
+  (let [matchmaker-results (sparql-matchmaker/match-business-entity-exact-cpv config uri)]
+    (views/match-business-entity uri matchmaker-results)))
+
 (defn match-contract
+  "Match public contract identified via @uri to relevant suppliers."
   [uri]
   (let [matchmaker-results (sparql-matchmaker/match-contract-exact-cpv config uri)]
     (views/match-contract uri matchmaker-results)))

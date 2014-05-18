@@ -1,0 +1,14 @@
+{
+  "dcterms" : "http://purl.org/dc/terms/",
+  "gr" : "http://purl.org/goodrelations/v1#",
+  "pc" : "http://purl.org/procurement/public-contracts#",
+  "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+  "schema" : "http://schema.org/",
+  "skos" : "http://www.w3.org/2004/02/skos/core#",
+  "vrank" : "http://purl.org/voc/vrank#",
+  "xsd" : "http://www.w3.org/2001/XMLSchema#",
+
+  "schema:result" : {
+    "@type" : "pc:Contract"
+  }
+}
