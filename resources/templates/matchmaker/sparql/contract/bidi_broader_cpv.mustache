@@ -7,49 +7,33 @@
 @param int cpv-broader-steps
 }}
 
-{{> templates/prefixes.mustache}}
+{{> templates/matchmaker/sparql/contract/partials/cpv_query_head.mustache}}
 
-SELECT ?match
-WHERE {
-  {
-    SELECT ?match ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
-    WHERE {
-      {
-        SELECT DISTINCT ?CPVObject ?inScoreModifier 
-        WHERE {
-          GRAPH <{{source-graph}}> {
-            VALUES (?objectProperty     ?inScoreModifier) {
-                   (pc:mainObject       1)
-                   (pc:additionalObject {{additional-object-inhibition}})    
-            }
-            <{{contract}}> ?objectProperty ?sourceObject .
-          }
-          GRAPH <{{cpv-graph}}> {
-            {{=<% %>=}}
-              ?sourceObject skos:broaderTransitive{0,<%cpv-broader-steps%>} ?CPVObject .
-            <%={{ }}=%>
-          }
-        }
-      }
-      GRAPH <{{source-graph}}> {
-        VALUES (?objectProperty     ?outScoreModifier) {
-               (pc:mainObject       1)
-               (pc:additionalObject {{additional-object-inhibition}})
-        }
-        ?contract pc:awardedTender [
-            pc:supplier ?match
-          ] ;
-          ?objectProperty ?targetObject .
-      }
-      GRAPH <{{cpv-graph}}> {
-        {{=<% %>=}}
-          ?targetObject skos:broaderTransitive{0,<%cpv-broader-steps%>} ?CPVObject .
-        <%={{ }}=%>
-      }
+{
+  SELECT DISTINCT ?cpvObject ?inScoreModifier 
+  WHERE {
+    GRAPH <{{source-graph}}> {
+      {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
+      <{{contract}}> ?objectProperty ?sourceObject .
     }
-    GROUP BY ?match ?inScoreModifier ?outScoreModifier
+    GRAPH <{{cpv-graph}}> {
+      {{=<% %>=}}
+        ?sourceObject skos:broaderTransitive{0,<%cpv-broader-steps%>} ?cpvObject .
+      <%={{ }}=%>
+    }
   }
 }
-GROUP BY ?match
-ORDER BY DESC(SUM(?inScoreModifier * ?outScoreModifier * ?contractCount))
-LIMIT {{limit}} 
+GRAPH <{{source-graph}}> {
+  {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
+  ?contract pc:awardedTender [
+      pc:supplier ?match
+    ] ;
+    ?objectProperty ?targetObject .
+}
+GRAPH <{{cpv-graph}}> {
+  {{=<% %>=}}
+    ?targetObject skos:broaderTransitive{0,<%cpv-broader-steps%>} ?cpvObject .
+  <%={{ }}=%>
+}
+
+{{> templates/matchmaker/sparql/contract/partials/cpv_query_tail.mustache}}

@@ -5,48 +5,23 @@
 @param int additional-object-inhibition
 }}
 
-{{> templates/prefixes.mustache}}
+{{> templates/matchmaker/sparql/contract/partials/cpv_query_head.mustache}}
 
-SELECT ?match (SAMPLE(?_legalName) AS ?legalName) ?score
-WHERE {
-  {
-    SELECT ?match (SUM(?inScoreModifier * ?outScoreModifier * ?contractCount) AS ?score) 
-    WHERE {
-      {
-        SELECT ?match ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
-        WHERE {
-          {
-            SELECT ?cpvObject ?inScoreModifier 
-            WHERE {
-              GRAPH <{{source-graph}}> {
-                VALUES (?objectProperty     ?inScoreModifier) {
-                      (pc:mainObject       1)
-                      (pc:additionalObject {{additional-object-inhibition}})    
-                }
-                <{{contract}}> ?objectProperty ?cpvObject .
-              }
-            }
-          }
-          GRAPH <{{source-graph}}> {
-            VALUES (?objectProperty     ?outScoreModifier) {
-                  (pc:mainObject       1)
-                  (pc:additionalObject {{additional-object-inhibition}})
-            }
-            ?contract pc:awardedTender [
-                pc:supplier ?match
-              ] ;
-              ?objectProperty ?cpvObject .
-          }
-        }
-        GROUP BY ?match ?inScoreModifier ?outScoreModifier
-      }
+{
+  SELECT ?cpvObject ?inScoreModifier 
+  WHERE {
+    GRAPH <{{source-graph}}> {
+      {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
+      <{{contract}}> ?objectProperty ?cpvObject .
     }
-    GROUP BY ?match
-    ORDER BY DESC(?score)
-    LIMIT {{limit}}
-  }
-  GRAPH <{{source-graph}}> {
-    ?match gr:legalName ?_legalName .
   }
 }
-GROUP BY ?match ?score
+GRAPH <{{source-graph}}> {
+  {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
+  ?contract pc:awardedTender [
+      pc:supplier ?match
+    ] ;
+    ?objectProperty ?cpvObject .
+}
+
+{{> templates/matchmaker/sparql/contract/partials/cpv_query_tail.mustache}}

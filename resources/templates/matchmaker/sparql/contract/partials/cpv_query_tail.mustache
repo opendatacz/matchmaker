@@ -1,0 +1,20 @@
+{{!
+@param IRI source-graph
+@param int limit
+}}
+
+        }
+        GROUP BY ?match ?inScoreModifier ?outScoreModifier
+      }
+    }
+    GROUP BY ?match
+    ORDER BY DESC(?score)
+    LIMIT {{limit}}
+  }
+  OPTIONAL {
+    GRAPH <{{source-graph}}> {
+      ?match gr:legalName ?_legalName .
+    }
+  }
+}
+GROUP BY ?match ?score

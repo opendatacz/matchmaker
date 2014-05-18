@@ -1,0 +1,10 @@
+{{> templates/prefixes.mustache}}
+
+SELECT ?match (SAMPLE(?_legalName) AS ?legalName) ?score
+WHERE {
+  {
+    SELECT ?match (SUM(?inScoreModifier * ?outScoreModifier * ?contractCount) AS ?score) 
+    WHERE {
+      {
+        SELECT ?match ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+        WHERE {
