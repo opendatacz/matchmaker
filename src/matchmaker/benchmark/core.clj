@@ -23,8 +23,7 @@
 (defn- load-correct-matches
   "Load correct contract-supplier pairs into a map"
   [config]
-  (let [sparql-results (sparql/select-query config ["benchmark" "evaluate" "load_correct_matches"])]
-    (into {} (:results sparql-results))))
+  (sparql/select-query config ["benchmark" "evaluate" "load_correct_matches"]))
 
 (defn- sparql-endpoint-alive?
   "Raises an exception if SPARQL endpoint described in @config is not responding."
@@ -71,7 +70,9 @@
   setting up and tearing down whole benchmark.
   May run multiple times, if @number-of-times is provided."
   ([config matchmaking-fn]
-    (let [benchmark (component/start (->Benchmark config))]
+    (let [benchmark (component/start (->Benchmark config))
+          _ (timbre/debug "DEBUG DEBUG DEBUG")
+          _ (timbre/debug (:correct-matches benchmark))]
       (try
         (evaluate/evaluate-rank config matchmaking-fn (:correct-matches benchmark))
         (finally (component/stop benchmark)))))

@@ -4,11 +4,11 @@
 
 {{> templates/prefixes.mustache}}
 
-SELECT ?contract ?supplier
+SELECT ?resource ?match
 WHERE {
   GRAPH <{{sample-graph}}> {
-    ?contract pc:awardedTender [
-        pc:supplier ?supplier
+    ?resource pc:awardedTender [
+        pc:supplier ?match
       ] .
   }
 }

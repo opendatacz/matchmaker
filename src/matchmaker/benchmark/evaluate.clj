@@ -93,9 +93,9 @@
   [config matchmaking-fn correct-matches]
   (doall (for [correct-match correct-matches 
                :let [start-time (System/nanoTime)
-                     [resource correct-match-resource] correct-match
+                     {:keys [resource match]} correct-match
                      matches (map :match (matchmaking-fn config resource))]] 
-              {:rank (rank matches correct-match-resource)
+              {:rank (rank matches match)
                :time (time-difference start-time)})))
 
 (defn top-n-curve-data
