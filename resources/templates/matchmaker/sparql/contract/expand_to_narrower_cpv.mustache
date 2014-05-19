@@ -4,7 +4,6 @@
 @param IRI cpv-graph
 @param int limit
 @param int additional-object-inhibition
-@param int cpv-broader-steps
 }}
 
 {{> templates/matchmaker/sparql/contract/partials/cpv_query_head.mustache}}
@@ -19,9 +18,7 @@
       <{{contract}}> ?objectProperty ?sourceObject .
     }
     GRAPH <{{cpv-graph}}> {
-      {{=<% %>=}}
-        ?sourceObject skos:broaderTransitive{0,<%cpv-broader-steps%>} ?cpvObject .
-      <%={{ }}=%>
+      ?sourceObject skos:narrowerTransitive* ?cpvObject .
     }
   }
 }
