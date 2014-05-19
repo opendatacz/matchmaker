@@ -1,0 +1,18 @@
+{{> templates/prefixes.mustache}}
+
+SELECT ?match (SAMPLE(?_title) AS ?title) ?score
+WHERE {
+  {
+    SELECT ?match (SUM(?outScore) AS ?score) 
+    WHERE {
+      {
+        SELECT ?match ?cpvObject ((?inScore * xsd:decimal(?outScoreModifier)) AS ?outScore)
+        WHERE {
+          {
+            {{! Get the CPV codes the business entity is most associated with. }}
+            SELECT ?cpvObject (SUM(?objectPropertyInScore) AS ?inScore)
+            WHERE {
+              {
+                {{! Virtuoso requires casting ?inScoreModifier to xsd:decimal. }}
+                SELECT ?cpvObject ((COUNT(?contract) * xsd:decimal(?inScoreModifier)) AS ?objectPropertyInScore) 
+                WHERE {

@@ -15,7 +15,6 @@
                    :password  ""}
  :matchmaker {:sparql {; Use to set penalty for pc:additionalObject compared to pc:mainObject.
                        :additional-object-inhibition 0.8
-                       :cpv-graph ""
-                       :cpv-broader-steps 4}
+                       :cpv-graph ""}
               ; Set number of results.
               :limit 100}}
