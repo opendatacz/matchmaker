@@ -16,36 +16,41 @@
 
 (defn- match-resource
   "JSON-LD view of @matchmaker-results for contract @uri using @additional-mappings
-  from @matchmaker-results keys to JSON-LD keys."
-  [uri matchmaker-results jsonld-context-uri additional-mappings]
+  from @matchmaker-results keys to JSON-LD keys. Matches are typed as @match-type."
+  [uri matchmaker-results additional-mappings match-type]
   {:pre [(string? uri)
          (seq? matchmaker-results)
-         (string? jsonld-context-uri)
          (map? additional-mappings)]}
   (let [matches (->> matchmaker-results
-                     (map #(transform-match % additional-mappings))
+                     (map #(transform-match % additional-mappings match-type))
                      (sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
                      reverse)
         search-action-results (wrap-in-search-action uri matches)]
-    (->json-ld search-action-results jsonld-context-uri)))
+    (->json-ld search-action-results "/jsonld_contexts/matchmaker_results.jsonld")))
 
 (defn- transform-match
   "Transform @match to JSON-LD-like structure using @key-mappings that map
-  keys of @match hash-map to JSON-LD keys."
-  ([match key-mappings]
+  keys of @match hash-map to JSON-LD keys. Adds rdf:type of @match-type for
+  each match."
+  ([match key-mappings match-type]
     (let [default-mappings {:match "@id"
                             :score "vrank:hasRank"}
           mappings (merge default-mappings key-mappings)]
       (-> match
           (clojure.set/rename-keys mappings)
+          (assoc "@type" match-type)
           (update-in ["vrank:hasRank"] (fn [rank] {"vrank:hasValue" (read-string rank)}))))))
 
 (defn- wrap-in-search-action
   "Wraps @matches for @uri in schema:SearchAction"
   [uri matches]
-  {"@type" "schema:SearchAction"
-   "schema:query" uri
-   "schema:result" matches})
+  (let [results {"@type" "hydra:Collection" ; In case of paging: "hydra:PagedCollection"
+                 "hydra:member" matches}
+        ; TODO: Add paging via "hydra:nextPage" and "hydra:previousPage".
+        ]
+    {"@type" "schema:SearchAction"
+    "schema:query" uri
+    "schema:result" results}))
 
 ; Public functions
 
@@ -57,13 +62,17 @@
 (defn match-business-entity
   "JSON-LD view of @matchmaker-results for business entity @uri."
   [uri matchmaker-results]
-  (let [additional-mappings {:title "dcterms:title"}
-        jsonld-context-uri "/jsonld_contexts/match_business_entity_results.jsonld"]
-    (match-resource uri matchmaker-results jsonld-context-uri additional-mappings)))
+  (let [additional-mappings {:title "dcterms:title"}]
+    (match-resource uri
+                    matchmaker-results
+                    additional-mappings
+                    "pc:Contract")))
 
 (defn match-contract
   "JSON-LD view of @matchmaker-results for contract @uri."
   [uri matchmaker-results]
-  (let [additional-mappings {:legalName "gr:legalName"}
-        jsonld-context-uri "/jsonld_contexts/match_contract_results.jsonld"]
-    (match-resource uri matchmaker-results jsonld-context-uri additional-mappings)))
+  (let [additional-mappings {:legalName "gr:legalName"}]
+    (match-resource uri
+                    matchmaker-results
+                    additional-mappings
+                    "gr:BusinessEntity")))
