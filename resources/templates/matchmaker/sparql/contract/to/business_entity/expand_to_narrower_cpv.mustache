@@ -6,7 +6,7 @@
 @param int additional-object-inhibition
 }}
 
-{{> templates/matchmaker/sparql/contract/partials/cpv_query_head.mustache}}
+{{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_head.mustache}}
 
 {{> templates/prefixes.mustache}}
 
@@ -30,4 +30,4 @@ GRAPH <{{source-graph}}> {
     ?objectProperty ?cpvObject .
 }
       
-{{> templates/matchmaker/sparql/contract/partials/cpv_query_tail.mustache}}
+{{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_tail.mustache}}
