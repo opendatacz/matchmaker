@@ -66,7 +66,8 @@
   "Render @template using @data and execute the resulting SPARQL query." 
   [config template-path & {:keys [endpoint method data username password]
                            :or {method :GET}}]
-  (let [query (render-sparql config template-path :data data)]
+  (let [limited-data (update-in data [:limit] #(or % 10))
+        query (render-sparql config template-path :data limited-data)]
     (execute-query query
                    (or endpoint (get-in config [:sparql-endpoint :query-url]))
                    :method method

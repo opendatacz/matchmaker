@@ -78,8 +78,8 @@
   "Compute metrics for random matchmaking given @config."
   [config]
   (let [business-entity-count (count-business-entities config)
-        limit (-> config :matchmaker :limit)]
-    {:matches-found (/ limit business-entity-count)
+        max-number-of-results (-> config :benchmark :max-number-of-results)]
+    {:matches-found (/ max-number-of-results business-entity-count)
      :avg-rank (/ (inc business-entity-count) 2)})) ;; FIXME
 
 (defn compute-avg-rank-metrics
@@ -91,12 +91,13 @@
 (defn evaluate-rank
   "Evaluate @matchmaking-fn using @correct-matches."
   [config matchmaking-fn correct-matches]
-  (doall (for [correct-match correct-matches 
-               :let [start-time (System/nanoTime)
-                     {:keys [resource match]} correct-match
-                     matches (map :match (matchmaking-fn config resource))]] 
-              {:rank (rank matches match)
-               :time (time-difference start-time)})))
+  (let [limit (-> config :benchmark :max-number-of-results)]
+    (doall (for [correct-match correct-matches 
+                :let [start-time (System/nanoTime)
+                      {:keys [resource match]} correct-match
+                      matches (map :match (matchmaking-fn config resource :limit limit))]] 
+                {:rank (rank matches match)
+                :time (time-difference start-time)}))))
 
 (defn top-n-curve-data
   "Compute ratios of cases when match is found in top n positions."

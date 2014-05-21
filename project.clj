@@ -16,6 +16,7 @@
                  [org.apache.jena/jena-core "2.11.1"]
                  [com.github.jsonld-java/jsonld-java "0.4.1"]
                  [com.github.jsonld-java/jsonld-java-jena "0.4.1"]
+                 [com.cemerick/url "0.1.1"]
                  [ring "1.2.2"]
                  [compojure "1.1.6"]
                  [ring/ring-json "0.2.0"]]

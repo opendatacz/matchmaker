@@ -1,6 +1,7 @@
 {{!
 @param IRI source-graph
 @param int limit
+@param int offset (optional)
 }}
 
         }
@@ -10,6 +11,9 @@
     GROUP BY ?match
     ORDER BY DESC(?score)
     LIMIT {{limit}}
+    {{#offset}}
+    OFFSET {{offset}}
+    {{/offset}}
   }
   OPTIONAL {
     GRAPH <{{source-graph}}> {
