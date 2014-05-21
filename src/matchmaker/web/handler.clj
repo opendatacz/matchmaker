@@ -18,13 +18,26 @@
   (init-logger))
 
 (defroutes api-routes
-  (context (str "/" (-> config :api :version)) [] 
-          (GET "/" [] (controllers/home))
-          (context "/match" {{uri :uri} :params}
-                   (GET "/contract" [] 
-                        (controllers/match-contract uri))
-                   (GET "/business-entity" []
-                        (controllers/match-business-entity uri))))
+  (context (str "/" (-> config :api :version)) []
+           (GET "/" [] (controllers/home))
+           (context "/match" {{limit :limit
+                               offset :offset
+                               uri :uri
+                               :or {limit "10" ; GET params are strings by default
+                                    offset "0"}} :params
+                              :as request}
+                    (context "/contract/to" []
+                      (GET "/business-entity" []
+                           (controllers/match-contract-to-business-entity request
+                                                                          uri
+                                                                          :limit limit
+                                                                          :offset offset)))
+                    (context "business-entity/to" []
+                      (GET "/contract" []
+                           (controllers/match-business-entity-to-contract request
+                                                                          uri
+                                                                          :limit limit
+                                                                          :offset offset)))))
   (route/not-found (controllers/not-found)))
 
 ; Public vars

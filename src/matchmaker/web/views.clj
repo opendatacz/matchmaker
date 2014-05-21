@@ -17,15 +17,17 @@
 (defn- match-resource
   "JSON-LD view of @matchmaker-results for contract @uri using @additional-mappings
   from @matchmaker-results keys to JSON-LD keys. Matches are typed as @match-type."
-  [uri matchmaker-results additional-mappings match-type]
+  [uri matchmaker-results & {:keys [additional-mappings match-type paging]
+                             :or {additional-mappings {}}}]
   {:pre [(string? uri)
          (seq? matchmaker-results)
-         (map? additional-mappings)]}
+         (map? additional-mappings)
+         (string? match-type)]}
   (let [matches (->> matchmaker-results
                      (map #(transform-match % additional-mappings match-type))
                      (sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
                      reverse)
-        search-action-results (wrap-in-search-action uri matches)]
+        search-action-results (wrap-in-search-action uri matches paging)]
     (->json-ld search-action-results "/jsonld_contexts/matchmaker_results.jsonld")))
 
 (defn- transform-match
@@ -43,11 +45,15 @@
 
 (defn- wrap-in-search-action
   "Wraps @matches for @uri in schema:SearchAction"
-  [uri matches]
-  (let [results {"@type" "hydra:Collection" ; In case of paging: "hydra:PagedCollection"
-                 "hydra:member" matches}
-        ; TODO: Add paging via "hydra:nextPage" and "hydra:previousPage".
-        ]
+  [uri matches paging]
+  {:pre [(map? paging)]} 
+  (let [collection-type (if (some (complement nil?) (select-keys paging [:prev :next]))
+                          "hydra:PagedCollection"
+                          "hydra:Collection")
+        rekeyed-paging (clojure.set/rename-keys paging {:next "hydra:nextPage"
+                                                        :prev "hydra:previousPage"})
+        results (merge rekeyed-paging {"@type" collection-type
+                                       "hydra:member" matches})]
     {"@type" "schema:SearchAction"
     "schema:query" uri
     "schema:result" results}))
@@ -61,18 +67,20 @@
 
 (defn match-business-entity
   "JSON-LD view of @matchmaker-results for business entity @uri."
-  [uri matchmaker-results]
+  [uri matchmaker-results & {:keys [paging]}]
   (let [additional-mappings {:title "dcterms:title"}]
     (match-resource uri
                     matchmaker-results
-                    additional-mappings
-                    "pc:Contract")))
+                    :additional-mappings additional-mappings
+                    :match-type "pc:Contract"
+                    :paging paging)))
 
 (defn match-contract
   "JSON-LD view of @matchmaker-results for contract @uri."
-  [uri matchmaker-results]
+  [uri matchmaker-results & {:keys [paging]}]
   (let [additional-mappings {:legalName "gr:legalName"}]
     (match-resource uri
                     matchmaker-results
-                    additional-mappings
-                    "gr:BusinessEntity")))
+                    :additional-mappings additional-mappings
+                    :match-type "gr:BusinessEntity"
+                    :paging paging)))
