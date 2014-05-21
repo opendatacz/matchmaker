@@ -31,8 +31,8 @@
   [config template-path & {:keys [data]}]
   (let [source-graph (-> config :data :source-graph)
         sample-graph (-> config :benchmark :sample :graph)
-        merged-data (merge data {:source-graph source-graph
-                                 :sample-graph sample-graph})]
+        merged-data (merge {:source-graph source-graph
+                            :sample-graph sample-graph} data)]
     (render-template
      template-path
      :data merged-data)))
