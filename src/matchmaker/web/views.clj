@@ -88,7 +88,7 @@
 (defn match-contract-to-contract
   "JSON-LD view of @matchmaker-results containing similar contracts to contract @uri."
   [uri matchmaker-results & {:keys [paging]}]
-  (let [additional-mapping {:label "dcterms:title"}]
+  (let [additional-mappings {:label "dcterms:title"}]
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings

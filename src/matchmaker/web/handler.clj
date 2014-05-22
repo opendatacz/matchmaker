@@ -36,7 +36,7 @@
                            (controllers/match-contract-to-contract request
                                                                    uri
                                                                    :limit
-                                                                   :offset offset))
+                                                                   :offset offset)))
                     (context "business-entity/to" []
                       (GET "/contract" []
                            (controllers/match-business-entity-to-contract request
