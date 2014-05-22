@@ -8,7 +8,9 @@
   [config template-path & {:keys [data]
                            :or {data {}}}]
   (let [additional-object-inhibition (-> config :matchmaker :sparql :additional-object-inhibition)
-        additional-data {:additional-object-inhibition additional-object-inhibition}]
+        cpv-graph (-> config :matchmaker :sparql :cpv-graph)
+        additional-data {:additional-object-inhibition additional-object-inhibition
+                         :cpv-graph cpv-graph}]
     (sparql/select-query config
                          template-path
                          :data (merge data additional-data))))
