@@ -17,7 +17,7 @@
 (defn- match-resource
   "JSON-LD view of @matchmaker-results for contract @uri using @additional-mappings
   from @matchmaker-results keys to JSON-LD keys. Matches are typed as @match-type."
-  [uri matchmaker-results & {:keys [additional-mappings match-type paging]
+  [uri matchmaker-results & {:keys [additional-mappings base-url match-type paging]
                              :or {additional-mappings {}}}]
   {:pre [(string? uri)
          (seq? matchmaker-results)
@@ -27,8 +27,9 @@
                      (map #(transform-match % additional-mappings match-type))
                      (sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
                      reverse)
-        search-action-results (wrap-in-search-action uri matches paging)]
-    (->json-ld search-action-results "/jsonld_contexts/matchmaker_results.jsonld")))
+        search-action-results (wrap-in-search-action uri matches paging)
+        jsonld-context-uri (str (assoc base-url :path "/jsonld_contexts/matchmaker_results.jsonld"))]
+    (->json-ld search-action-results jsonld-context-uri)))
 
 (defn- transform-match
   "Transform @match to JSON-LD-like structure using @key-mappings that map
@@ -67,30 +68,33 @@
 
 (defn match-business-entity-to-contract
   "JSON-LD view of @matchmaker-results containing potentially interesting contracts for business entity @uri."
-  [uri matchmaker-results & {:keys [paging]}]
+  [uri matchmaker-results & {:keys [base-url paging]}]
   (let [additional-mappings {:label "dcterms:title"}]
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings
+                    :base-url base-url
                     :match-type "pc:Contract"
                     :paging paging)))
 
 (defn match-contract-to-business-entity
   "JSON-LD view of @matchmaker-results containing relevant suppliers for contract @uri."
-  [uri matchmaker-results & {:keys [paging]}]
+  [uri matchmaker-results & {:keys [base-url paging]}]
   (let [additional-mappings {:label "gr:legalName"}]
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings
                     :match-type "gr:BusinessEntity"
+                    :base-url base-url
                     :paging paging)))
 
 (defn match-contract-to-contract
   "JSON-LD view of @matchmaker-results containing similar contracts to contract @uri."
-  [uri matchmaker-results & {:keys [paging]}]
+  [uri matchmaker-results & {:keys [base-url paging]}]
   (let [additional-mappings {:label "dcterms:title"}]
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings
+                    :base-url base-url
                     :match-type "pc:Contract"
                     :paging paging)))

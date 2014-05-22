@@ -1,5 +1,5 @@
 (ns matchmaker.web.controllers
-  (:require [cemerick.url :refer [url]]
+  (:require [cemerick.url :refer [map->URL url]]
             [ring.util.request :as request]
             [matchmaker.common.config :refer [config]]
             [matchmaker.web.views :as views]
@@ -40,12 +40,14 @@
         request-url (-> request
                         request/request-url
                         url)
+        base-url (map->URL (dissoc request-url :query))
         paging (get-paging request-url
                            :results-size results-size
                            :limit limit
                            :offset offset)]
     (view-fn uri
              matchmaker-results
+             :base-url base-url
              :paging paging)))
 
 ; Public functions
