@@ -8,7 +8,8 @@
 ; Private functions
 
 (defn- get-int
-  "Returns nil if @string is not a number"
+  "Converts @string to integer.
+  Returns nil if @string is not a numeric string."
   [string]
   (try (Integer/parseInt string)
        (catch NumberFormatException _)))
@@ -58,7 +59,7 @@
   [request uri & {:keys [limit offset]}]
   (match-resource request
                   uri
-                  sparql-matchmaker/match-business-entity-exact-cpv
+                  sparql-matchmaker/business-entity-to-contract-exact-cpv
                   views/match-business-entity
                   :limit limit
                   :offset offset))
@@ -68,7 +69,7 @@
   [request uri & {:keys [limit offset]}]
   (match-resource request
                   uri
-                  sparql-matchmaker/match-contract-exact-cpv
+                  sparql-matchmaker/contract-to-business-entity-exact-cpv
                   views/match-contract
                   :limit limit
                   :offset offset))

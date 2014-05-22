@@ -7,7 +7,7 @@
 @param int offset (optional)
 }}
 
-{{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_head.mustache}}
+{{> templates/matchmaker/sparql/contract/to/contract/partials/cpv_query_head.mustache}}
 
 {
   SELECT DISTINCT ?cpvObject ?inScoreModifier 
@@ -23,10 +23,7 @@
 }
 GRAPH <{{source-graph}}> {
   {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
-  ?contract pc:awardedTender [
-      pc:supplier ?match
-    ] ;
-    ?objectProperty ?cpvObject .
+  ?match ?objectProperty ?cpvObject .
 }
       
-{{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_tail.mustache}}
+{{> templates/matchmaker/sparql/contract/to/contract/partials/cpv_query_tail.mustache}}

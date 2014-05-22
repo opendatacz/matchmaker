@@ -48,15 +48,15 @@
   [uri matches paging]
   {:pre [(map? paging)]} 
   (let [collection-type (if (some (complement nil?) (select-keys paging [:prev :next]))
-                          "hydra:PagedCollection"
-                          "hydra:Collection")
+                            "hydra:PagedCollection"
+                            "hydra:Collection")
         rekeyed-paging (clojure.set/rename-keys paging {:next "hydra:nextPage"
                                                         :prev "hydra:previousPage"})
         results (merge rekeyed-paging {"@type" collection-type
                                        "hydra:member" matches})]
     {"@type" "schema:SearchAction"
-    "schema:query" uri
-    "schema:result" results}))
+     "schema:query" uri
+     "schema:result" results}))
 
 ; Public functions
 
@@ -68,7 +68,7 @@
 (defn match-business-entity
   "JSON-LD view of @matchmaker-results for business entity @uri."
   [uri matchmaker-results & {:keys [paging]}]
-  (let [additional-mappings {:title "dcterms:title"}]
+  (let [additional-mappings {:label "dcterms:title"}]
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings
@@ -78,7 +78,7 @@
 (defn match-contract
   "JSON-LD view of @matchmaker-results for contract @uri."
   [uri matchmaker-results & {:keys [paging]}]
-  (let [additional-mappings {:legalName "gr:legalName"}]
+  (let [additional-mappings {:label "gr:legalName"}]
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings

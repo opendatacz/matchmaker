@@ -1,6 +1,6 @@
 {{> templates/prefixes.mustache}}
 
-SELECT ?match (SAMPLE(?_title) AS ?title) ?score
+SELECT ?match (SAMPLE(?_label) AS ?label) ?score
 WHERE {
   {
     SELECT ?match (SUM(?outScore) AS ?score) 

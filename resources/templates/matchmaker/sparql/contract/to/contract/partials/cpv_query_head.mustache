@@ -1,0 +1,10 @@
+{{> templates/prefixes.mustache}}
+
+SELECT ?match (SAMPLE(?_label) AS ?label) ?score
+WHERE {
+  {
+    SELECT ?match (SUM(?cpvObjectCount * ?inScoreModifier * ?outScoreModifier) AS ?score) 
+    WHERE {
+      {
+        SELECT ?match (COUNT(DISTINCT ?cpvObject) AS ?cpvObjectCount) ?inScoreModifier ?outScoreModifier 
+        WHERE {

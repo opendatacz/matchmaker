@@ -1,0 +1,25 @@
+{{!
+@param IRI contract
+@param IRI source-graph
+@param int additional-object-inhibition
+@param int limit
+@param int offset (optional)
+}}
+
+{{> templates/matchmaker/sparql/contract/to/contract/partials/cpv_query_head.mustache}}
+
+{
+  SELECT ?cpvObject ?inScoreModifier 
+  WHERE {
+    GRAPH <{{source-graph}}> {
+      {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
+      <{{contract}}> ?objectProperty ?cpvObject .
+    }
+  }
+}
+GRAPH <{{source-graph}}> {
+  {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
+  ?match ?objectProperty ?cpvObject .
+}
+
+{{> templates/matchmaker/sparql/contract/to/contract/partials/cpv_query_tail.mustache}}
