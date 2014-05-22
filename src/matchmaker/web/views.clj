@@ -65,8 +65,8 @@
   []
   (render-template ["web" "home"]))
 
-(defn match-business-entity
-  "JSON-LD view of @matchmaker-results for business entity @uri."
+(defn match-business-entity-to-contract
+  "JSON-LD view of @matchmaker-results containing potentially interesting contracts for business entity @uri."
   [uri matchmaker-results & {:keys [paging]}]
   (let [additional-mappings {:label "dcterms:title"}]
     (match-resource uri
@@ -75,12 +75,22 @@
                     :match-type "pc:Contract"
                     :paging paging)))
 
-(defn match-contract
-  "JSON-LD view of @matchmaker-results for contract @uri."
+(defn match-contract-to-business-entity
+  "JSON-LD view of @matchmaker-results containing relevant suppliers for contract @uri."
   [uri matchmaker-results & {:keys [paging]}]
   (let [additional-mappings {:label "gr:legalName"}]
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings
                     :match-type "gr:BusinessEntity"
+                    :paging paging)))
+
+(defn match-contract-to-contract
+  "JSON-LD view of @matchmaker-results containing similar contracts to contract @uri."
+  [uri matchmaker-results & {:keys [paging]}]
+  (let [additional-mapping {:label "dcterms:title"}]
+    (match-resource uri
+                    matchmaker-results
+                    :additional-mappings additional-mappings
+                    :match-type "pc:Contract"
                     :paging paging)))

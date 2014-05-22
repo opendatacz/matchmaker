@@ -60,7 +60,7 @@
   (match-resource request
                   uri
                   sparql-matchmaker/business-entity-to-contract-exact-cpv
-                  views/match-business-entity
+                  views/match-business-entity-to-contract
                   :limit limit
                   :offset offset))
 
@@ -70,7 +70,17 @@
   (match-resource request
                   uri
                   sparql-matchmaker/contract-to-business-entity-exact-cpv
-                  views/match-contract
+                  views/match-contract-to-business-entity
+                  :limit limit
+                  :offset offset))
+
+(defn match-contract-to-contract
+  "Match public contract identifier via @uri to similar contracts."
+  [request uri & {:keys [limit offset]}]
+  (match-resource request
+                  uri
+                  sparql-matchmaker/contract-to-contract-expand-to-narrower-cpv
+                  views/match-contract-to-contract
                   :limit limit
                   :offset offset))
 
