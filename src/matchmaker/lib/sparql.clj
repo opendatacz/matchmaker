@@ -11,10 +11,12 @@
             [slingshot.slingshot :refer [throw+ try+]]))
 
 (declare execute-query
-         sparql-delete-graph
-         sparql-post-graph
-         sparql-put-graph
-         sparql-query)
+         delete-graph
+         post-graph
+         put-graph
+         read-graph
+         sparql-query
+         sparql-update)
 
 ; Private functions
 
@@ -41,26 +43,25 @@
         metadata-jsonld (json/generate-string metadata {:escape-non-ascii true})
         metadata-turtle (rdf/graph->string (rdf/string->graph metadata-jsonld
                                                               :rdf-syntax "JSON-LD"))]
-    (sparql-post-graph config metadata-turtle metadata-graph)))
+    (post-graph config metadata-turtle metadata-graph)))
 
-(defn- sparql-crud
+(defn- crud
   "Use SPARQL 1.1 Graph Store to manipulate graph named with @graph-uri
   using @method (:PUT :DELETE) and additional @params."
   [config method graph-uri & {:as params}]
-  {:pre [(contains? #{:DELETE :POST :PUT} method)]}
+  {:pre [(contains? #{:DELETE :GET :POST :PUT} method)]}
   (let [sparql-config (:sparql-endpoint config)
         {:keys [crud-url username password]} sparql-config
         method-fn (method {:DELETE client/delete
+                           :GET client/get
                            :POST client/post
                            :PUT client/put})
         base-params {:digest-auth [username password]
                      :query-params {"graph" graph-uri}}
-        _ (timbre/debug (str "Sending "
-                             (name method)
-                             " to "
-                             graph-uri
-                             " using endpoint"
-                             crud-url))]
+        _ (timbre/debug (format "Sending %s request to graph <%s> using the endpoint %s."
+                                (name method)
+                                graph-uri
+                                crud-url))]
     (method-fn crud-url (merge base-params params))))
 
 (defn- xml->zipper
@@ -79,6 +80,13 @@
   [config template-path & {:keys [data]}]
   (let [results (sparql-query config template-path :data data)]
     (rdf/string->graph results)))
+
+(defn delete-graph
+  "Use SPARQL 1.1 Graph Store to DELETE a graph named @graph-uri."
+  [config graph-uri] 
+  (crud config
+        :DELETE
+        graph-uri))
 
 (defn execute-query
   "Execute SPARQL @query-string on @endpoint. Optional arguments may specify @username
@@ -123,14 +131,46 @@
         sha1-hash (util/sha1 serialized-data)
         graph-to-load (util/append-to-uri source-graph sha1-hash)]
   (do (record-loaded-graph config graph-to-load)
-      (sparql-put-graph config serialized-data graph-to-load))
+      (put-graph config serialized-data graph-to-load))
       graph-to-load))
+
+(defn load-uri
+  "Use SPARQL 1.1 Update to dereference @uri and LOAD its contents
+  into named graph identified with @uri."
+  [config uri]
+  (do (sparql-update config
+                     ["tasks" "load_uri"]
+                     :data {:uri uri})
+      (record-loaded-graph config uri)))
 
 (defn ping-endpoint
   "Ping SPARQL endpoint from @config via HTTP HEAD to see if it is alive."
   [config]
   (let [endpoint-url (-> config :sparql-endpoint :query-url)]
     (client/head endpoint-url)))
+
+(defn post-graph
+  "Use SPARQL 1.1 Graph Store to POST @payload into a graph named @graph-uri."
+  [config payload graph-uri]
+  (crud config
+        :POST
+        graph-uri
+        :body payload))
+
+(defn put-graph
+  "Use SPARQL 1.1 Graph Store to PUT @payload into a graph named @graph-uri."
+  [config payload graph-uri]
+  (crud config
+        :PUT
+        graph-uri
+        :body payload))
+
+(defn read-graph
+  "Use SPARQL 1.1 Graph Store to GET the contents of the graph named @graph-uri."
+  [config graph-uri]
+  (:body (crud config
+               :GET
+                graph-uri)))
 
 (defn select-query
   "Execute SPARQL SELECT query rendered from @template-path with @data.
@@ -155,29 +195,6 @@
   (let [ask-result (sparql-ask config template-path :data data)]
     (or (assert-fn ask-result) (throw (Exception. error-message)))))
 
-(defn sparql-delete-graph
-  "Use SPARQL 1.1 Graph Store to DELETE a graph named @graph-uri."
-  [config graph-uri] 
-  (sparql-crud config
-               :DELETE
-               graph-uri))
-
-(defn sparql-post-graph
-  "Use SPARQL 1.1 Graph Store to POST @payload into a graph named @graph-uri."
-  [config payload graph-uri]
-  (sparql-crud config
-               :POST
-               graph-uri
-               :body payload))
-
-(defn sparql-put-graph
-  "Use SPARQL 1.1 Graph Store to PUT @payload into a graph named @graph-uri."
-  [config payload graph-uri]
-  (sparql-crud config
-               :PUT
-               graph-uri
-               :body payload))
-
 (defn sparql-query
   "Render @template using @data and execute the resulting SPARQL query." 
   [config template-path & {:keys [endpoint method data username password]
@@ -192,7 +209,7 @@
 
 (defn sparql-update
   "Render @template-path using @data and execute the resulting SPARQL update request."
-  [config template-path & {:keys [data username password]}]
+  [config template-path & {:keys [data]}]
   (let [sparql-config (:sparql-endpoint config)
         {:keys [update-url username password]} sparql-config]
     (sparql-query config

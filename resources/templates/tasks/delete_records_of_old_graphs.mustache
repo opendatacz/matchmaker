@@ -1,0 +1,17 @@
+{{!
+@param IRI metadata-graph
+@param Array<IRI> old-graphs
+}}
+
+WITH <{{metadata-graph}}>
+DELETE {
+  ?oldGraph ?p ?o .
+}
+WHERE {
+  VALUES ?oldGraph {
+    {{#old-graphs}}
+      <{{.}}>
+    {{/old-graphs}}
+  }
+  ?oldGraph ?p ?o .
+}

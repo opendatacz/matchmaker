@@ -6,7 +6,8 @@
 
 ; Public functions
 
-(declare join-file-path)
+(declare format-date-time
+         join-file-path)
 
 (defn append-to-uri
   "Appends @suffix to @uri, joined by a slash."
@@ -25,7 +26,7 @@
 (defn date-time-now
   "Returns xsd:dateTime for current time."
   []
-  (time-format/unparse (time-format/formatters :date-time) (now)))
+  (format-date-time (now)))
 
 (defn deep-merge
   "Deep merge maps.
@@ -41,6 +42,11 @@
    ^String msg]
   (println msg)
   (System/exit status))
+
+(defn format-date-time
+  "Encode @date-time as xsd:dateTime"
+  [^org.joda.time.DateTime date-time]
+  (time-format/unparse (time-format/formatters :date-time) date-time))
 
 (defn init-logger
   "Initialize logger"

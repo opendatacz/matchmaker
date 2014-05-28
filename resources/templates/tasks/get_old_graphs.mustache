@@ -1,0 +1,14 @@
+{{!
+@param IRI metadata-graph
+@param xsd:dateTime max-date-time
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT DISTINCT ?graph
+WHERE {
+  GRAPH <{{metadata-graph}}> {
+    ?graph dcterms:created ?created .
+    FILTER (?created < "{{max-date-time}}"^^xsd:dateTime)
+  }
+}
