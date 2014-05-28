@@ -10,8 +10,9 @@
                       :size 100}
              :sleep 1}
  :data {:source-graph ""}
- :sparql-endpoint {:query-url  ""
-                   :update-url ""
+ :sparql-endpoint {:query-url  "" ; SPARQL 1.1 Query endpoint
+                   :update-url "" ; SPARQL 1.1 Update endpoint
+                   :crud-url "" ; SPARQL 1.1 Graph Store endpoint
                    :username  ""
                    :password  ""}
  :matchmaker {:sparql {; Use to set penalty for pc:additionalObject compared to pc:mainObject.
