@@ -9,6 +9,7 @@
                  [org.clojure/data.zip "0.1.1"]
                  [slingshot "0.10.3"]
                  [clj-http "0.6.3"]
+                 [clj-time "0.7.0"]
                  [com.stuartsierra/component "0.2.1"]
                  [stencil "0.3.3"]
                  [incanter/incanter-core "1.5.4"]

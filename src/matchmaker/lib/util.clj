@@ -1,18 +1,31 @@
 (ns matchmaker.lib.util
-  (:require [taoensso.timbre :as timbre]))
+  (:require [taoensso.timbre :as timbre]
+            [clj-time.core :refer [now]]
+            [clj-time.format :as time-format])
+  (:import [java.security MessageDigest]))
 
 ; Public functions
 
 (declare join-file-path)
 
+(defn append-to-uri
+  "Appends @suffix to @uri, joined by a slash."
+  [uri suffix]
+  (str uri
+       (if-not (= (last uri) \/) \/)
+       suffix))
+
 (defn avg
   "Compute average of collection @coll of numbers."
   [coll]
-  (let [coll-count (count coll)]
-    (if (zero? coll-count)
-      0
-      (/ (apply + coll)
-         (count coll)))))
+  (when-not (empty? coll)
+    (/ (apply + coll)
+       (count coll))))
+
+(defn date-time-now
+  "Returns xsd:dateTime for current time."
+  []
+  (time-format/unparse (time-format/formatters :date-time) (now)))
 
 (defn deep-merge
   "Deep merge maps.
@@ -41,6 +54,13 @@
   "Joins a collection representing path to file."
   [& args]
   (clojure.string/join java.io.File/separator args))
+
+(defn sha1
+  "Computes SHA1 hash from @string."
+  [string]
+  (let [digest (.digest (MessageDigest/getInstance "SHA1") (.getBytes string))]
+    ;; Stolen from <https://gist.github.com/kisom/1698245#file-sha256-clj-L19>
+    (apply str (map #(format "%02x" (bit-and % 0xff)) digest))))
 
 (defn time-difference
   "Computes time difference (in seconds) from @start-time."
