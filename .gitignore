@@ -13,6 +13,7 @@ pom.xml.asc
 .lein-failures
 .lein-plugins
 .lein-repl-history
+.nrepl-port
 
 # Created by http://www.gitignore.io
 

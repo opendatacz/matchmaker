@@ -1,5 +1,6 @@
 (ns matchmaker.web.controllers
-  (:require [cemerick.url :refer [map->URL url]]
+  (:require [taoensso.timbre :as timbre]
+            [cemerick.url :refer [map->URL]]
             [ring.util.request :as request]
             [matchmaker.common.config :refer [config]]
             [matchmaker.web.views :as views]
@@ -29,17 +30,18 @@
                                                       :prev prev-link}))))
 
 (defn- match-resource
-  "Match resource identified via @uri by using @matchmaking-fn.
+  "Match resource by using @matchmaking-fn.
   Render results using @view-fn."
-  [request uri matchmaking-fn view-fn & {:keys [limit offset]}]
-  (let [matchmaker-results (matchmaking-fn config
-                                           uri
+  [params & {:keys [matchmaking-fn view-fn]}]
+  {:pre [(map? params)
+         (fn? matchmaking-fn)
+         (fn? view-fn)]}
+  (let [{:keys [limit offset request-url uri]} params
+        matchmaker-results (matchmaking-fn config
+                                           uri 
                                            :limit limit
                                            :offset offset)
         results-size (count matchmaker-results)
-        request-url (-> request
-                        request/request-url
-                        url)
         base-url (map->URL (dissoc request-url :query))
         paging (get-paging request-url
                            :results-size results-size
@@ -48,43 +50,38 @@
     (view-fn uri
              matchmaker-results
              :base-url base-url
-             :paging paging)))
+             :paging paging
+             :limit limit)))
 
 ; Public functions
+
+(defmulti dispatch-to-matchmaker
+  "@source is the label of the resource type provided
+  @target is the label of the resource to match to"
+  (fn [params] ; Destructuring params directly in fn doesn't work. Why?
+    (let [{:keys [source target]} params] [source target])))
+
+(defmethod dispatch-to-matchmaker ["business-entity" "contract"]
+  [params]
+  (match-resource params
+                  :matchmaking-fn sparql-matchmaker/business-entity-to-contract-exact-cpv
+                  :view-fn views/match-business-entity-to-contract))
+
+(defmethod dispatch-to-matchmaker ["contract" "business-entity"]
+  [params]
+  (match-resource params
+                  :matchmaking-fn sparql-matchmaker/contract-to-business-entity-exact-cpv
+                  :view-fn views/match-contract-to-business-entity))
+
+(defmethod dispatch-to-matchmaker ["contract" "contract"]
+  [params]
+  (match-resource params
+                  :matchmaking-fn sparql-matchmaker/contract-to-contract-expand-to-narrower-cpv
+                  :view-fn views/match-contract-to-contract))
 
 (defn home
   []
   (views/home))
-
-(defn match-business-entity-to-contract
-  "Match business entity identified via @uri to relevant public contracts."
-  [request uri & {:keys [limit offset]}]
-  (match-resource request
-                  uri
-                  sparql-matchmaker/business-entity-to-contract-exact-cpv
-                  views/match-business-entity-to-contract
-                  :limit limit
-                  :offset offset))
-
-(defn match-contract-to-business-entity
-  "Match public contract identified via @uri to relevant suppliers."
-  [request uri & {:keys [limit offset]}]
-  (match-resource request
-                  uri
-                  sparql-matchmaker/contract-to-business-entity-exact-cpv
-                  views/match-contract-to-business-entity
-                  :limit limit
-                  :offset offset))
-
-(defn match-contract-to-contract
-  "Match public contract identifier via @uri to similar contracts."
-  [request uri & {:keys [limit offset]}]
-  (match-resource request
-                  uri
-                  sparql-matchmaker/contract-to-contract-expand-to-narrower-cpv
-                  views/match-contract-to-contract
-                  :limit limit
-                  :offset offset))
 
 (defn not-found
   []

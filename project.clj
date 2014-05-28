@@ -19,7 +19,8 @@
                  [com.cemerick/url "0.1.1"]
                  [ring "1.2.2"]
                  [compojure "1.1.6"]
-                 [ring/ring-json "0.2.0"]]
+                 [ring/ring-json "0.2.0"]
+                 [liberator "0.11.0"]]
   ;:main matchmaker.cli
   :plugins [[speclj "2.5.0"]
             [lein-ring "0.8.10"]]
