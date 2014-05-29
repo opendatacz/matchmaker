@@ -4,7 +4,7 @@
             [ring.util.request :as request]
             [matchmaker.common.config :refer [config]]
             [matchmaker.web.views :as views]
-            [matchmaker.core.sparql :as sparql-matchmaker]))
+            [matchmaker.core.sparql :as sparql-match]))
 
 ; Private functions
 
@@ -32,15 +32,18 @@
 (defn- match-resource
   "Match resource by using @matchmaking-fn.
   Render results using @view-fn."
-  [params & {:keys [matchmaking-fn view-fn]}]
+  [params & {:keys [resource-key template view-fn]}]
   {:pre [(map? params)
-         (fn? matchmaking-fn)
+         (keyword? resource-key)
+         (vector? template)
          (fn? view-fn)]}
-  (let [{:keys [limit offset request-url uri]} params
-        matchmaker-results (matchmaking-fn config
-                                           uri 
-                                           :limit limit
-                                           :offset offset)
+  (let [{:keys [limit matched-resource-graph offset request-url uri]} params
+        matchmaker-results (sparql-match/match-resource config
+                                                        template 
+                                                        :data {:limit limit
+                                                               :matched-resource-graph matched-resource-graph
+                                                               :offset offset
+                                                               resource-key uri})
         results-size (count matchmaker-results)
         base-url (map->URL (dissoc request-url :query))
         paging (get-paging request-url
@@ -64,19 +67,22 @@
 (defmethod dispatch-to-matchmaker ["business-entity" "contract"]
   [params]
   (match-resource params
-                  :matchmaking-fn sparql-matchmaker/business-entity-to-contract-exact-cpv
+                  :resource-key :business-entity
+                  :template ["matchmaker" "sparql" "business_entity" "to" "contract" "exact_cpv"]
                   :view-fn views/match-business-entity-to-contract))
 
 (defmethod dispatch-to-matchmaker ["contract" "business-entity"]
   [params]
   (match-resource params
-                  :matchmaking-fn sparql-matchmaker/contract-to-business-entity-exact-cpv
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract" "to" "business_entity" "exact_cpv"]
                   :view-fn views/match-contract-to-business-entity))
 
 (defmethod dispatch-to-matchmaker ["contract" "contract"]
   [params]
   (match-resource params
-                  :matchmaking-fn sparql-matchmaker/contract-to-contract-expand-to-narrower-cpv
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract" "to" "contract" "expand_to_narrower_cpv"]
                   :view-fn views/match-contract-to-contract))
 
 (defn home

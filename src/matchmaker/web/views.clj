@@ -1,5 +1,6 @@
 (ns matchmaker.web.views
-  (:require [matchmaker.lib.template :refer [render-template]]
+  (:require [taoensso.timbre :as timbre]
+            [matchmaker.lib.template :refer [render-template]]
             [liberator.representation :refer [render-map-generic]]
             [cheshire.core :as json]))
 
@@ -23,7 +24,7 @@
          (map? additional-mappings)
          (string? match-type)]}
   (let [matches (->> matchmaker-results
-                     (map #(transform-match % additional-mappings match-type))
+                     ;(map #(transform-match % additional-mappings match-type))
                      (sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
                      reverse)
         search-action-results (wrap-in-search-action uri matches paging limit)
@@ -60,11 +61,6 @@
      "schema:result" results}))
 
 ; Public functions
-
-; Extend Liberator's multimethod for rendering maps to cover JSON-LD
-(defmethod render-map-generic "application/ld+json"
-  [data context]
-  (json/generate-string data)) 
 
 (defn home
   "Home page view"
@@ -105,3 +101,9 @@
                     :match-type "pc:Contract"
                     :limit limit
                     :paging paging)))
+
+; Extend Liberator's multimethod for rendering maps to cover JSON-LD
+(defmethod render-map-generic "application/ld+json"
+  [data context]
+  (json/generate-string data)) 
+

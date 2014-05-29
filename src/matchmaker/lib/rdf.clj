@@ -1,5 +1,4 @@
 (ns matchmaker.lib.rdf
-  (:require [clojure.set :refer [union]])
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
            [com.github.jsonldjava.jena JenaJSONLD]))
 

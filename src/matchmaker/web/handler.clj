@@ -17,8 +17,16 @@
             [matchmaker.lib.sparql :as sparql]
             [matchmaker.web.controllers :as controllers]))
 
+(declare load-rdf)
+
 ; Order of execution matters and `declare` doesn't help when macros are at play.
 (defonce api-endpoint (str "/" (get-in config [:api :version])))
+
+; Private vars
+
+(def {^:private true} class-mappings
+  {"business-entity" "gr:BusinessEntity"
+   "contract" "pc:Contract"})
 
 ; Private functions
 
@@ -39,12 +47,30 @@
      :syntax syntax
      :uri uri}))
 
-(defn- parse-data
+(defn- load-data
+  "If provided, parse and load data from payload or dereferenceable URI."
   [ctx]
-  (when (and (= :post (get-in ctx [:request :request-method]))
-             (every? (complement nil?) (select-keys ctx [:data :syntax])))
-    (let [source-graph (sparql/load-rdf-data (:data ctx) (:syntax ctx))]
-      [false {:source-graph source-graph}])))
+  (let [external-uri (:external-uri ctx)]
+    (cond (and (= :post (get-in ctx [:request :request-method]))
+              (every? (complement nil?) (select-keys ctx [:data :syntax])))
+              (load-rdf ctx)
+          ((complement nil?) external-uri)
+              {:matched-resource-graph (sparql/load-uri config external-uri)
+               :uri external-uri}
+          :else false)))
+
+(defn- load-rdf
+  "Load RDF data from payload into a new source graph."
+  [ctx]
+  (let [matched-resource-graph (sparql/load-rdf-data config
+                                                     (:data ctx)
+                                                     :rdf-syntax (:syntax ctx))
+        uri (sparql/get-matched-resource config
+                                         :graph-uri matched-resource-graph
+                                         :class-curie (get class-mappings
+                                                           (get-in ctx [:request :route-params :source])))]
+    {:matched-resource-graph matched-resource-graph
+     :uri uri}))
 
 ; Public functions
 
@@ -64,7 +90,7 @@
                         (merge match-params
                                {:source source
                                 :target target})]))
-  :malformed? (fn [ctx] (parse-data ctx))
+  :malformed? (fn [ctx] (load-data ctx))
   :handle-ok (fn [ctx] (controllers/dispatch-to-matchmaker ctx)))
 
 (defroutes api-routes
