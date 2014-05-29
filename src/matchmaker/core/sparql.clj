@@ -7,10 +7,9 @@
   "Matches resource using SPARQL query generated from @template-path by using @data."
   [config template-path & {:keys [data]
                            :or {data {}}}]
-  (let [additional-object-inhibition (-> config :matchmaker :sparql :additional-object-inhibition)
-        cpv-graph (-> config :matchmaker :sparql :cpv-graph)
-        additional-data {:additional-object-inhibition additional-object-inhibition
-                         :cpv-graph cpv-graph}]
+  (let [sparql-config (get-in config [:matchmaker :sparql])
+        additional-data (select-keys sparql-config [:additional-object-inhibition
+                                                    :cpv-graph])]
     (sparql/select-query config
                          template-path
                          :data (merge data additional-data))))

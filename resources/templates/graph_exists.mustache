@@ -1,0 +1,10 @@
+{{!
+@param IRI graph-uri
+}}
+
+ASK
+WHERE {
+  GRAPH <{{graph-uri}}> {
+    [] ?p [] .
+  }
+}
