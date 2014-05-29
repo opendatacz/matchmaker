@@ -1,4 +1,5 @@
 (ns matchmaker.lib.rdf
+  (:require [clojure.set :refer [union]])
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
            [com.github.jsonldjava.jena JenaJSONLD]))
 
@@ -6,16 +7,10 @@
 
 ; Private vars
 
-(def ^{:private true}
+(defonce ^{:private true}
   rdf-syntax-names-mappings
   {"TURTLE" #{"n3" "ttl" "turtle"}
    "JSON-LD" #{"jsonld" "json-ld"}})
-
-; Public vars
-
-(def ^{:doc "Set of available RDF serialization syntaxes."}
-      syntax-available? #{"TURTLE" 
-                          "JSON-LD"})
 
 ; Public functions
 
@@ -33,11 +28,23 @@
       (first canonical-syntax-name)
       (throw (IllegalArgumentException. (format "Invalid RDF syntax: %s" rdf-syntax))))))
 
+(defn convert-syntax
+  "Convert RDF @string from @input-syntax to @output-syntax."
+  [string & {:keys [input-syntax output-syntax]
+             :or {input-syntax "TURTLE"
+                  output-syntax "TURTLE"}}]
+  (let [canonical-input-syntax (canonicalize-rdf-syntax-name input-syntax)
+        canonical-output-syntax (canonicalize-rdf-syntax-name output-syntax)]
+    (if (= canonical-input-syntax canonical-output-syntax)
+        string
+        (-> string
+            (string->graph :rdf-syntax canonical-input-syntax)
+            (graph->string :rdf-syntax canonical-output-syntax)))))
+
 (defn graph->string
   "Write RDF @graph to string serialized in @rdf-syntax (defaults to Turtle)."
   [graph & {:keys [rdf-syntax]
             :or {rdf-syntax "TURTLE"}}]
-  {:pre [(syntax-available? rdf-syntax)]}
   (let [canonical-rdf-syntax-name (canonicalize-rdf-syntax-name rdf-syntax)
         output (java.io.ByteArrayOutputStream.)
         _ (.write graph output canonical-rdf-syntax-name)]
@@ -47,7 +54,6 @@
   "Read @string containing RDF serialized in @rdf-syntax (defaults to Turtle) into RDF graph."
   [string & {:keys [rdf-syntax]
              :or {rdf-syntax "TURTLE"}}]
-  {:pre [(syntax-available? rdf-syntax)]}
   ; TODO: Is adding "UTF-8" to .getBytes needed?
   (let [canonical-rdf-syntax-name (canonicalize-rdf-syntax-name rdf-syntax)
         input-stream (java.io.ByteArrayInputStream. (.getBytes string))]

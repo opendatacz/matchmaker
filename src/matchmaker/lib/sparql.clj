@@ -126,8 +126,7 @@
         rdf-syntax-name (rdf/canonicalize-rdf-syntax-name rdf-syntax)
         serialized-data (case rdf-syntax-name
                               "TURTLE" data
-                              (rdf/graph->string (rdf/string->graph data
-                                                                    :rdf-syntax rdf-syntax-name)))
+                              (rdf/convert-syntax data :input-syntax rdf-syntax-name))
         sha1-hash (util/sha1 serialized-data)
         graph-to-load (util/append-to-uri source-graph sha1-hash)]
   (do (record-loaded-graph config graph-to-load)
