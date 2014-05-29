@@ -50,14 +50,16 @@
 (defn- load-data
   "If provided, parse and load data from payload or dereferenceable URI."
   [ctx]
-  (let [external-uri (:external-uri ctx)]
+  (let [external-uri (:external-uri ctx)
+        source-graph (get-in config [:data :source-graph])]
     (cond (and (= :post (get-in ctx [:request :request-method]))
               (every? (complement nil?) (select-keys ctx [:data :syntax])))
               (load-rdf ctx)
           ((complement nil?) external-uri)
               {:matched-resource-graph (sparql/load-uri config external-uri)
                :uri external-uri}
-          :else false)))
+          :else
+              {:matched-resource-graph source-graph})))
 
 (defn- load-rdf
   "Load RDF data from payload into a new source graph."

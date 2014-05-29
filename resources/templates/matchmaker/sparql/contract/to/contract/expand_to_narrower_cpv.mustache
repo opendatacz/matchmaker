@@ -1,5 +1,6 @@
 {{!
 @param IRI contract
+@param IRI matched-resource-graph
 @param IRI source-graph
 @param IRI cpv-graph
 @param int additional-object-inhibition
@@ -12,7 +13,7 @@
 {
   SELECT DISTINCT ?cpvObject ?inScoreModifier 
   WHERE {
-    GRAPH <{{source-graph}}> {
+    GRAPH <{{matched-resource-graph}}> {
       {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
       <{{contract}}> ?objectProperty ?sourceObject .
     }

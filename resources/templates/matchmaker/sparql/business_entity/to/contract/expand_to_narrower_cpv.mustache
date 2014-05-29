@@ -1,5 +1,6 @@
 {{!
 @param IRI business-entity
+@param IRI matched-resource-graph
 @param IRI source-graph
 @param IRI cpv-graph
 @param int additional-object-inhibition
@@ -9,7 +10,7 @@
 
 {{> templates/matchmaker/sparql/business_entity/partials/cpv_query_head.mustache}}
 
-GRAPH <{{source-graph}}> {
+GRAPH <{{matched-resource-graph}}> {
   {{> templates/matchmaker/sparql/business_entity/partials/bidder_property.mustache}}
   {{> templates/matchmaker/sparql/business_entity/partials/tender_property.mustache}}
   {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
