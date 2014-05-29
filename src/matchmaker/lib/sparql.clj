@@ -15,6 +15,8 @@
          post-graph
          put-graph
          read-graph
+         select-query
+         sparql-ask
          sparql-query
          sparql-update)
 

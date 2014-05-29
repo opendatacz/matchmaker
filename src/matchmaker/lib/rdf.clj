@@ -2,6 +2,8 @@
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
            [com.github.jsonldjava.jena JenaJSONLD]))
 
+(declare graph->string string->graph)
+
 (JenaJSONLD/init) ; Initialization of the JSON-LD library
 
 ; Private vars

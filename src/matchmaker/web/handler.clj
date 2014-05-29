@@ -24,7 +24,7 @@
 
 ; Private vars
 
-(def {^:private true} class-mappings
+(def ^{:private true} class-mappings
   {"business-entity" "gr:BusinessEntity"
    "contract" "pc:Contract"})
 
@@ -54,12 +54,12 @@
         source-graph (get-in config [:data :source-graph])]
     (cond (and (= :post (get-in ctx [:request :request-method]))
               (every? (complement nil?) (select-keys ctx [:data :syntax])))
-              (load-rdf ctx)
+              [false (load-rdf ctx)]
           ((complement nil?) external-uri)
-              {:matched-resource-graph (sparql/load-uri config external-uri)
-               :uri external-uri}
+              [false {:matched-resource-graph (sparql/load-uri config external-uri)
+                      :uri external-uri}]
           :else
-              {:matched-resource-graph source-graph})))
+              [false {:matched-resource-graph source-graph}])))
 
 (defn- load-rdf
   "Load RDF data from payload into a new source graph."
