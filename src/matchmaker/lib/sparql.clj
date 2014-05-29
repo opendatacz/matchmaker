@@ -20,6 +20,14 @@
 
 ; Private functions
 
+(defn- generate-graph-uri
+  "Generates an URI for named graph based on SHA1 hash
+  of the provided @data."
+  [config data]
+  (let [source-graph (get-in config [:data :source-graph])
+        sha1-hash (util/sha1 data)]
+    (util/append-to-uri source-graph sha1-hash)))
+
 (defn- get-binding
   "Return SPARQL binding from @sparql-result for @sparql-variable"
   [sparql-variable sparql-result]
@@ -117,30 +125,50 @@
         (timbre/error body)
         (throw+))))) ;; TODO: Needs better HTTP error handling
 
+(defn get-matched-resource
+  "Returns a single instance of given @class from @graph-uri."
+  [config & {:keys [class-curie graph-uri]}]
+  ;{:post [(= (count %) 1)]} ; There needs to be exactly 1 resource of given @class.
+  (-> (select-query config
+                    ["get_matched_resource"]
+                    :data {:class-curie class-curie
+                          :graph-uri graph-uri})
+      first
+      :resource))
+
+(defn graph-exists?
+  "Tests if graph named @graph-uri exists in the associated SPARQL endpoint."
+  [config graph-uri]
+  (sparql-ask config
+              ["graph_exists"]
+              :data {:graph-uri graph-uri}))
+
 (defn load-rdf-data
   "Loads RDF @data serialized in @rdf-syntax (default is Turtle)
   into a new named graph. Returns the URI of the new graph."
   [config data & {:keys [rdf-syntax]
                   :or {rdf-syntax "TURTLE"}}]
-  (let [{:keys [metadata-graph source-graph]} (:data config) 
+  (let [metadata-graph (get-in config [:data :metadata-graph]) 
         rdf-syntax-name (rdf/canonicalize-rdf-syntax-name rdf-syntax)
         serialized-data (case rdf-syntax-name
                               "TURTLE" data
                               (rdf/convert-syntax data :input-syntax rdf-syntax-name))
-        sha1-hash (util/sha1 serialized-data)
-        graph-to-load (util/append-to-uri source-graph sha1-hash)]
-  (do (record-loaded-graph config graph-to-load)
-      (put-graph config serialized-data graph-to-load))
-      graph-to-load))
+        graph-to-load (generate-graph-uri serialized-data)]
+  (if-not (graph-exists? graph-to-load)
+    (do (record-loaded-graph config graph-to-load)
+        (put-graph config serialized-data graph-to-load))
+        graph-to-load)
+    graph-to-load))
 
 (defn load-uri
   "Use SPARQL 1.1 Update to dereference @uri and LOAD its contents
   into named graph identified with @uri."
   [config uri]
-  (do (sparql-update config
-                     ["tasks" "load_uri"]
-                     :data {:uri uri})
-      (record-loaded-graph config uri)))
+  (when-not (graph-exists? uri)
+    (do (sparql-update config
+                      ["load_uri"]
+                      :data {:uri uri})
+        (record-loaded-graph config uri))))
 
 (defn ping-endpoint
   "Ping SPARQL endpoint from @config via HTTP HEAD to see if it is alive."
