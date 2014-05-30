@@ -25,6 +25,7 @@
 GRAPH <{{source-graph}}> {
   {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
   ?match ?objectProperty ?cpvObject .
+  FILTER (!sameTerm(?match, <{{contract}}>))
 }
       
 {{> templates/matchmaker/sparql/contract/to/contract/partials/cpv_query_tail.mustache}}
