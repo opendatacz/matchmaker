@@ -24,8 +24,9 @@
          (map? additional-mappings)
          (string? match-type)]}
   (let [matches (->> matchmaker-results
+                     ; Since ?score is not projected correctly in Virtuoso 7.1, this is commented out.
                      ;(map #(transform-match % additional-mappings match-type))
-                     (sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
+                     ;(sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
                      reverse)
         search-action-results (wrap-in-search-action uri matches paging limit)
         jsonld-context-uri (str (assoc base-url :path "/jsonld_contexts/matchmaker_results.jsonld"))]
@@ -61,6 +62,14 @@
      "schema:result" results}))
 
 ; Public functions
+
+(defn error
+  "Render JSON-LD description of the error."
+  [ctx]
+  (->json-ld {"@type" "StatusCodeDescription"
+              "statusCode" (:status ctx)
+              "description" (:error-msg ctx)} 
+              "http://www.w3.org/ns/hydra/context.jsonld"))
 
 (defn home
   "Home page view"
@@ -106,4 +115,3 @@
 (defmethod render-map-generic "application/ld+json"
   [data context]
   (json/generate-string data)) 
-

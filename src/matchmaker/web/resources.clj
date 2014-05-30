@@ -1,10 +1,13 @@
 (ns matchmaker.web.resources
-  (:require [matchmaker.common.config :refer [config]]
+  (:require [taoensso.timbre :as timbre]
+            [matchmaker.common.config :refer [config]]
+            [matchmaker.lib.util :as util]
             [cemerick.url :refer [map->URL url]]
             [ring.util.request :refer [request-url]]
             [liberator.core :refer [defresource]]
             [matchmaker.lib.sparql :as sparql]
-            [matchmaker.web.controllers :as controllers]))
+            [matchmaker.web.controllers :as controllers]
+            [matchmaker.web.views :as views]))
 
 (declare load-rdf)
 
@@ -67,6 +70,19 @@
     {:graph-uri matched-resource-graph
      :uri uri}))
 
+(defn- malformed?
+  "Check whether GET params are malformed."
+  [ctx]
+  (let [match-params (extract-match-params (:request ctx))
+        {:keys [data limit syntax uri]} match-params]
+    (cond ((complement pos?) (util/get-int limit))
+            [true {:error-msg (format "Limit must be a positive integer. Limit provided: %s" limit)}]
+          (and ((complement nil?) data) (nil? syntax))
+            [true {:error-msg "Syntax needs to be provided when posting data."}]
+          (and (= :get (get-in ctx [:request :request-method])) (nil? uri))
+            [true {:error-msg "URI of the matched resource must be provided."}] 
+          :else [false match-params])))
+
 ;; ----- Resources -----
 
 (defresource match-resource
@@ -74,13 +90,12 @@
   :allowed-methods [:get :post]
   :exists? (fn [ctx] (let [{:keys [source target]} (get-in ctx [:request :route-params])
                            ; All dispatch values implemented by the dispatch-to-matchmaker multimethod. 
-                           match-combinations (-> controllers/dispatch-to-matchmaker methods keys set)
-                           match-params (extract-match-params (:request ctx))]
+                           match-combinations (-> controllers/dispatch-to-matchmaker methods keys set)]
                        [(contains? match-combinations [source target])
-                        (merge match-params
-                               {:source source
-                                :target target})]))
+                        {:source source
+                         :target target}]))
+  :malformed? (fn [ctx] (malformed? ctx))
   :post! (fn [ctx] (load-data ctx))
   :post-redirect? (fn [ctx] {:location (create-redirect-url ctx)})
+  :handle-malformed (fn [ctx] (views/error ctx))
   :handle-ok (fn [ctx] (controllers/dispatch-to-matchmaker ctx)))
-

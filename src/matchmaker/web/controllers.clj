@@ -3,24 +3,18 @@
             [cemerick.url :refer [map->URL]]
             [ring.util.request :as request]
             [matchmaker.common.config :refer [config]]
+            [matchmaker.lib.util :as util]
             [matchmaker.web.views :as views]
             [matchmaker.core.sparql :as sparql-match]))
 
 ; Private functions
 
-(defn- get-int
-  "Converts @string to integer.
-  Returns nil if @string is not a numeric string."
-  [string]
-  (try (Integer/parseInt string)
-       (catch NumberFormatException _)))
-
 (defn- get-paging
   "Get paging links for @request-url based on @results-size, @limit and @offset used
   with the current request."
   [request-url & {:keys [results-size limit offset]}]
-  (let [limit-int (get-int limit)
-        offset-int (get-int offset)
+  (let [limit-int (util/get-int limit)
+        offset-int (util/get-int offset)
         base-params {"limit" limit-int}
         next-link-params (assoc base-params "offset" (+ offset-int limit-int))
         prev-link-params (assoc base-params "offset" (- offset-int limit-int))
@@ -37,13 +31,14 @@
          (keyword? resource-key)
          (vector? template)
          (fn? view-fn)]}
-  (let [{:keys [limit matched-resource-graph offset request-url uri]} params
-        matchmaker-results (sparql-match/match-resource config
-                                                        template 
-                                                        :data {:limit limit
-                                                               :matched-resource-graph matched-resource-graph
-                                                               :offset offset
-                                                               resource-key uri})
+  (let [{:keys [graph-uri limit offset request-url uri]} params
+        matchmaker-results (sparql-match/match-resource
+                             config
+                             template 
+                             :data {:limit limit
+                                    :matched-resource-graph graph-uri 
+                                    :offset offset
+                                    resource-key uri})
         results-size (count matchmaker-results)
         base-url (map->URL (dissoc request-url :query))
         paging (get-paging request-url

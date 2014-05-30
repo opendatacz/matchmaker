@@ -155,8 +155,8 @@
         serialized-data (case rdf-syntax-name
                               "TURTLE" data
                               (rdf/convert-syntax data :input-syntax rdf-syntax-name))
-        graph-to-load (generate-graph-uri serialized-data)]
-  (if-not (graph-exists? graph-to-load)
+        graph-to-load (generate-graph-uri config serialized-data)]
+  (if-not (graph-exists? config graph-to-load)
     (do (record-loaded-graph config graph-to-load)
         (put-graph config serialized-data graph-to-load))
         graph-to-load)

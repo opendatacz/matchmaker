@@ -10,6 +10,7 @@
             [ring.middleware.not-modified :refer [wrap-not-modified]]
             [ring.util.response :refer [redirect]]
             [matchmaker.lib.util :refer [init-logger]]
+            [matchmaker.web.resources :as resources]
             [matchmaker.web.controllers :as controllers]))
 
 ; Order of execution matters and `declare` doesn't help when macros are at play.
@@ -27,7 +28,7 @@
   (GET api-endpoint [] (controllers/home))
   (context api-endpoint []
            (context "/match" []
-                    (ANY "/:source/to/:target" [] match-resource)))
+                    (ANY "/:source/to/:target" [] resources/match-resource)))
   (route/not-found (controllers/not-found)))
 
 ; Public vars

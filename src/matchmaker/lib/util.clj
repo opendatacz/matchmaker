@@ -48,6 +48,13 @@
   [^org.joda.time.DateTime date-time]
   (time-format/unparse (time-format/formatters :date-time) date-time))
 
+(defn get-int
+  "Converts @string to integer.
+  Returns nil if @string is not a numeric string."
+  [string]
+  (try (Integer/parseInt string)
+       (catch NumberFormatException _)))
+
 (defn init-logger
   "Initialize logger"
   []
