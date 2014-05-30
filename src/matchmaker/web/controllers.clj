@@ -80,10 +80,6 @@
                   :template ["matchmaker" "sparql" "contract" "to" "contract" "expand_to_narrower_cpv"]
                   :view-fn views/match-contract-to-contract))
 
-(defn home
-  []
-  (views/home))
-
 (defn not-found
   []
   {:status 404

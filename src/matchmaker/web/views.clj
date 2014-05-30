@@ -6,12 +6,17 @@
 
 (declare transform-match wrap-in-search-action)
 
-; Private functions
+;; ----- Private vars -----
+
+(def ^{:private true} hydra-context "http://www.w3.org/ns/hydra/context.jsonld")
+
+;; ----- Private functions -----
 
 (defn- ->json-ld
   "Convert Clojure data structure @body into JSON-LD response with @jsonld-context-uri."
-  [body jsonld-context-uri]
-  (let [body-in-context (assoc body "@context" jsonld-context-uri)]
+  [body & {:keys [context]
+           :or {context hydra-context}}]
+  (let [body-in-context (assoc body "@context" context)]
     (json/generate-string body-in-context {:escape-non-ascii true})))
 
 (defn- match-resource
@@ -30,7 +35,7 @@
                      reverse)
         search-action-results (wrap-in-search-action uri matches paging limit)
         jsonld-context-uri (str (assoc base-url :path "/jsonld_contexts/matchmaker_results.jsonld"))]
-    (->json-ld search-action-results jsonld-context-uri)))
+    (->json-ld search-action-results :context jsonld-context-uri)))
 
 (defn- transform-match
   "Transform @match to JSON-LD-like structure using @key-mappings that map
@@ -66,15 +71,18 @@
 (defn error
   "Render JSON-LD description of the error."
   [ctx]
-  (->json-ld {"@type" "StatusCodeDescription"
+  (->json-ld {"@type" "Error"
               "statusCode" (:status ctx)
-              "description" (:error-msg ctx)} 
-              "http://www.w3.org/ns/hydra/context.jsonld"))
+              "description" (:error-msg ctx)})) 
 
 (defn home
   "Home page view"
   []
-  (render-template ["web" "home"]))
+  (->json-ld {"@type" "ApiDocumentation"
+              "title" {"@value" "Matchmaking web services"
+                       "@language" "en"}
+              "description" {"@value" "Matchmaking between relevent resources..."
+                             "@language" "en"}}))
 
 (defn match-business-entity-to-contract
   "JSON-LD view of @matchmaker-results containing potentially interesting contracts for business entity @uri."

@@ -73,17 +73,25 @@
 (defn- malformed?
   "Check whether GET params are malformed."
   [ctx]
-  (let [match-params (extract-match-params (:request ctx))
-        {:keys [data limit syntax uri]} match-params]
+  (let [request-method (get-in ctx [:request :request-method])
+        match-params (extract-match-params (:request ctx))
+        {:keys [data external-uri limit syntax uri]} match-params]
     (cond ((complement pos?) (util/get-int limit))
             [true {:error-msg (format "Limit must be a positive integer. Limit provided: %s" limit)}]
           (and ((complement nil?) data) (nil? syntax))
             [true {:error-msg "Syntax needs to be provided when posting data."}]
-          (and (= :get (get-in ctx [:request :request-method])) (nil? uri))
-            [true {:error-msg "URI of the matched resource must be provided."}] 
+          (and (= :get request-method) (nil? uri))
+            [true {:error-msg "URI of the matched resource must be provided."}]
+          (and (= :get request-method) ((complement nil?) external-uri))
+            [true {:error-msg "Requests loading external URI must be done using POST."}]
           :else [false match-params])))
 
 ;; ----- Resources -----
+
+(defresource home
+  :available-media-types ["application/ld+json"]
+  :allowed-methods [:get]
+  :handle-ok (fn [ctx] (views/home)))
 
 (defresource match-resource
   :available-media-types ["application/ld+json"]

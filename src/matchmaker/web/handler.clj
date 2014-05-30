@@ -25,7 +25,7 @@
 
 (defroutes api-routes
   (GET "/" [] (redirect api-endpoint))
-  (GET api-endpoint [] (controllers/home))
+  (GET api-endpoint [] resources/home)
   (context api-endpoint []
            (context "/match" []
                     (ANY "/:source/to/:target" [] resources/match-resource)))
