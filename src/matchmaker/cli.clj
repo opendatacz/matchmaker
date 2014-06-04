@@ -1,18 +1,19 @@
 (ns matchmaker.cli
   (:require [clojure.tools.cli :refer [parse-opts]]
-            [taoensso.timbre :as timbre]
-            [matchmaker.lib.util :refer [exit join-file-path]]
-            [matchmaker.common.config :refer [load-config]]
+            [matchmaker.lib.util :refer [exit init-logger]]
+            [matchmaker.system :as system]
+            [matchmaker.common.config :refer [->Config]]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.core :refer [format-results run-benchmark]]
             [matchmaker.core.sparql :as sparql-matchmaker]
-            [incanter.core :refer [view]])
-  (:gen-class))
+            [matchmaker.lib.sparql :as sparql]
+            [clojure.data.zip.xml :as zip-xml]
+            [matchmaker.lib.rdf :as rdf]
+            [matchmaker.lib.template :refer [render-sparql]]
+            [incanter.core :refer [save view]]
+            [com.stuartsierra.component :as component]))
 
-; Disable output to STDOUT
-(timbre/set-config! [:appenders :standard-out :enabled?] false)
-(timbre/set-config! [:appenders :spit :enabled?] true)
-(timbre/set-config! [:shared-appender-config :spit-filename] (join-file-path "log" "logger.log"))
+(init-logger)
 
 ; Private vars
 
@@ -24,7 +25,7 @@
 (def ^{:doc "Keyword to function lookup for matchmaking functions"
        :private true}
   matchmaking-fns
-  {:match-contract-basic-cpv sparql-matchmaker/match-contract-basic-cpv})
+  {:match-contract-exact-cpv sparql-matchmaker/contract-to-business-entity-exact-cpv})
 
 (def ^:private
   main-cli-options
@@ -63,9 +64,9 @@
 
 (defn- benchmark
   [matchmaking-fn-key]
-  (let [config (load-config "config.edn")
-        matchmaking-fn (resolve-matchmaking-fn matchmaking-fn-key)]
-    (run-benchmark config matchmaking-fn format-results)))
+  ;(let [matchmaking-fn (resolve-matchmaking-fn matchmaking-fn-key)]
+  ;  (run-benchmark config matchmaking-fn format-results)))
+  )
 
 ; Public functions
 
@@ -81,9 +82,27 @@
                          (exit 1 (str "Command not recognized. Available commands: " available-commands-list))))))
 
 (comment
-  (def config (load-config "config.edn"))
-  (def results (run-benchmark config sparql-matchmaker/match-contract-basic-cpv))
+  (def test-data (slurp (clojure.java.io/resource "example.ttl")))
+  (def sparql-endpoint (:sparql-endpoint @matchmaker.system/system))
+  (def graph-uri (sparql/load-rdf-data sparql-endpoint test-data))
+  (sparql/graph-exists? sparql-endpoint graph-uri)
+  
+  (def matchmaker-results (sparql-matchmaker/business-entity-to-contract-expand-to-narrower-cpv config
+                                                                                                "http://linked.opendata.cz/resource/business-entity/CZ60838744"))
+  (def matchmaker-results (sparql-matchmaker/contract-to-business-entity-exact-cpv config
+                                                                                   "http://linked.opendata.cz/resource/vestnikverejnychzakazek.cz/public-contract/231075-7302041031075"))
+  (def matchmaker-results (sparql-matchmaker/contract-to-contract-expand-to-narrower-cpv config
+                                                                            "http://linked.opendata.cz/resource/vestnikverejnychzakazek.cz/public-contract/231075-7302041031075"))
+  (println matchmaker-results)
 
-  (evaluate/compute-avg-rank-metrics config results)
-  (view (evaluate/top-n-curve-chart results))
+  (def benchmark-results (run-benchmark config sparql-matchmaker/contract-to-business-entity-exact-cpv))
+  (println benchmark-results)
+
+  (def benchmark-metrics (evaluate/compute-avg-rank-metrics config benchmark-results))
+  (println benchmark-metrics)
+  (view (evaluate/top-n-curve-chart benchmark-results))
+  (save (evaluate/top-n-curve-chart benchmark-results)
+        "diagrams/exact_CPV_min_1_main_CPV_min_3_additional_CPV.png"
+        :width 1000
+        :height 800)
   )

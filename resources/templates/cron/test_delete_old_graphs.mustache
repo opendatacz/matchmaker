@@ -1,15 +1,18 @@
 {{!
 @param IRI metadata-graph
 @param xsd:dateTime max-date-time
+TODO: For some reason, this is an inefficient query.
 }}
 
 {{> templates/prefixes.mustache}}
 
-SELECT DISTINCT ?graph
+ASK
 WHERE {
   GRAPH <{{metadata-graph}}> {
-    ?graph a sd:Graph ; 
-      dcterms:created ?created .
+    ?graph dcterms:created ?created .
     FILTER (xsd:dateTime(?created) < "{{max-date-time}}"^^xsd:dateTime)
+  }
+  GRAPH ?graph {
+    [] ?p [] .
   }
 }

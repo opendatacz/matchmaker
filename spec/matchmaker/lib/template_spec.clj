@@ -5,7 +5,7 @@
 
 (describe "render-template"
           (it "correctly renders basic template"
-              (should= (trim-newline (render-template ["render-template_basic"] :variable "variable"))
+              (should= (trim-newline (render-template ["render-template_basic"] :data {:variable "variable"}))
                        "variable"))
           (it "correctly includes a partial template"
               (should= (render-template ["render-template_includes_partial"])

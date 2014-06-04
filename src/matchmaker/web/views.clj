@@ -66,7 +66,7 @@
      "schema:query" uri
      "schema:result" results}))
 
-; Public functions
+;; ----- Public functions -----
 
 (defn error
   "Render JSON-LD description of the error."
@@ -81,7 +81,7 @@
   (->json-ld {"@type" "ApiDocumentation"
               "title" {"@value" "Matchmaking web services"
                        "@language" "en"}
-              "description" {"@value" "Matchmaking between relevent resources..."
+              "description" {"@value" "Matchmaking between relevant resources..."
                              "@language" "en"}}))
 
 (defn match-business-entity-to-contract
@@ -118,6 +118,11 @@
                     :match-type "pc:Contract"
                     :limit limit
                     :paging paging)))
+
+(defn not-found
+  []
+  (error {:status 404
+          :error-msg "Not found"}))
 
 ; Extend Liberator's multimethod for rendering maps to cover JSON-LD
 (defmethod render-map-generic "application/ld+json"

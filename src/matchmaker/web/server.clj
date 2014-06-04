@@ -1,6 +1,6 @@
-(ns matchmaker.web.handler
-  (:require [matchmaker.common.config :refer [config]]
-            [compojure.core :refer [ANY context defroutes GET]]
+(ns matchmaker.web.server
+  (:require [com.stuartsierra.component :as component]
+            [compojure.core :refer [ANY context defroutes GET routes]]
             [compojure.handler :as handler]
             [compojure.route :as route]
             ;[ring.middleware.json :as middleware]
@@ -11,31 +11,36 @@
             [ring.util.response :refer [redirect]]
             [matchmaker.lib.util :refer [init-logger]]
             [matchmaker.web.resources :as resources]
-            [matchmaker.web.controllers :as controllers]))
+            [matchmaker.web.views :as views]))
 
-; Order of execution matters and `declare` doesn't help when macros are at play.
-(defonce api-endpoint (str "/" (get-in config [:api :version])))
+;; ----- Private functions -----
 
-; Public functions
+(defn- setup-api-routes
+  "Setup API routes for an @api-endpoint."
+  [server api-endpoint]
+  (routes
+    (GET "/" [] (redirect api-endpoint)) 
+    (GET api-endpoint [] resources/home)
+    (context api-endpoint [] 
+            (context "/match" []
+                      (ANY "/:source/to/:target" [] (resources/match-resource server))))
+    (route/not-found (views/not-found))))
 
-(defn init
-  "Initialization before the API starts serving"
-  []
-  (init-logger))
-
-(defroutes api-routes
-  (GET "/" [] (redirect api-endpoint))
-  (GET api-endpoint [] resources/home)
-  (context api-endpoint []
-           (context "/match" []
-                    (ANY "/:source/to/:target" [] resources/match-resource)))
-  (route/not-found (controllers/not-found)))
-
-; Public vars
-
-(def app
-  (-> (handler/api api-routes)
+(defn- setup-app
+  "Setup app's web service using @server on @api-endpoint path."
+  [server api-endpoint]
+  (-> (handler/api (setup-api-routes server api-endpoint))
       (ignore-trailing-slash)
-      (wrap-resource "public") ; Serve static files from /resources/public/ in server root
+      (wrap-resource "public") ; Serve static files from /resources/public/ in the server's root.
       (wrap-content-type :mime-types {"jsonld" "application/ld+json"})
       (wrap-not-modified)))
+
+;; ----- Components -----
+
+(defrecord Server []
+  component/Lifecycle
+  (start [server] (init-logger)
+                  (let [api-endpoint (str "/" (get-in server [:config :api :version]))
+                        app (setup-app server api-endpoint)]
+                    (assoc server :app app)))
+  (stop [server] server))

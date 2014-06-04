@@ -1,5 +1,6 @@
 (ns matchmaker.lib.template
-  (:require [matchmaker.lib.util :refer [join-file-path]]
+  (:require [taoensso.timbre :as timbre]
+            [matchmaker.lib.util :refer [join-file-path]]
             [clojure.java.io :as io]
             [stencil.core :refer [render-file]]
             [stencil.loader :refer [set-cache]]))
@@ -29,10 +30,9 @@
 (defn render-sparql
   "Render SPARQL @template-path using @data with named graphs from config added automatically" 
   [config template-path & {:keys [data]}]
-  (let [source-graph (-> config :data :source-graph)
-        sample-graph (-> config :benchmark :sample :graph)
+  (let [source-graph (get-in config [:data :source-graph])
+        sample-graph (get-in config [:benchmark :sample :graph])
         merged-data (merge {:source-graph source-graph
                             :sample-graph sample-graph} data)]
-    (render-template
-     template-path
-     :data merged-data)))
+    (render-template template-path
+                     :data merged-data)))

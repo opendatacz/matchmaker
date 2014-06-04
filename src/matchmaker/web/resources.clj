@@ -1,6 +1,5 @@
 (ns matchmaker.web.resources
   (:require [taoensso.timbre :as timbre]
-            [matchmaker.common.config :refer [config]]
             [matchmaker.lib.util :as util]
             [cemerick.url :refer [map->URL url]]
             [ring.util.request :refer [request-url]]
@@ -45,25 +44,38 @@
                                       (select-keys ctx [:graph-uri :limit :uri])))]
     (str (assoc base-url :query query-params))))
 
+(defn- exists?
+  "Test if it's possible to match resources of the provided types."
+  [server ctx]
+  (let [{:keys [source target]} (get-in ctx [:request :route-params])
+        ; All dispatch values implemented by the dispatch-to-matchmaker multimethod. 
+        match-combinations (-> controllers/dispatch-to-matchmaker methods keys set)]
+    [(contains? match-combinations [source target])
+     {:graph-uri (get-in server [:sparql-endpoint :source-graph]) ; Default :graph-uri is :source-graph 
+      :server server ; Pass in reference to server component
+      :source source
+      :target target}]))
+
 (defn- load-data
   "If provided, parse and load data from payload or dereferenceable URI."
-  [ctx]
+  [server ctx]
   (let [external-uri (:external-uri ctx)
-        source-graph (get-in config [:data :source-graph])]
+        source-graph (get-in server [:sparql-endpoint :source-graph])]
     (cond (= :post (get-in ctx [:request :request-method]))
             (cond (every? (comp not nil? val) (select-keys ctx [:data :syntax]))
                     (load-rdf ctx)
                   ((complement nil?) external-uri)
-                    {:graph-uri (sparql/load-uri config external-uri)
+                    {:graph-uri (sparql/load-uri (:sparql-endpoint server) external-uri)
                      :uri external-uri}))))
 
 (defn- load-rdf
   "Load RDF data from payload into a new source graph."
-  [ctx]
-  (let [matched-resource-graph (sparql/load-rdf-data config
+  [server ctx]
+  (let [sparql-endpoint (:sparql-endpoint server)
+        matched-resource-graph (sparql/load-rdf-data sparql-endpoint
                                                      (:data ctx)
                                                      :rdf-syntax (:syntax ctx))
-        uri (sparql/get-matched-resource config
+        uri (sparql/get-matched-resource sparql-endpoint 
                                          :graph-uri matched-resource-graph
                                          :class-curie (get class-mappings
                                                            (get-in ctx [:request :route-params :source])))]
@@ -93,15 +105,10 @@
   :allowed-methods [:get]
   :handle-ok (fn [ctx] (views/home)))
 
-(defresource match-resource
+(defresource match-resource [server]
   :available-media-types ["application/ld+json"]
   :allowed-methods [:get :post]
-  :exists? (fn [ctx] (let [{:keys [source target]} (get-in ctx [:request :route-params])
-                           ; All dispatch values implemented by the dispatch-to-matchmaker multimethod. 
-                           match-combinations (-> controllers/dispatch-to-matchmaker methods keys set)]
-                       [(contains? match-combinations [source target])
-                        {:source source
-                         :target target}]))
+  :exists? (fn [ctx] (exists? server ctx)) 
   :malformed? (fn [ctx] (malformed? ctx))
   :post! (fn [ctx] (load-data ctx))
   :post-redirect? (fn [ctx] {:location (create-redirect-url ctx)})

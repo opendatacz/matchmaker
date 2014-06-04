@@ -25,13 +25,6 @@
   [config]
   (sparql/select-query config ["benchmark" "evaluate" "load_correct_matches"]))
 
-(defn- sparql-endpoint-alive?
-  "Raises an exception if SPARQL endpoint described in @config is not responding."
-  [config]
-  (let [sparql-endpoint-url (-> config :sparql-endpoint :query-url)]
-    (assert (sparql/ping-endpoint config)
-            (str "SPARQL endpoint <" sparql-endpoint-url "> is not responding."))))
-
 (defn- sufficient-data?
   "Raises an exception if SPARQL endpoint described in @config provides insufficient data for matchmaking."
   [config]
@@ -47,16 +40,15 @@
   ^{:doc "Setup and teardown a benchmark according to @config."}
   Benchmark [config]
   component/Lifecycle
-  (start [benchmark] (do (timbre/debug "Starting benchmark...")
-                         (sparql-endpoint-alive? config)
-                         (sufficient-data? config)
-                         (setup/load-contracts config)
-                         (setup/delete-awarded-tenders config)
-                         (assoc benchmark :correct-matches (load-correct-matches config))))
-  (stop [benchmark] (do (timbre/debug "Stopping benchmark...")
-                        (teardown/return-awarded-tenders config)
-                        (teardown/clear-graph config)
-                        benchmark)))
+  (start [benchmark] (timbre/debug "Starting benchmark...")
+                     (sufficient-data? config)
+                     (setup/load-contracts config)
+                     (setup/delete-awarded-tenders config)
+                     (assoc benchmark :correct-matches (load-correct-matches config)))
+  (stop [benchmark] (timbre/debug "Stopping benchmark...")
+                    (teardown/return-awarded-tenders config)
+                    (teardown/clear-graph config)
+                    benchmark))
 
 ; Public functions
 
@@ -70,9 +62,7 @@
   setting up and tearing down whole benchmark.
   May run multiple times, if @number-of-times is provided."
   ([config matchmaking-fn]
-    (let [benchmark (component/start (->Benchmark config))
-          _ (timbre/debug "DEBUG DEBUG DEBUG")
-          _ (timbre/debug (:correct-matches benchmark))]
+    (let [benchmark (component/start (->Benchmark config))]
       (try
         (evaluate/evaluate-rank config matchmaking-fn (:correct-matches benchmark))
         (finally (component/stop benchmark)))))

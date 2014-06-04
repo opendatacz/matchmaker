@@ -1,0 +1,12 @@
+{{!
+@param IRI metadata-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT DISTINCT ?graph
+WHERE {
+  GRAPH <{{metadata-graph}}> {
+    ?graph a sd:Graph .
+  }
+}

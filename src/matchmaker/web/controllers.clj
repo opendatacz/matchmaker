@@ -2,7 +2,6 @@
   (:require [taoensso.timbre :as timbre]
             [cemerick.url :refer [map->URL]]
             [ring.util.request :as request]
-            [matchmaker.common.config :refer [config]]
             [matchmaker.lib.util :as util]
             [matchmaker.web.views :as views]
             [matchmaker.core.sparql :as sparql-match]))
@@ -18,8 +17,10 @@
         base-params {"limit" limit-int}
         next-link-params (assoc base-params "offset" (+ offset-int limit-int))
         prev-link-params (assoc base-params "offset" (- offset-int limit-int))
-        next-link (if (= results-size limit-int) (str (update-in request-url [:query] merge next-link-params)))
-        prev-link (if (>= offset-int limit-int) (str (update-in request-url [:query] merge prev-link-params)))]
+        next-link (when (= results-size limit-int)
+                        (str (update-in request-url [:query] merge next-link-params)))
+        prev-link (when (>= offset-int limit-int)
+                        (str (update-in request-url [:query] merge prev-link-params)))]
     (into {} (filter (comp (complement nil?) second) {:next next-link
                                                       :prev prev-link}))))
 
@@ -32,8 +33,9 @@
          (vector? template)
          (fn? view-fn)]}
   (let [{:keys [graph-uri limit offset request-url uri]} params
+        sparql-endpoint (get-in params [:server :sparql-endpoint])
         matchmaker-results (sparql-match/match-resource
-                             config
+                             sparql-endpoint 
                              template 
                              :data {:limit limit
                                     :matched-resource-graph graph-uri 
@@ -79,8 +81,3 @@
                   :resource-key :contract
                   :template ["matchmaker" "sparql" "contract" "to" "contract" "expand_to_narrower_cpv"]
                   :view-fn views/match-contract-to-contract))
-
-(defn not-found
-  []
-  {:status 404
-   :body "Not found"})

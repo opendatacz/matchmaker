@@ -1,7 +1,8 @@
 (ns matchmaker.lib.util
   (:require [taoensso.timbre :as timbre]
             [clj-time.core :refer [now]]
-            [clj-time.format :as time-format])
+            [clj-time.format :as time-format]
+            [cheshire.core :as json])
   (:import [java.security MessageDigest]))
 
 ; Public functions
@@ -67,6 +68,14 @@
   "Joins a collection representing path to file."
   [& args]
   (clojure.string/join java.io.File/separator args))
+
+(defn load-jsonld-context
+  "Loads JSON-LD context from @filename."
+  [filename]
+  (-> (join-file-path "public" "jsonld_contexts" filename)
+      clojure.java.io/resource
+      clojure.java.io/reader
+      json/parse-stream)) 
 
 (defn sha1
   "Computes SHA1 hash from @string."
