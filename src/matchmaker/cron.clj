@@ -4,7 +4,8 @@
             [matchmaker.lib.util :refer [format-date-time]]
             [clj-time.core :as clj-time]
             [com.stuartsierra.component :as component]
-            [cronj.core :as cronj]))
+            [cronj.core :as cronj]
+            [slingshot.slingshot :refer [try+]]))
 
 ;; ----- Private functions -----
 
@@ -17,7 +18,8 @@
                                     (clj-time/minutes age-minutes))))
 
 (defn- get-metadata-graph
-  "Get the contents of matchmaker's metadata graph."
+  "Get the contents of matchmaker's metadata graph.
+  Returns nil if metadata graph doesn't exist."
   [sparql-endpoint]
   (sparql/read-graph sparql-endpoint (:metadata-graph sparql-endpoint)))
 
@@ -54,20 +56,21 @@
   [t opts]
   {:pre [(integer? (:max-age-minutes opts))]
    :post [(test-delete-old-graphs opts)]}
-  (let [max-date-time (get-creation-date-time (:max-age-minutes opts)) 
+  (let [sparql-endpoint (:sparql-endpoint opts)
+        max-date-time (get-creation-date-time (:max-age-minutes opts)) 
         metadata-graph (get-in opts [:sparql-endpoint :metadata-graph])
-        old-graphs (sparql/select-1-variable (:sparql-endpoint opts)
+        old-graphs (sparql/select-1-variable sparql-endpoint
                                              :graph
                                              ["cron" "get_old_graphs"]
                                              :data {:max-date-time max-date-time
                                                     :metadata-graph metadata-graph})]
     (when-not (empty? old-graphs)
-      (timbre/debug (format "Deleting %d old graph(s)." (count old-graphs))) 
-      (doall (map (partial sparql/delete-graph (:config opts)) old-graphs))
-      (sparql/sparql-update (:config opts)
-                            ["cron" "delete_records_of_old_graphs"]
-                            :data {:metadata-graph metadata-graph
-                                   :old-graphs old-graphs}))))
+      (do (timbre/debug (format "Deleting %d old graph(s)." (count old-graphs))) 
+          (doall (map (partial sparql/delete-graph sparql-endpoint) old-graphs))
+          (sparql/sparql-update sparql-endpoint
+                                ["cron" "delete_records_of_old_graphs"]
+                                :data {:metadata-graph metadata-graph
+                                       :old-graphs old-graphs})))))
 
 ;; ----- Tasks -----
 

@@ -21,7 +21,8 @@
   using @method (:PUT :DELETE) and additional @params."
   [sparql-endpoint method graph-uri & {:as params}]
   {:pre [(contains? #{:DELETE :GET :POST :PUT} method)
-         (:authentication? sparql-endpoint)]}
+         (:authentication? sparql-endpoint)
+         (util/url? graph-uri)]}
   (let [authentication (:authentication sparql-endpoint)
         crud-url (get-in sparql-endpoint [:endpoints :crud-url])
         method-fn (method {:DELETE client/delete
@@ -59,6 +60,7 @@
 (defn- record-loaded-graph
   "Records uploaded graph named @graph-uri into the metadata graph"
   [sparql-endpoint graph-uri]
+  {:pre [(util/url? graph-uri)]}
   (let [date-time-now (util/date-time-now)
         metadata {"@context" (get-in sparql-endpoint [:config :context]) 
                   "@id" graph-uri
@@ -74,6 +76,7 @@
 (defn- sparql-endpoint-alive?
   "Raises an exception if @sparql-endpoint-url is not responding to HEAD request."
   [sparql-endpoint-url]
+  {:pre [(util/url? sparql-endpoint-url)]}
   (assert (client/head sparql-endpoint-url)
           (str "SPARQL endpoint <" sparql-endpoint-url "> is not responding.")))
 
@@ -97,6 +100,7 @@
 (defn delete-graph
   "Use SPARQL 1.1 Graph Store to DELETE a graph named @graph-uri."
   [sparql-endpoint graph-uri] 
+  {:pre [(util/url? graph-uri)]}
   (crud sparql-endpoint
         :DELETE
         graph-uri))
@@ -131,7 +135,8 @@
 (defn get-matched-resource
   "Returns a single instance of given @class from @graph-uri."
   [sparql-endpoint & {:keys [class-curie graph-uri]}]
-  {:post [(= (count %) 1)]} ; There needs to be exactly 1 resource of given @class.
+  {:pre [(util/url? graph-uri)]
+   :post [(= (count %) 1)]} ; There needs to be exactly 1 resource of given @class.
   (-> (select-query sparql-endpoint
                     ["get_matched_resource"]
                     :data {:class-curie class-curie
@@ -142,6 +147,7 @@
 (defn graph-exists?
   "Tests if graph named @graph-uri exists in the associated SPARQL endpoint."
   [sparql-endpoint graph-uri]
+  {:pre [(util/url? graph-uri)]}
   (sparql-ask sparql-endpoint
               ["graph_exists"]
               :data {:graph-uri graph-uri}))
@@ -168,6 +174,7 @@
   "Use SPARQL 1.1 Update to dereference @uri and LOAD its contents
   into named graph identified with @uri."
   [sparql-endpoint uri]
+  {:pre [(util/url? uri)]}
   (when-not (graph-exists? sparql-endpoint uri)
     (do (sparql-update sparql-endpoint
                        ["load_uri"]

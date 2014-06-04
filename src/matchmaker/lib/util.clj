@@ -88,3 +88,10 @@
   "Computes time difference (in seconds) from @start-time."
   [start-time]
   (/ (- (System/nanoTime) start-time) 1e9))
+
+(defn url?
+  "Tests if @url is valid absolute URL."
+  [url]
+  (try
+    (java.net.URL. url)
+    (catch Exception e false)))
