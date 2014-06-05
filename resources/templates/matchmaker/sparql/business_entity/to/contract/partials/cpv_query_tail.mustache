@@ -1,10 +1,12 @@
 {{!
-@param IRI business-entity
-@param IRI source-graph
-@param int additional-object-inhibition
-@param int limit
-@param int offset (optional)
-@param boolean current (optional)
+@param IRI                  business-entity
+@param IRI                  source-graph
+@param int                  additional-object-inhibition
+@param int                  limit
+@param int                  offset                (optional)
+@param boolean              current               (optional)
+@param SPARQL property path publication-date-path (optional)
+@param xsd:dateTime         oldest-creation-date  (optional) 
 }}
 
                 }
@@ -18,6 +20,11 @@
             {{> templates/matchmaker/sparql/business_entity/partials/tender_property.mustache}}
             {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
             ?match ?objectProperty ?cpvObject .
+
+            {{#publication-date-path}}
+            ?match {{publication-date-path}} ?publicationDate .
+            FILTER (xsd:dateTime(?publicationDate) > "{{oldest-creation-date}}"^^xsd:dateTime)
+            {{/publication-date-path}}
 
             {{#current}}
             ?match pc:tenderDeadline ?tenderDeadline .
