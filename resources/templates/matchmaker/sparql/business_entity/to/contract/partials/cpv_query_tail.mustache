@@ -4,6 +4,7 @@
 @param int additional-object-inhibition
 @param int limit
 @param int offset (optional)
+@param boolean current (optional)
 }}
 
                 }
@@ -17,6 +18,12 @@
             {{> templates/matchmaker/sparql/business_entity/partials/tender_property.mustache}}
             {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
             ?match ?objectProperty ?cpvObject .
+
+            {{#current}}
+            ?match pc:tenderDeadline ?tenderDeadline .
+            FILTER (?tenderDeadline > now())
+            {{/current}}
+
             FILTER NOT EXISTS {
               ?match ?tenderProperty [
                   ?bidderProperty <{{business-entity}}> 
