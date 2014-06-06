@@ -1,7 +1,5 @@
 (ns matchmaker.web.controllers
   (:require [taoensso.timbre :as timbre]
-            [cemerick.url :refer [map->URL]]
-            [ring.util.request :as request]
             [matchmaker.lib.util :as util]
             [matchmaker.web.views :as views]
             [matchmaker.core.sparql :as sparql-match]))
@@ -42,7 +40,7 @@
                                     :offset offset
                                     resource-key uri})
         results-size (count matchmaker-results)
-        base-url (map->URL (dissoc request-url :query))
+        base-url (get-in params [:request :base-url])
         paging (get-paging request-url
                            :results-size results-size
                            :limit limit

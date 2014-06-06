@@ -14,9 +14,14 @@
 
 (defn- ->json-ld
   "Convert Clojure data structure @body into JSON-LD response with @jsonld-context-uri."
-  [body & {:keys [context]
-           :or {context hydra-context}}]
-  (let [body-in-context (assoc body "@context" context)]
+  [body & {:keys [context base-url]}]
+  (let [default-json-ld-context (when ((complement nil?) base-url)
+                                  (-> base-url
+                                      (assoc :path "/jsonld_contexts/matchmaker_api.jsonld")
+                                      str))
+        body-in-context (if (some (complement nil?) [context base-url])
+                            (assoc body "@context" (or context default-json-ld-context))
+                            body)]
     (json/generate-string body-in-context {:escape-non-ascii true})))
 
 (defn- match-resource
@@ -71,21 +76,31 @@
 (defn error
   "Render JSON-LD description of the error."
   [ctx]
-  (->json-ld {"@type" "Error"
-              "statusCode" (:status ctx)
-              "description" (:error-msg ctx)})) 
+  (let [base-url (get-in ctx [:request :base-url])]
+    (->json-ld {"@type" "Error"
+                "statusCode" (:status ctx)
+                "description" (:error-msg ctx)}
+               :base-url base-url)))
 
 (defn home
   "Home page view"
-  []
-  (->json-ld {"@type" "ApiDocumentation"
-              "title" {"@value" "Matchmaking web services"
-                       "@language" "en"}
-              "description" {"@value" "Matchmaking between relevant resources..."
-                             "@language" "en"}}))
+  [ctx]
+  (let [base-url (get-in ctx [:request :base-url])]
+    (->json-ld {"@id" (get-in ctx [:request :api-endpoint])
+                "@type" "ApiDocumentation"
+                "title" "Matchmaking web services"
+                "description" "Matchmaking between relevant resources..."
+                "operation" [{"@id" ""
+                              "@type" "MatchResource"
+                              "expects" {"@type" "Class"
+                                        "supportedProperty" {"property" "uri"}
+                                        }
+                              "method" ["GET" "POST"]}]}
+                :base-url base-url)))
 
 (defn match-business-entity-to-contract
-  "JSON-LD view of @matchmaker-results containing potentially interesting contracts for business entity @uri."
+  "JSON-LD view of @matchmaker-results containing potentially
+  interesting contracts for business entity @uri."
   [uri matchmaker-results & {:keys [base-url paging]}]
   (let [additional-mappings {:label "dcterms:title"}]
     (match-resource uri
@@ -121,8 +136,10 @@
 
 (defn not-found
   []
-  (error {:status 404
-          :error-msg "Not found"}))
+  (->json-ld {"@type" "Error"
+              "statusCode" 404
+              "description" "Not found"}
+              :context hydra-context))
 
 ; Extend Liberator's multimethod for rendering maps to cover JSON-LD
 (defmethod render-map-generic "application/ld+json"

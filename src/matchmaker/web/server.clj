@@ -4,7 +4,7 @@
             [compojure.handler :as handler]
             [compojure.route :as route]
             ;[ring.middleware.json :as middleware]
-            [matchmaker.web.middleware :refer [ignore-trailing-slash]]
+            [matchmaker.web.middleware :as middleware]
             [ring.middleware.resource :refer [wrap-resource]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.not-modified :refer [wrap-not-modified]]
@@ -30,7 +30,9 @@
   "Setup app's web service using @server on @api-endpoint path."
   [server api-endpoint]
   (-> (handler/api (setup-api-routes server api-endpoint))
-      (ignore-trailing-slash)
+      (middleware/wrap-documentation-header)
+      (middleware/ignore-trailing-slash)
+      (middleware/add-base-url api-endpoint)
       (wrap-resource "public") ; Serve static files from /resources/public/ in the server's root.
       (wrap-content-type :mime-types {"jsonld" "application/ld+json"})
       (wrap-not-modified)))
