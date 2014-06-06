@@ -9,6 +9,9 @@
   "vrank" : "http://purl.org/voc/vrank#",
   "xsd" : "http://www.w3.org/2001/XMLSchema#",
 
+  "schema:result" : {
+    "@type" : "hydra:Link"
+  },
   "vrank:hasRank" : {
     "@type" : "vrank:Rank"
   }

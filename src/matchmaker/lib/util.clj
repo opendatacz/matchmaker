@@ -72,7 +72,7 @@
 (defn load-jsonld-context
   "Loads JSON-LD context from @filename."
   [filename]
-  (-> (join-file-path "public" "jsonld_contexts" filename)
+  (-> (join-file-path "jsonld_contexts" filename)
       clojure.java.io/resource
       clojure.java.io/reader
       json/parse-stream)) 
