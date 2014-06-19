@@ -67,6 +67,22 @@
         (let [random-ints (generate-random-ints)]
           (should-be-a Boolean (sparql-ask @sparql-endpoint
                                            ["sparql-ask"]
-                                           :data {:numbers random-ints}))))))
+                                           :data {:numbers random-ints}))))
+    (it "returns false for unsatisfiable graph pattern"
+        (should-not (sparql-ask @sparql-endpoint
+                                ["sparql-ask_unsatisfiable"])))
+    (it "returns true for non-empty graph pattern"
+        (should (sparql-ask @sparql-endpoint
+                            ["sparql-ask_non_empty"]))))
+  
+  (describe "sparql-assert"
+    (it "throws when expecting true and receives false"
+        (should-throw (sparql-assert @sparql-endpoint
+                                     ["sparql-ask_unsatisfiable"]
+                                     :assert-fn true?)))
+    (it "returns true when expecting true and receives true"
+        (should (sparql-assert @sparql-endpoint
+                               ["sparql-ask_non_empty"]
+                               :assert-fn true?)))))
 
 (run-specs)
