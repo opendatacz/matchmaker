@@ -8,6 +8,15 @@
 
 ;; ----- Private helper functions -----
 
+(defn- generate-random-ints
+  "Generates a non-empty vector of random integers"
+  []
+  (-> gen/nat
+      (gen/vector (rand-nth (range 1 10)))
+      gen/not-empty
+      gen/sample
+      rand-nth))
+
 (defn- generate-random-strings
   "Generates a non-empty vector of random non-repeating strings"
   []
@@ -51,6 +60,13 @@
                                          :count
                                          ["select-1-variable"]
                                          :data {:values (:strings random-strings)})]
-          (should= (:count random-strings) (-> results first Integer.))))))
+          (should= (:count random-strings) (-> results first Integer.)))))
+  
+  (describe "sparql-ask"
+    (it "returns boolean values"
+        (let [random-ints (generate-random-ints)]
+          (should-be-a Boolean (sparql-ask @sparql-endpoint
+                                           ["sparql-ask"]
+                                           :data {:numbers random-ints}))))))
 
 (run-specs)

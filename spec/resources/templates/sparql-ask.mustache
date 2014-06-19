@@ -1,0 +1,12 @@
+{{!
+@param Vector<int> numbers
+}}
+
+ASK {
+  VALUES ?number {
+    {{#numbers}}
+    {{.}}
+    {{/numbers}}
+  }
+  FILTER (?number >= 5)
+}
