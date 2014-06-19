@@ -14,10 +14,12 @@
   (let [string-vector-gen (-> gen/string-alpha-numeric
                               gen/not-empty
                               (gen/vector (rand-nth (range 1 10)))
-                              gen/not-empty)]
-    (-> (gen/fmap (comp vec set) string-vector-gen)
-        gen/sample
-        rand-nth)))
+                              gen/not-empty)
+        random-strings (-> (gen/fmap (comp vec set) string-vector-gen)
+                           gen/sample
+                           rand-nth)]
+    {:count (count random-strings)
+     :strings random-strings}))
 
 (defn- load-sparql-endpoint-system
   "Load SPARQL endpoint component"
@@ -37,10 +39,18 @@
   (describe "construct-query"
     (it "retrieves expected number of triples"
         (let [random-strings (generate-random-strings)
-              number-of-triples (count random-strings)
               results (construct-query @sparql-endpoint
                                        ["construct-query"]
-                                       :data {:values random-strings})]
-          (should= number-of-triples (.size results))))))
+                                       :data {:values (:strings random-strings)})]
+          (should= (:count random-strings) (.size results)))))
+          
+  (describe "select-1-variable"
+    (it "correctly counts the number of provided values"
+        (let [random-strings (generate-random-strings)
+              results (select-1-variable @sparql-endpoint
+                                         :count
+                                         ["select-1-variable"]
+                                         :data {:values (:strings random-strings)})]
+          (should= (:count random-strings) (-> results first Integer.))))))
 
 (run-specs)

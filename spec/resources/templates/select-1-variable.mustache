@@ -1,0 +1,12 @@
+{{!
+@param Vector<String> values
+}}
+
+SELECT (COUNT(DISTINCT ?o) AS ?count)
+WHERE {
+  VALUES ?o {
+    {{#values}}
+    "{{.}}"
+    {{/values}}
+  }
+}
