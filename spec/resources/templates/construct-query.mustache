@@ -1,0 +1,16 @@
+{{!
+@param Vector<String> values
+}}
+
+PREFIX ex: <http://example.com/>
+
+CONSTRUCT {
+  ex:Text ex:label ?o .  
+}
+WHERE {
+  VALUES ?o {
+    {{#values}}
+    "{{.}}"
+    {{/values}}
+  }
+}

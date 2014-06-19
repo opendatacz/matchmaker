@@ -23,15 +23,16 @@
                  [compojure "1.1.6"]
                  [ring/ring-json "0.2.0"]
                  [liberator "0.11.0"]
-                 [im.chit/cronj "1.0.1"]]
+                 [im.chit/cronj "1.0.1"]
+                 [uritemplate-clj "1.0.0"]
+                 [prismatic/schema "0.2.2"]]
   ;:main matchmaker.cli
-  :plugins [[speclj "2.5.0"]
+  :plugins [[speclj "3.0.2"]
             [lein-ring "0.8.10"]]
   :profiles {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                                   [ring-mock "0.1.5"]
-                                  [speclj "2.5.0"]]
+                                  [org.clojure/test.check "0.5.8"]
+                                  [speclj "3.0.2"]]
                    :resource-paths ["spec/resources"]}}
-  :ring {:handler matchmaker.system/app
-         ;:init matchmaker.web.server/init
-         }
+  :ring {:handler matchmaker.system/app}
   :test-paths ["spec"])
