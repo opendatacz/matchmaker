@@ -1,6 +1,7 @@
 (ns matchmaker.lib.sparql-spec
   (:require [speclj.core :refer :all]
             [matchmaker.lib.sparql :refer :all]
+            [matchmaker.lib.rdf :as rdf]
             [clojure.test.check.generators :as gen]
             [environ.core :refer [env]]
             [matchmaker.common.config :refer [->Config]]
@@ -43,7 +44,7 @@
 (describe "Accessing SPARQL endpoint"
   (with-all sparql-endpoint-system (load-sparql-endpoint-system))
   (with-all sparql-endpoint (:sparql-endpoint @sparql-endpoint-system))
-  (after-all (println "Stopping SPARQL endpoint.") (component/stop @sparql-endpoint-system))
+  (after-all (component/stop @sparql-endpoint-system))
 
   (describe "construct-query"
     (it "retrieves expected number of triples"
@@ -83,6 +84,24 @@
     (it "returns true when expecting true and receives true"
         (should (sparql-assert @sparql-endpoint
                                ["sparql-ask_non_empty"]
-                               :assert-fn true?)))))
+                               :assert-fn true?))))
+          
+  (context "doing CRUD"
+    (with-all data (slurp (clojure.java.io/resource "data/triple.ttl")))
+    (with-all graph-uri (generate-graph-uri @sparql-endpoint @data))
+
+    (context "with example graph"
+      (before (put-graph @sparql-endpoint @data @graph-uri))
+      (after (delete-graph @sparql-endpoint @graph-uri)) 
+      
+      (describe "put-graph"
+        (it "creates a new graph"
+          (should (graph-exists? @sparql-endpoint @graph-uri))))
+      (describe "read-graph"
+        (it "retrieves the expected number of triples"
+          (let [local-count (.size (rdf/string->graph @data))
+                remote-count (.size (rdf/string->graph (read-graph @sparql-endpoint
+                                                                   @graph-uri)))]
+            (should= local-count remote-count)))))))
 
 (run-specs)
