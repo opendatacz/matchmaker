@@ -23,7 +23,7 @@
   "Pass in a vector with @template-path (without its .mustache
   filename extension) and optionally key-value pairs of data for the template.
 
-  Use: (render-template [path to template-file-name] :key1 value1 :key2 value2)"
+  Use: (render-template [path to template-file-name] :data {:key1 value1 :key2 value2})"
   [template-path & {:keys [data]}]
   (render-file (get-template-path template-path) data))
 

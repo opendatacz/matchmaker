@@ -16,6 +16,7 @@
                  [incanter/incanter-core "1.5.4"]
                  [incanter/incanter-charts "1.5.4"]
                  [org.apache.jena/jena-core "2.11.1"]
+                 [org.apache.jena/jena-arq "2.11.2"]
                  [com.github.jsonld-java/jsonld-java "0.4.1"]
                  [com.github.jsonld-java/jsonld-java-jena "0.4.1"]
                  [com.cemerick/url "0.1.1"]

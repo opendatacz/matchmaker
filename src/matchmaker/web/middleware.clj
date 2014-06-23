@@ -4,8 +4,8 @@
             [taoensso.timbre :as timbre]))
 
 (defn add-base-url
-  "Add base URL and endpoint URL to Ring request."
-  [handler api-endpoint]
+  "Add base URL to Ring request."
+  [handler]
   (fn [request]
     (let [base-url (-> request
                        request-url
@@ -13,8 +13,7 @@
                        (dissoc :query :path)
                        map->URL)]
     (handler (assoc request
-                    :base-url base-url
-                    :api-endpoint (-> base-url (assoc :path api-endpoint) str))))))
+                    :base-url base-url)))))
 
 (defn ignore-trailing-slash
   "Stolen from: <https://gist.github.com/dannypurcell/8215411>
@@ -37,6 +36,6 @@
   [handler]
   (fn [request]
     (let [response (handler request)
-          header-value (str (format "<%s>" (:api-endpoint request))
+          header-value (str (assoc (:base-url request) :path "/doc")
                             "; rel=\"http://www.w3.org/ns/hydra/core#apiDocumentation\"")]
       (assoc-in response [:headers "Link"] header-value))))

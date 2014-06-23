@@ -1,19 +1,48 @@
 (ns matchmaker.lib.rdf
+  (:require [taoensso.timbre :as timbre]
+            [matchmaker.lib.template :refer [render-template]])
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
-           [com.github.jsonldjava.jena JenaJSONLD]))
+           [com.github.jsonldjava.jena JenaJSONLD]
+           [com.hp.hpl.jena.query QueryExecutionFactory QueryFactory]
+           [com.hp.hpl.jena.rdf.model Literal Resource]))
 
 (declare graph->string string->graph)
 
 (JenaJSONLD/init) ; Initialization of the JSON-LD library
 
-; Private vars
+; ----- Protocols -----
+
+(defprotocol IStringifiableNode
+  "Returns string representation of RDF node"
+  (node->string [node]))
+
+(extend-protocol IStringifiableNode
+  Literal
+  (node->string [node] (.toString (.getString node))))
+
+(extend-protocol IStringifiableNode 
+  Resource
+  (node->string [node] (.toString node)))
+
+; ----- Private vars -----
 
 (defonce ^{:private true}
   rdf-syntax-names-mappings
-  {"TURTLE" #{"n3" "ttl" "turtle"}
-   "JSON-LD" #{"jsonld" "json-ld"}})
+  {"TURTLE" #{"text/turtle" "n3" "ttl" "turtle"}
+   "JSON-LD" #{"application/ld+json" "jsonld" "json-ld"}})
 
-; Public functions
+; ----- Private functions -----
+
+(defn- process-select-binding
+  [sparql-binding variable]
+  [(keyword variable) (node->string (.get sparql-binding variable))])
+
+(defn- process-select-solution
+  "Process SPARQL SELECT @solution for @result-vars"
+  [result-vars solution]
+  (into {} (mapv (partial process-select-binding solution) result-vars)))
+
+; ----- Public functions -----
 
 (defn canonicalize-rdf-syntax-name
   "Converts name of @rdf-syntax into its canonical form.
@@ -50,6 +79,21 @@
         output (java.io.ByteArrayOutputStream.)
         _ (.write graph output canonical-rdf-syntax-name)]
     (.toString output)))
+
+(defn select-query
+  "Execute SPARQL SELECT query on @graph.
+  Query is obtained by rendering @template-path with @data."
+  [graph template-path & {:keys [data]
+                          :or {data {}}}]
+  (let [query-string (render-template template-path :data data)
+        _ (timbre/debug (str "Locally executing query:\n" query-string))
+        query (QueryFactory/create query-string)
+        qexec (QueryExecutionFactory/create query graph)]
+    (try
+      (doall (let [results (.execSelect qexec)
+                   result-vars (.getResultVars results)]
+               (mapv (partial process-select-solution result-vars) (iterator-seq results))))
+      (finally (.close qexec)))))
 
 (defn string->graph
   "Read @string containing RDF serialized in @rdf-syntax (defaults to Turtle) into RDF graph."

@@ -12,35 +12,55 @@
 
 ;; ----- Private functions -----
 
-(defn- ->json-ld
-  "Convert Clojure data structure @body into JSON-LD response with @jsonld-context-uri."
-  [body & {:keys [context base-url]}]
-  (let [default-json-ld-context (when ((complement nil?) base-url)
-                                  (-> base-url
-                                      (assoc :path "/jsonld_contexts/matchmaker_api.jsonld")
-                                      str))
-        body-in-context (if (some (complement nil?) [context base-url])
-                            (assoc body "@context" (or context default-json-ld-context))
-                            body)]
-    (json/generate-string body-in-context {:escape-non-ascii true})))
+(defn- base-url+
+  "Append @path to base URL"
+  [{{:keys [base-url context-path]} :request} path & {:keys [query]
+                                                      :or {query {}}}]
+  (-> base-url
+      (assoc :path (str context-path path))
+      (assoc :query query)
+      str))
+
+(defn- generate-match-operation
+  "Generate description of matchmaking operation on @path"
+  [ctx path]
+  {"@id" (base-url+ ctx
+                    path
+                    :query {"uri" (:uri ctx)
+                            "graph_uri" (:graph_uri ctx)})
+   "@type" "/vocab/MatchOperation"})
+
+(defn- generate-match-operations
+  "Generate Hypermedia controls to matchmaking operations"
+  [ctx class-curie]
+  (let [paths (case class-curie
+                    "pc:Contract" ["/match/contract/to/business-entity"
+                                   "/match/contract/to/contract"]
+                    "gr:BusinessEntity" ["/match/business-entity/to/contract"]
+                    [])]
+    (mapv (partial generate-match-operation ctx) paths)))
 
 (defn- match-resource
   "JSON-LD view of @matchmaker-results for contract @uri using @additional-mappings
   from @matchmaker-results keys to JSON-LD keys. Matches are typed as @match-type."
-  [uri matchmaker-results & {:keys [additional-mappings base-url match-type paging limit]
+  [uri matchmaker-results & {:keys [additional-mappings match-type paging limit]
                              :or {additional-mappings {}}}]
   {:pre [(string? uri)
          (seq? matchmaker-results)
          (map? additional-mappings)
          (string? match-type)]}
   (let [matches (->> matchmaker-results
-                     ; Since ?score is not projected correctly in Virtuoso 7.1, this is commented out.
-                     ;(map #(transform-match % additional-mappings match-type))
-                     ;(sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
-                     reverse)
-        search-action-results (wrap-in-search-action uri matches paging limit)
-        jsonld-context-uri (str (assoc base-url :path "/jsonld_contexts/matchmaker_results.jsonld"))]
-    (->json-ld search-action-results :context jsonld-context-uri)))
+                     (map #(transform-match % additional-mappings match-type))
+                     (sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
+                     reverse)]
+    (wrap-in-search-action uri matches paging limit)))
+
+(defn- prefix-vocabulary-term
+  "Prefix a vocabulary @term with vocabulary URI"
+  [ctx term]
+  (->> term
+       (str "/vocab/")
+       (base-url+ ctx)))
 
 (defn- transform-match
   "Transform @match to JSON-LD-like structure using @key-mappings that map
@@ -76,27 +96,49 @@
 (defn error
   "Render JSON-LD description of the error."
   [ctx]
-  (let [base-url (get-in ctx [:request :base-url])]
-    (->json-ld {"@type" "Error"
-                "statusCode" (:status ctx)
-                "description" (:error-msg ctx)}
-               :base-url base-url)))
+  {"@type" "Error"
+   "statusCode" (:status ctx)
+   "description" (:error-msg ctx)})
 
-(defn home
-  "Home page view"
+(defn documentation
+  "Documentation page view"
   [ctx]
-  (let [base-url (get-in ctx [:request :base-url])]
-    (->json-ld {"@id" (get-in ctx [:request :api-endpoint])
-                "@type" "ApiDocumentation"
-                "title" "Matchmaking web services"
-                "description" "Matchmaking between relevant resources..."
-                "operation" [{"@id" ""
-                              "@type" "MatchResource"
-                              "expects" {"@type" "Class"
-                                        "supportedProperty" {"property" "uri"}
-                                        }
-                              "method" ["GET" "POST"]}]}
-                :base-url base-url)))
+  {"@id" (base-url+ ctx "/doc")
+   "@type" "ApiDocumentation"
+   "title" "Matchmaking web services"
+   "description" "Matchmaking to relevant resources"
+   "supportedClass" (mapv (partial prefix-vocabulary-term ctx)
+                          ["Contract" "BusinessEntity"])})
+
+(defn loaded-data
+  "View of uploaded data with hypermedia controls"
+  [ctx]
+  (let [class-curie (:class-curie ctx)]
+    {"@id" (:uri ctx)
+    "@type" class-curie
+    "operation" (generate-match-operations ctx class-curie)}))
+
+(defmulti load-resource
+  "Documentation for load-resource operations" 
+  (fn [ctx] (get-in ctx [:request :route-params :class])))
+
+(defmethod load-resource "business-entity"
+  [ctx]
+  (let [business-entity-uri (prefix-vocabulary-term ctx "BusinessEntity")]
+    {"@id" "/load/business-entity"
+     "@type" "CreateResourceOperation"
+     "method" "PUT"
+     "expects" business-entity-uri 
+     "returns" business-entity-uri}))
+
+(defmethod load-resource "contract"
+  [ctx]
+  (let [contract-uri (prefix-vocabulary-term ctx "Contract")]
+    {"@id" "/load/contract"
+     "@type" "CreateResourceOperation"
+     "method" "PUT"
+     "expects" contract-uri
+     "returns" contract-uri}))
 
 (defn match-business-entity-to-contract
   "JSON-LD view of @matchmaker-results containing potentially
@@ -136,12 +178,176 @@
 
 (defn not-found
   []
-  (->json-ld {"@type" "Error"
-              "statusCode" 404
-              "description" "Not found"}
-              :context hydra-context))
+  {"@context" hydra-context
+   "@type" "Error"
+   "statusCode" 404
+   "description" "Not found"})
+
+;; TODO: clean this up
+(defn borkolary
+  [ctx]
+  (let [vocab-uri (base-url+ ctx "/vocab")]
+    {"@graph" [
+      ;; Templated links
+     {"@id" (base-url+ "/match/business-entity/to/contract")
+      "@type" "TemplatedLink"
+      "supportedOperation" {"@type" "#MatchOperation"
+                            "method" "GET"
+                            "expects" "#BusinessEntity"
+                            "returns" "#ContractCollection"}}
+      {"@id" (base-url+ "/match/contract/to/business-entity")
+       "@type" "TemplatedLink"
+       "supportedOperation" {"@type" "#MatchOperation"
+                             "method" "GET"
+                             "expects" "#Contract"
+                             "returns" "#BusinessEntityCollection"}}
+      {"@id" (base-url+ "/match/contract/to/contract")
+       "@type" "TemplatedLink"
+       "supportedOperation" {"@type" "#MatchOperation"
+                             "method" "GET"
+                             "expects" "#Contract"
+                             "returns" "#ContractCollection"}}
+      ]}))
+
+(defmulti vocabulary-term
+  "View a vocabulary term"
+  (fn [ctx] (get-in ctx [:request :route-params :term])))
+
+;; ----- Application vocabulary -----
+
+(defmethod vocabulary-term nil
+  [ctx]
+  {"@id" (base-url+ ctx "/vocab")
+   "@type" "voaf:Vocabulary"
+   "voaf:extends" "http://www.w3.org/ns/hydra/core#"
+   "voaf:specializes" ["http://purl.org/procurement/public-contracts#"
+                       "http://purl.org/goodrelations/v1#"]
+   "dcterms:creator" "http://mynarz.net/#jindrich"})
+
+;; ----- Classes -----
+
+(defmethod vocabulary-term "BusinessEntity"
+  [ctx]
+  {"@id" "/vocab/BusinessEntity"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "rdfs:subClassOf" "gr:BusinessEntity"
+   "supportedOperation" (base-url+ ctx "/load/business-entity")
+   (base-url+ ctx "/match/business-entity/to/contract") {
+     "@type" "IriTemplate"
+     "template" (base-url+ ctx (str "/match/business-entity/to/contract"
+                                    "{?uri,current,oldest_creation_date,publication_date_path}"))
+     "mapping" (mapv (partial prefix-vocabulary-term ctx)
+                     ["business-entity-uri-mapping"
+                      "current-mapping"
+                      "oldest-creation-date-mapping"
+                      "publication-date-path-mapping"])}})
+
+(defmethod vocabulary-term "BusinessEntityCollection"
+  [ctx]
+  {"@id" "/vocab/BusinessEntityCollection"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "rdfs:subClassOf" ["Collection"
+                      {"@type" "owl:Restriction"
+                       "owl:onProperty" "member"
+                       "owl:allValuesFrom" "#BusinessEntity"}]})
+
+(defmethod vocabulary-term "Contract"
+  [ctx]
+  {"@id" "/vocab/Contract"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "rdfs:subClassOf" "pc:Contract"
+   "supportedOperation" (base-url+ ctx "/load/contract")
+   (base-url+ ctx "/match/contract/to/business-entity") {
+     "@type" "IriTemplate"
+     "template" (base-url+ ctx "/match/contract/to/business-entity{?uri}")
+     "mapping" (base-url+ ctx "/vocab/contract-uri-mapping")}
+   (base-url+ ctx "/match/contract/to/contract") {
+     "@type" "IriTemplate"
+     "template" (base-url+ ctx (str "/match/contract/to/contract"
+                                    "{?uri,current,oldest_creation_date,publication_date_path}"))
+     "mapping" (mapv (partial prefix-vocabulary-term ctx)
+                     ["contract-uri-mapping"
+                      "current-mapping"
+                      "oldest-creation-date-mapping"
+                      "publication-date-path-mapping"])}})
+
+(defmethod vocabulary-term "ContractCollection"
+  [ctx]
+  {"@id" "/vocab/ContractCollection"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "rdfs:subClassOf" ["Collection"
+                      {"@type" "owl:Restriction"
+                       "owl:onProperty" "member"
+                       "owl:allValuesFrom" "#Contract"}]})
+
+(defmethod vocabulary-term "MatchOperation"
+  [ctx]
+  {"@id" "/vocab/MatchOperation"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "@type" "Class"
+   "rdfs:subClassOf" ["Operation" "schema:SearchAction"]
+   "rdfs:label" "Match operation"
+   "rdfs:comment" "Operation matching a resource to relevant resources"})
+
+;; ---- IRI template mappings -----
+
+(defmethod vocabulary-term "business-entity-uri-mapping"
+  [ctx]
+  {"@id" "/vocab/business-entity-uri-mapping"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "@type" "IriTemplateMapping"
+   "rdfs:comment" "URI of the matched business entity"
+   "variable" "uri"
+   "property" "rdf:subject"
+   "required" true})
+
+(defmethod vocabulary-term "contract-uri-mapping"
+  [ctx]
+  {"@id" "/vocab/contract-uri-mapping"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "@type" "IriTemplateMapping"
+   "rdfs:comment" "URI of the matched contract"
+   "variable" "uri"
+   "property" "rdf:subject"
+   "required" true})
+
+(defmethod vocabulary-term "current-mapping"
+  [ctx]
+  {"@id" "/vocab/current-mapping"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "@type" "IriTemplateMapping"
+   "rdfs:comment" "Boolean flag indicating filtering to current contracts"
+   "variable" "current"
+   "property" {"rdfs:range" "xsd:boolean"}
+   "required" false})
+
+(defmethod vocabulary-term "oldest-creation-date-mapping"
+  [ctx]
+  {"@id" "/vocab/oldest-creation-date-mapping"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "@type" "IriTemplateMapping"
+   "rdfs:comment" "The oldest date when a relevant contract could be created"
+   "variable" "oldest_creation_date"
+   "property" {"rdfs:range" "xsd:date"}
+   "required" false})
+
+(defmethod vocabulary-term "publication-date-path-mapping"
+  [ctx]
+  {"@id" "/vocab/publication-date-path-mapping"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
+   "@type" "IriTemplateMapping"
+   "rdfs:comment" "SPARQL 1.1 property path to contract's publication date"
+   "variable" "publication_date_path"
+   "property" {"rdfs:range" "xsd:string"}
+   "required" false})
 
 ; Extend Liberator's multimethod for rendering maps to cover JSON-LD
 (defmethod render-map-generic "application/ld+json"
   [data context]
-  (json/generate-string data)) 
+  (let [base-url (get-in context [:request :base-url])
+        default-json-ld-context (when-not (nil? base-url)
+                                  (str (assoc base-url :path "/jsonld_contexts/matchmaker_api.jsonld")))
+        data-in-context (if (nil? (data "@context"))
+                          (assoc data "@context" default-json-ld-context)
+                          data)]
+    (json/generate-string data-in-context {:escape-non-ascii true})))

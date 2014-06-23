@@ -37,13 +37,6 @@
                                crud-url))
         (method-fn crud-url (merge base-params params)))))
 
-(defn- generate-graph-uri
-  "Generates an URI for named graph based on SHA1 hash
-  of the provided @data."
-  [sparql-endpoint data]
-  (util/append-to-uri (:source-graph sparql-endpoint)
-                      (util/sha1 data)))
-
 (defn- get-binding
   "Return SPARQL binding from @sparql-result for @sparql-variable"
   [sparql-variable sparql-result]
@@ -132,11 +125,17 @@
         (timbre/error body)
         (throw+))))) ;; TODO: Needs better HTTP error handling
 
+(defn generate-graph-uri
+  "Generates an URI for named graph based on SHA1 hash
+  of the provided @data."
+  [sparql-endpoint data]
+  (util/append-to-uri (:source-graph sparql-endpoint)
+                      (util/sha1 data)))
+
 (defn get-matched-resource
   "Returns a single instance of given @class from @graph-uri."
   [sparql-endpoint & {:keys [class-curie graph-uri]}]
-  {:pre [(util/url? graph-uri)]
-   :post [(= (count %) 1)]} ; There needs to be exactly 1 resource of given @class.
+  {:pre [(util/url? graph-uri)]}
   (-> (select-query sparql-endpoint
                     ["get_matched_resource"]
                     :data {:class-curie class-curie
@@ -157,8 +156,7 @@
   into a new named graph. Returns the URI of the new graph."
   [sparql-endpoint data & {:keys [rdf-syntax]
                            :or {rdf-syntax "TURTLE"}}]
-  (let [metadata-graph (:metadata-graph sparql-endpoint) 
-        rdf-syntax-name (rdf/canonicalize-rdf-syntax-name rdf-syntax)
+  (let [rdf-syntax-name (rdf/canonicalize-rdf-syntax-name rdf-syntax)
         serialized-data (case rdf-syntax-name
                               "TURTLE" data
                               (rdf/convert-syntax data
@@ -169,17 +167,6 @@
         (put-graph sparql-endpoint serialized-data graph-to-load))
         graph-to-load)
     graph-to-load))
-
-(defn load-uri
-  "Use SPARQL 1.1 Update to dereference @uri and LOAD its contents
-  into named graph identified with @uri."
-  [sparql-endpoint uri]
-  {:pre [(util/url? uri)]}
-  (when-not (graph-exists? sparql-endpoint uri)
-    (do (sparql-update sparql-endpoint
-                       ["load_uri"]
-                       :data {:uri uri})
-        (record-loaded-graph sparql-endpoint uri))))
 
 (defn post-graph
   "Use SPARQL 1.1 Graph Store to POST @payload into a graph named @graph-uri."

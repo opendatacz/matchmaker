@@ -1,4 +1,20 @@
 {
   "@vocab" : "http://www.w3.org/ns/hydra/core#",
+
+  "api" : "http://purl.org/linked-data/api/vocab#",
+  "api:vocabulary" : {
+    "@type" : ["@id", "Link"]
+  },
+
+  "dcterms" : "http://purl.org/dc/terms/",
+  "gr" : "http://purl.org/goodrelations/v1#",
+  "owl" : "http://www.w3.org/2002/07/owl#",
+  "pc" : "http://purl.org/procurement/public-contracts#",
+  "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+  "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
+  "schema" : "http://schema.org/",
+  "voaf" : "http://purl.org/vocommons/voaf#",
+  "xsd" : "http://www.w3.org/2001/XMLSchema#",
+
   "@language" : "en"
 }

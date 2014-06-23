@@ -5,10 +5,10 @@
             [compojure.route :as route]
             ;[ring.middleware.json :as middleware]
             [matchmaker.web.middleware :as middleware]
+            [ring.util.response :refer [redirect]]
             [ring.middleware.resource :refer [wrap-resource]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.not-modified :refer [wrap-not-modified]]
-            [ring.util.response :refer [redirect]]
             [matchmaker.lib.util :refer [init-logger]]
             [matchmaker.web.resources :as resources]
             [matchmaker.web.views :as views]))
@@ -16,25 +16,27 @@
 ;; ----- Private functions -----
 
 (defn- setup-api-routes
-  "Setup API routes for an @api-endpoint."
-  [server api-endpoint]
+  "Setup API routes for a @server."
+  [server]
   (routes
-    (GET "/" [] (redirect api-endpoint)) 
-    (GET api-endpoint [] resources/home)
-    (context api-endpoint [] 
-            (context "/match" []
-                      (ANY "/:source/to/:target" [] (resources/match-resource server))))
+    (GET "/" [] (redirect "/doc"))
+    (ANY "/doc" [] resources/documentation)
+    (ANY "/vocab" [] resources/vocabulary)
+    (ANY "/vocab/:term" [] resources/vocabulary)
+    (ANY "/load/:class" [] (resources/load-resource server))
+    (context "/match" []
+             (ANY "/:source/to/:target" [] (resources/match-resource server)))
     (route/not-found (views/not-found))))
 
 (defn- setup-app
-  "Setup app's web service using @server on @api-endpoint path."
-  [server api-endpoint]
-  (-> (handler/api (setup-api-routes server api-endpoint))
+  "Setup app's web service using @server." 
+  [server]
+  (-> (handler/api (setup-api-routes server))
       (middleware/wrap-documentation-header)
       (middleware/ignore-trailing-slash)
-      (middleware/add-base-url api-endpoint)
+      (middleware/add-base-url)
       (wrap-resource "public") ; Serve static files from /resources/public/ in the server's root.
-      (wrap-content-type :mime-types {"jsonld" "application/ld+json"})
+      (wrap-content-type {:mime-types {"jsonld" "application/ld+json"}})
       (wrap-not-modified)))
 
 ;; ----- Components -----
@@ -42,7 +44,7 @@
 (defrecord Server []
   component/Lifecycle
   (start [server] (init-logger)
-                  (let [api-endpoint (str "/" (get-in server [:config :api :version]))
-                        app (setup-app server api-endpoint)]
+                  (let [;api-version (get-in server [:config :api :version])
+                        app (setup-app server)]
                     (assoc server :app app)))
   (stop [server] server))

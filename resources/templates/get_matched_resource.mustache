@@ -1,14 +1,11 @@
 {{!
 @param CURIe class-curie
-@param IRI graph-uri
 }}
 
 {{> templates/prefixes.mustache}}
 
 SELECT DISTINCT ?resource
 WHERE {
-  GRAPH <{{graph-uri}}> {
-    ?resource a {{class-curie}} .
-  }
+  ?resource a {{class-curie}} .
 }
 LIMIT 2
