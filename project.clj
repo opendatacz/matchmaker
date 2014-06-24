@@ -28,7 +28,7 @@
                  [uritemplate-clj "1.0.0"]
                  [prismatic/schema "0.2.2"]]
   ;:main matchmaker.cli
-  :plugins  [lein-ring "0.8.10"]]
+  :plugins [[lein-ring "0.8.10"]]
   :profiles {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                                   [ring-mock "0.1.5"]
                                   [org.clojure/test.check "0.5.8"]]
