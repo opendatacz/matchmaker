@@ -1,0 +1,3 @@
+@prefix pc: <http://purl.org/procurement/public-contracts#> .
+
+bork:mork a pc:Contract .

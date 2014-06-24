@@ -4,7 +4,7 @@
             [cemerick.url :refer [map->URL url]]
             [ring.util.request :refer [request-url]]
             [liberator.core :refer [defresource]]
-            [liberator.representation :refer [ring-response]]
+            [liberator.representation :refer [as-response ring-response]]
             [matchmaker.lib.rdf :as rdf]
             [matchmaker.lib.sparql :as sparql]
             [matchmaker.lib.util :as util]
@@ -74,26 +74,33 @@
     {{content-type "content-type"} :headers
      {class-label :class} :route-params} :request}]
   (let [class-curie (class-mappings class-label)
-        append (fn [data]
-                 (util/deep-merge {:representation {:media-type "application/ld+json"}} data))]
-    (if (empty? payload)
-      (true (append {:error-msg "Empty data cannot be loaded."}))
-      (try
-        (let [graph (rdf/string->graph payload :rdf-syntax content-type)
-              turtle (if (= content-type "text/turtle")
-                       payload
-                       (rdf/graph->string graph))
-              matched-resources (map :resource
-                                     (rdf/select-query graph
-                                                       ["get_matched_resource"]
-                                                       :data {:class-curie class-curie}))]
-          (case (count matched-resources)
-            0 [true (append {:error-msg (format "No instance of %s was found." class-curie)})]
-            1 [false {:class-curie class-curie
-                      :data turtle
-                      :uri (first matched-resources)}]
-            [true (append {:error-msg (format "More than 1 instance of %s was found." class-curie)})]))
-        (catch Exception e [true (append {:error-msg "Data cannot be parsed."})])))))
+        supported-class? (multimethod-implements? views/load-resource class-label)
+        append (fn [data] (util/deep-merge {:representation {:media-type "application/ld+json"}}
+                                           data))
+        false-option [false {:supported-class? supported-class?}]]
+    (cond (not supported-class?)
+            false-option
+          (empty? payload)
+            [true (append {:error-msg "Empty data cannot be loaded."})]
+          (contains? supported-content-types content-type)
+            (try
+              (let [graph (rdf/string->graph payload :rdf-syntax content-type)
+                    turtle (if (= content-type "text/turtle")
+                            payload
+                            (rdf/graph->string graph))
+                    matched-resources (map :resource
+                                          (rdf/select-query graph
+                                                            ["get_matched_resource"]
+                                                            :data {:class-curie class-curie}))]
+                (case (count matched-resources)
+                  0 [true (append {:error-msg (format "No instance of %s was found." class-curie)})]
+                  1 [false {:class-curie class-curie
+                            :data turtle
+                            :supported-class? supported-class?
+                            :uri (first matched-resources)}]
+                  [true (append {:error-msg (format "More than 1 instance of %s was found." class-curie)})]))
+              (catch Exception e [true (append {:error-msg "Data cannot be parsed."})]))
+          :else false-option)))
 
 (defn- malformed?
   "Check whether GET params are malformed."
@@ -130,34 +137,44 @@
   :handle-ok (partial views/documentation))
 
 (defresource load-resource [server]
-  :available-media-types #{"application/ld+json"}
-  :exists? (fn [{{{class-label :class} :route-params} :request}]
-             (multimethod-implements? views/load-resource class-label))
+  :method-allowed? (fn [{{:keys [request-method body]} :request}]
+                     (if (nil? body)
+                         true ; Ignore the error to be caught by further processing
+                         (let [payload (slurp body)]
+                            (cond (and (= request-method :put)) [true {:payload payload}]
+                                  (and (empty? payload) (= request-method :get)) true
+                                  :else false))))
   :malformed? (fn [{{:keys [request-method]} :request
                     :as ctx}]
                 (case request-method
                   :get false
                   :put (load-resource-malformed? ctx)))
-  :method-allowed? (fn [{{:keys [request-method body]} :request}]
-                     (let [payload (slurp body)]
-                      (cond (and (= request-method :put)) [true {:payload payload}]
-                            (and (empty? payload) (= request-method :get)) true
-                            :else false)))
   :known-content-type? (fn [{{{content-type "content-type"} :headers
-                              :keys [request-method]} :request}]
-                         (case request-method
-                           :get true
-                           :put (if (contains? supported-content-types content-type)
-                                  true
-                                  [false {:error-msg (str content-type
-                                                          " is not supported. "
-                                                          "Supported MIME types include: "
-                                                          (clojure.string/join ", " supported-content-types))
-                                          :representation {:media-type "application/ld+json"}}])))
+                              :keys [request-method]} :request
+                             :keys [supported-class?]}]
+                         (if-not supported-class?
+                           true
+                           (case request-method
+                            :get true
+                            :put (if (contains? supported-content-types content-type)
+                                     true
+                                     [false {:error-msg (str content-type
+                                                             " is not supported. "
+                                                             "Supported MIME types include: "
+                                                             (clojure.string/join ", " supported-content-types))
+                                             :representation {:media-type "application/ld+json"}}]))))
+  :available-media-types #{"application/ld+json"}
+  :exists? (fn [{:keys [supported-class?]}] supported-class?)
+  :can-put-to-missing? false
   :put! (fn [ctx] (load-rdf server ctx))
   :handle-created (partial views/loaded-data)
   :handle-ok (partial views/load-resource)
   :handle-malformed (partial views/error)
+  :handle-not-implemented (fn [{{:keys [request-method]} :request :as ctx}]
+                            (when (= :put request-method)
+                              (-> (as-response "Resource does not exist." ctx)
+                                  (assoc :status 404)
+                                  (ring-response))))
   :handle-unsupported-media-type (partial views/error)
   ;:new? (fn [ctx] ) Check if graph exists?
   )

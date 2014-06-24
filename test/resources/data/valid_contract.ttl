@@ -1,0 +1,3 @@
+@prefix pc: <http://purl.org/procurement/public-contracts#> .
+
+<http://linked.opendata.cz/resource/contract/1> a pc:Contract .
