@@ -1,0 +1,1 @@
+@prefix pc: <http://purl.org/procurement/public-contracts#> .
