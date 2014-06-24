@@ -1,4 +1,4 @@
-(ns matchmaker.lib.sparql_test
+(ns matchmaker.lib.sparql-test
   (:require [clojure.test :refer :all]
             [matchmaker.lib.sparql :refer :all]
             [clojure.test.check.clojure-test :refer [defspec]]

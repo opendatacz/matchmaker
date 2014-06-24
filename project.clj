@@ -35,6 +35,7 @@
                    :resource-paths ["test/resources"]}}
   :ring {:handler matchmaker.system/app}
   :test-paths ["test"]
-  :test-selectors {:default (complement :slow)
+  :test-selectors {:default (complement (or :integration :slow))
+                   :integration :integration
                    :slow :slow
                    :all (constantly true)})
