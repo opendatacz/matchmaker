@@ -34,4 +34,7 @@
                                   [org.clojure/test.check "0.5.8"]]
                    :resource-paths ["test/resources"]}}
   :ring {:handler matchmaker.system/app}
-  :test-paths ["test"])
+  :test-paths ["test"]
+  :test-selectors {:default (complement :slow)
+                   :slow :slow
+                   :all (constantly true)})

@@ -52,7 +52,7 @@
                             (f)
                             (swap! sparql-endpoint-system component/stop)))
 
-(deftest construct-query-test
+(deftest ^:slow construct-query-test
   (let [random-strings (generate-random-strings)
         results (construct-query @sparql-endpoint
                                  ["construct-query"]
@@ -60,7 +60,7 @@
     (is (= (:count random-strings) (.size results))
         "retrieves expected number of triples")))
 
-(deftest select-1-variable-test
+(deftest ^:slow select-1-variable-test
   (let [random-strings (generate-random-strings)
         results (select-1-variable @sparql-endpoint
                                    :count
@@ -69,7 +69,7 @@
     (is (= (:count random-strings) (-> results first Integer.))
         "correctly counts the number of provided values")))
 
-(deftest sparql-ask-test
+(deftest ^:slow sparql-ask-test
   (let [random-ints (generate-random-ints)
         result (sparql-ask @sparql-endpoint
                            ["sparql-ask"]
@@ -81,7 +81,7 @@
   (is (sparql-ask @sparql-endpoint ["sparql-ask_non_empty"])
       "returns true for non-empty graph pattern"))
 
-(deftest sparql-assert-test
+(deftest ^:slow sparql-assert-test
   (is (thrown? Exception (sparql-assert @sparql-endpoint
                                         ["sparql-ask_unsatisfiable"]
                                         :assert-fn true?))
@@ -91,7 +91,7 @@
                      :assert-fn true?)
       "returns true when expecting true and receives true"))
 
-(deftest crud-test
+(deftest ^:slow crud-test
    (let [data (slurp (clojure.java.io/resource "data/triple.ttl"))
          graph-uri (generate-graph-uri @sparql-endpoint data)
          put-fn (fn [] (put-graph @sparql-endpoint data graph-uri))
