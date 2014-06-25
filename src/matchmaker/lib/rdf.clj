@@ -26,7 +26,7 @@
 
 ; ----- Private vars -----
 
-(defonce ^{:private true}
+(defonce ^:private
   rdf-syntax-names-mappings
   {"TURTLE" #{"text/turtle" "n3" "ttl" "turtle"}
    "JSON-LD" #{"application/ld+json" "jsonld" "json-ld"}})

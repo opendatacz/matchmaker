@@ -16,11 +16,11 @@
 
 ;; ----- Private vars ------
 
-(def ^{:private true} class-mappings
+(def ^:private class-mappings
   {"business-entity" "gr:BusinessEntity"
    "contract" "pc:Contract"})
 
-(def ^{:private true} supported-content-types
+(def ^:private supported-content-types
   #{"application/ld+json" "text/turtle"})
 
 ;; ----- Private functions -----
