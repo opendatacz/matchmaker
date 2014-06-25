@@ -1,0 +1,19 @@
+{{!
+@param IRI matched-resource
+@param IRI metadata-graph
+}}
+
+SELECT DISTINCT ?graph
+WHERE {
+  {
+    SELECT DISTINCT ?graph
+    WHERE {
+      GRAPH <{{metadata-graph}}> {
+        ?graph a sd:Graph .
+      }
+    }
+  }
+  GRAPH ?graph {
+    <{{matched-resource}}> ?p [] .
+  }
+}

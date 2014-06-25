@@ -1,14 +1,12 @@
 (ns matchmaker.lib.sparql-test
   (:require [clojure.test :refer :all]
-            [matchmaker.lib.sparql :refer :all]
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check :as tc]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.generators :as gen]
-            [environ.core :refer [env]]
-            [matchmaker.common.config :refer [->Config]]
-            [matchmaker.lib.rdf :as rdf]
-            [com.stuartsierra.component :as component]))
+            [matchmaker.helpers :refer [sparql-endpoint sparql-endpoint-fixture]]
+            [matchmaker.lib.sparql :refer :all]
+            [matchmaker.lib.rdf :as rdf]))
 
 ;; ----- Private functions -----
 
@@ -34,23 +32,9 @@
     {:count (count random-strings)
      :strings random-strings}))
 
-(defn- load-sparql-endpoint-system
-  "Load SPARQL endpoint component"
-  []
-  (let [config-file-path (get-in env [:env :config-file-path])
-        system (component/system-map :config (->Config config-file-path)
-                                     :sparql-endpoint (component/using (->SparqlEndpoint) [:config]))]
-    (component/start system)))
-
 ;; ----- Tests -----
 
-(def sparql-endpoint-system (atom nil))
-(def sparql-endpoint (atom nil))
-
-(use-fixtures :once (fn [f] (reset! sparql-endpoint-system (load-sparql-endpoint-system))
-                            (reset! sparql-endpoint (:sparql-endpoint @sparql-endpoint-system))
-                            (f)
-                            (swap! sparql-endpoint-system component/stop)))
+(use-fixtures :once sparql-endpoint-fixture)
 
 (deftest ^:slow construct-query-test
   (let [random-strings (generate-random-strings)

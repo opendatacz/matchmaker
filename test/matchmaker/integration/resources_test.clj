@@ -1,8 +1,12 @@
 (ns matchmaker.integration.resources-test
   (:require [clojure.test :refer :all]
             [ring.mock.request :refer :all]
+            [matchmaker.helpers :refer [sparql-endpoint sparql-endpoint-fixture]]
             [cheshire.core :as json]
-            [matchmaker.system :refer [app]]))
+            [matchmaker.system :refer [app]]
+            [matchmaker.lib.sparql :as sparql]))
+
+(use-fixtures :once sparql-endpoint-fixture)
 
 (deftest ^:integration dereferenceable-documentation
   (let [response (app (request :get "/doc"))
@@ -50,11 +54,17 @@
             response (-> (put-fn payload)
                          (content-type "text/turtle")
                          app)
-            body (json/parse-string (:body response))]
-        (is (= 201 (:status response))
-            "successfully loads valid data")
-        (is (= "pc:Contract" (body "@type"))
-            "responds with a representation of the loaded instance type")))))
+            body (json/parse-string (:body response))
+            graph (first (sparql/select-1-variable @sparql-endpoint
+                                                   :graph
+                                                   ["get_matched_resource_graph"]
+                                                   :data {:matched-resource (body "@id")
+                                                          :metadata-graph (:metadata-graph @sparql-endpoint)}))]
+        (do (is (= 201 (:status response))
+                "successfully loads valid data")
+            (is (= "pc:Contract" (body "@type"))
+                "responds with a representation of the loaded instance type")
+            (sparql/delete-graph @sparql-endpoint graph))))))
 
 (deftest ^:integration vocabulary-test
   (testing "dereferenceable vocabulary"
