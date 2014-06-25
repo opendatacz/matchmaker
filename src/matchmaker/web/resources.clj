@@ -61,6 +61,25 @@
       :source source
       :target target}]))
 
+(defn- get-matched-resources
+  "Returns instances of @class-curie from @graph"
+  [graph class-curie]
+  (map :resource
+       (rdf/select-query graph
+                         ["get_matched_resource"]
+                         :data {:class-curie class-curie})))
+
+(defn- is-supported-content-type
+  "Test if @content-type is supported and can be loaded."
+  [content-type]
+  (if (contains? supported-content-types content-type)
+      true
+      [false {:error-msg (str content-type
+                              " is not supported. "
+                              "Supported MIME types include: "
+                              (clojure.string/join ", " supported-content-types))
+              :representation {:media-type "application/ld+json"}}]))
+
 (defn- load-rdf
   "Load RDF data from payload into a new source graph."
   [server ctx]
@@ -86,12 +105,9 @@
             (try
               (let [graph (rdf/string->graph payload :rdf-syntax content-type)
                     turtle (if (= content-type "text/turtle")
-                            payload
-                            (rdf/graph->string graph))
-                    matched-resources (map :resource
-                                          (rdf/select-query graph
-                                                            ["get_matched_resource"]
-                                                            :data {:class-curie class-curie}))]
+                               payload
+                               (rdf/graph->string graph))
+                    matched-resources (get-matched-resources graph class-curie)]
                 (case (count matched-resources)
                   0 [true (append {:error-msg (format "No instance of %s was found." class-curie)})]
                   1 [false {:class-curie class-curie
@@ -156,13 +172,7 @@
                            true
                            (case request-method
                             :get true
-                            :put (if (contains? supported-content-types content-type)
-                                     true
-                                     [false {:error-msg (str content-type
-                                                             " is not supported. "
-                                                             "Supported MIME types include: "
-                                                             (clojure.string/join ", " supported-content-types))
-                                             :representation {:media-type "application/ld+json"}}]))))
+                            :put (is-supported-content-type content-type))))
   :available-media-types #{"application/ld+json"}
   :exists? (fn [{:keys [supported-class?]}] supported-class?)
   :can-put-to-missing? false
@@ -185,11 +195,12 @@
   :exists? (fn [ctx] (exists? server ctx)) 
   :malformed? (partial malformed?)
   :handle-malformed (partial views/error)
-  :handle-ok (partial controllers/dispatch-to-matchmaker))
+  :handle-ok (fn [ctx] (controllers/dispatch-to-matchmaker ctx)))
 
 (defresource vocabulary
   :available-media-types #{"application/ld+json"}
   :allowed-methods #{:get}
   :exists? (fn [ctx] (let [term (get-in ctx [:request :route-params :term])]
                        (multimethod-implements? views/vocabulary-term term)))
-  :handle-ok (partial views/vocabulary-term))
+  :handle-ok (fn [ctx] (views/vocabulary-term ctx))) ; Partial application of multimethod
+                                                     ; here makes Liberator upset

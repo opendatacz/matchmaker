@@ -51,5 +51,17 @@
                          (content-type "text/turtle")
                          app)
             body (json/parse-string (:body response))]
-        (is (= 201 (:status response)))
-        (is (= "pc:Contract" (body "@type")))))))
+        (is (= 201 (:status response))
+            "successfully loads valid data")
+        (is (= "pc:Contract" (body "@type"))
+            "responds with a representation of the loaded instance type")))))
+
+(deftest ^:integration vocabulary-test
+  (testing "dereferenceable vocabulary"
+    (let [response (app (request :get "/vocab"))]
+      (is (= 200 (:status response))
+          "vocabulary is dereferenceable")))
+  (testing "non-existent vocabulary term"
+    (let [response (app (request :get "/vocab/bork"))]
+      (is (= 404 (:status response))
+          "non-existent vocabulary term is not found"))))
