@@ -5,6 +5,10 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [com.taoensso/timbre "3.1.1"]
+                 [log4j/log4j "1.2.17" :exclusions [javax.mail/mail
+                                                    javax.jms/jms
+                                                    com.sun.jmdk/jmxtools
+                                                    com.sun.jmx/jmxri]]
                  [environ "0.5.0"]
                  [org.clojure/tools.cli "0.3.0"]
                  [org.clojure/data.zip "0.1.1"]
