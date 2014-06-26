@@ -1,0 +1,18 @@
+{{!
+@param IRI source-graph
+@param int limit
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?contract 
+WHERE {
+  GRAPH <{{source-graph}}> {
+    ?contract a pc:Contract .
+    FILTER NOT EXISTS {
+       [] pc:lot ?contract .
+    }
+    FILTER (1 > <SHORT_OR_LONG::bif:rnd>(10, ?contract))
+  }
+}
+LIMIT {{limit}}

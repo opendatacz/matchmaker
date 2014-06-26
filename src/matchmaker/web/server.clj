@@ -24,8 +24,7 @@
     (ANY "/vocab" [] resources/vocabulary)
     (ANY "/vocab/:term" [] resources/vocabulary)
     (ANY "/load/:class" [] (resources/load-resource server))
-    (context "/match" []
-             (ANY "/:source/to/:target" [] (resources/match-resource server)))
+    (ANY "/match/:source/to/:target" [] (resources/match-resource server))
     (route/not-found (views/not-found))))
 
 (defn- setup-app

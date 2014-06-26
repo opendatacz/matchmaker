@@ -4,7 +4,7 @@
             [liberator.representation :refer [render-map-generic]]
             [cheshire.core :as json]))
 
-(declare transform-match wrap-in-search-action)
+(declare transform-match wrap-in-collection)
 
 ;; ----- Private vars -----
 
@@ -27,7 +27,7 @@
   {"@id" (base-url+ ctx
                     path
                     :query {"uri" (:uri ctx)
-                            "graph_uri" (:graph_uri ctx)})
+                            "graph_uri" (get-in ctx [:request :query-params :graph_uri])})
    "@type" "/vocab/MatchOperation"})
 
 (defn- generate-match-operations
@@ -53,7 +53,7 @@
                      (map #(transform-match % additional-mappings match-type))
                      (sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
                      reverse)]
-    (wrap-in-search-action uri matches paging limit)))
+    (wrap-in-collection uri matches paging limit)))
 
 (defn- prefix-vocabulary-term
   "Prefix a vocabulary @term with vocabulary URI"
@@ -75,21 +75,18 @@
           (assoc "@type" match-type)
           (update-in ["vrank:hasRank"] (fn [rank] {"vrank:hasValue" (read-string rank)}))))))
 
-(defn- wrap-in-search-action
-  "Wraps @matches for @uri in schema:SearchAction"
+(defn- wrap-in-collection
+  "Wraps @matches for @uri hydra:Collection"
   [uri matches paging limit]
   {:pre [(map? paging)]} 
   (let [collection-type (if (some (complement nil?) (select-keys paging [:prev :next]))
                             "hydra:PagedCollection"
                             "hydra:Collection")
         rekeyed-paging (clojure.set/rename-keys paging {:next "hydra:nextPage"
-                                                        :prev "hydra:previousPage"})
-        results (merge rekeyed-paging {"@type" collection-type
-                                       "hydra:itemsPerPage" limit
-                                       "hydra:member" matches})]
-    {"@type" "schema:SearchAction"
-     "schema:query" uri
-     "schema:result" results}))
+                                                        :prev "hydra:previousPage"})]
+    (merge rekeyed-paging {"@type" collection-type
+                           "hydra:itemsPerPage" limit
+                           "hydra:member" matches})))
 
 ;; ----- Public functions -----
 

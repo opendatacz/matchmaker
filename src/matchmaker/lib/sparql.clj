@@ -12,7 +12,7 @@
             [slingshot.slingshot :refer [throw+ try+]]))
 
 (declare delete-graph execute-query post-graph put-graph read-graph
-         select-query sparql-ask sparql-query sparql-update)
+         select-query select-1-variable sparql-ask sparql-query sparql-update)
 
 ; Private functions
 
@@ -136,12 +136,20 @@
   "Returns a single instance of given @class from @graph-uri."
   [sparql-endpoint & {:keys [class-curie graph-uri]}]
   {:pre [(util/url? graph-uri)]}
-  (-> (select-query sparql-endpoint
-                    ["get_matched_resource"]
-                    :data {:class-curie class-curie
-                           :graph-uri graph-uri})
-      first
-      :resource))
+  (first (select-1-variable sparql-endpoint
+                            :resource
+                            ["get_matched_resource"]
+                            :data {:class-curie class-curie
+                                   :graph-uri graph-uri})))
+
+(defn get-random-contracts
+  "Get a list of @number public contracts."
+  [sparql-endpoint number]
+  {:pre [(integer? number) (pos? number)]}
+  (select-1-variable sparql-endpoint
+                     :contract
+                     ["matchmaker" "sparql" "virtuoso_random_contracts"]
+                     :data {:limit number}))
 
 (defn graph-exists?
   "Tests if graph named @graph-uri exists in the associated SPARQL endpoint."

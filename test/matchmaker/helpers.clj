@@ -1,5 +1,6 @@
 (ns matchmaker.helpers
-  (:require [environ.core :refer [env]]
+  (:require [taoensso.timbre :as timbre]
+            [environ.core :refer [env]]
             [com.stuartsierra.component :as component]
             [matchmaker.common.config :refer [->Config]]
             [matchmaker.lib.sparql :refer [->SparqlEndpoint]]))

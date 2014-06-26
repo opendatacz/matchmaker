@@ -10,14 +10,12 @@
   "Get paging links for @request-url based on @results-size, @limit and @offset used
   with the current request."
   [request-url & {:keys [results-size limit offset]}]
-  (let [limit-int (util/get-int limit)
-        offset-int (util/get-int offset)
-        base-params {"limit" limit-int}
-        next-link-params (assoc base-params "offset" (+ offset-int limit-int))
-        prev-link-params (assoc base-params "offset" (- offset-int limit-int))
-        next-link (when (= results-size limit-int)
+  (let [base-params {"limit" limit}
+        next-link-params (assoc base-params "offset" (+ offset limit))
+        prev-link-params (assoc base-params "offset" (- offset limit))
+        next-link (when (= results-size limit)
                         (str (update-in request-url [:query] merge next-link-params)))
-        prev-link (when (>= offset-int limit-int)
+        prev-link (when (>= offset limit)
                         (str (update-in request-url [:query] merge prev-link-params)))]
     (into {} (filter (comp (complement nil?) second) {:next next-link
                                                       :prev prev-link}))))
@@ -30,15 +28,16 @@
          (keyword? resource-key)
          (vector? template)
          (fn? view-fn)]}
-  (let [{:keys [graph-uri limit offset request-url uri]} params
+  (let [{:keys [graph_uri limit offset uri]} (get-in params [:request :params])
+        request-url (:request-url params)
         sparql-endpoint (get-in params [:server :sparql-endpoint])
         matchmaker-results (sparql-match/match-resource
-                             sparql-endpoint 
-                             template 
-                             :data {:limit limit
-                                    :matched-resource-graph graph-uri 
-                                    :offset offset
-                                    resource-key uri})
+                              sparql-endpoint 
+                              template 
+                              :data {:limit limit
+                                     :matched-resource-graph graph_uri 
+                                     :offset offset
+                                     resource-key uri})
         results-size (count matchmaker-results)
         base-url (get-in params [:request :base-url])
         paging (get-paging request-url
