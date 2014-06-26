@@ -10,15 +10,19 @@
   "Get paging links for @request-url based on @results-size, @limit and @offset used
   with the current request."
   [request-url & {:keys [results-size limit offset]}]
-  (let [base-params {"limit" limit}
+  (let [merge-query-fn (fn [condition params]
+                          (when condition
+                                (str (update-in request-url [:query] merge params))))
+        base-params {"limit" limit}
         next-link-params (assoc base-params "offset" (+ offset limit))
         prev-link-params (assoc base-params "offset" (- offset limit))
-        next-link (when (= results-size limit)
-                        (str (update-in request-url [:query] merge next-link-params)))
-        prev-link (when (>= offset limit)
-                        (str (update-in request-url [:query] merge prev-link-params)))]
-    (into {} (filter (comp (complement nil?) second) {:next next-link
-                                                      :prev prev-link}))))
+        first-page-params (assoc base-params "offset" 0)
+        next-link (merge-query-fn (= results-size limit) next-link-params)
+        prev-link (merge-query-fn (>= offset limit) prev-link-params)
+        first-page-link (merge-query-fn (>= offset limit) first-page-params)]
+    (into {} (filter (comp (complement nil?) second) {"hydra:nextPage" next-link
+                                                      "hydra:previousPage" prev-link
+                                                      "hydra:firstPage" first-page-link}))))
 
 (defn- match-resource
   "Match resource by using @matchmaking-fn.

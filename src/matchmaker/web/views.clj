@@ -116,10 +116,8 @@
   {:pre [(map? paging)]} 
   (let [collection-type (if (some (complement nil?) (select-keys paging [:prev :next]))
                             "hydra:PagedCollection"
-                            "hydra:Collection")
-        rekeyed-paging (clojure.set/rename-keys paging {:next "hydra:nextPage"
-                                                        :prev "hydra:previousPage"})]
-    (merge rekeyed-paging {"@type" collection-type
+                            "hydra:Collection")]
+    (merge paging {"@type" collection-type
                            "hydra:itemsPerPage" limit
                            "hydra:member" matches})))
 
