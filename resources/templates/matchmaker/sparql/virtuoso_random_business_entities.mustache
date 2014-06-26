@@ -8,10 +8,12 @@
 SELECT DISTINCT ?resource 
 WHERE {
   GRAPH <{{source-graph}}> {
-    ?resource a pc:Contract .
-    FILTER NOT EXISTS {
-       [] pc:lot ?resource .
+    VALUES ?businessEntityLink {
+      pc:bidder
+      pc:supplier
     }
+    ?resource a gr:BusinessEntity .
+    [] ?businessEntityLink ?resource .
     FILTER (1 > <SHORT_OR_LONG::bif:rnd>(10, ?resource))
   }
 }

@@ -50,6 +50,15 @@
   [sparql-variables sparql-result]
   (mapv (partial get-binding sparql-result) sparql-variables))
 
+(defn- get-random-resources
+  "Get a list of @number of resource using SPARQL @template-path"
+  [sparql-endpoint template-path number]
+  {:pre [(integer? number) (pos? number)]}
+  (select-1-variable sparql-endpoint
+                     :resource
+                     template-path
+                     :data {:limit number}))
+
 (defn- record-loaded-graph
   "Records uploaded graph named @graph-uri into the metadata graph"
   [sparql-endpoint graph-uri]
@@ -142,14 +151,19 @@
                             :data {:class-curie class-curie
                                    :graph-uri graph-uri})))
 
+(defn get-random-business-entities
+  "Get a list of @number of business entities"
+  [sparql-endpoint number]
+  (get-random-resources sparql-endpoint
+                        ["matchmaker" "sparql" "virtuoso_random_business_entities"]
+                        number))
+
 (defn get-random-contracts
   "Get a list of @number public contracts."
   [sparql-endpoint number]
-  {:pre [(integer? number) (pos? number)]}
-  (select-1-variable sparql-endpoint
-                     :contract
-                     ["matchmaker" "sparql" "virtuoso_random_contracts"]
-                     :data {:limit number}))
+  (get-random-resources sparql-endpoint 
+                        ["matchmaker" "sparql" "virtuoso_random_contracts"]
+                        number))
 
 (defn graph-exists?
   "Tests if graph named @graph-uri exists in the associated SPARQL endpoint."
