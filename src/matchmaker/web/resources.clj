@@ -31,7 +31,7 @@
 
 (def ^:private positive? (s/pred pos? 'pos?))
 
-(def ^:private non-negative? (s/pred (partial >= 0) 'non-negative?))
+(def ^:private non-negative? (s/pred (partial <= 0) 'non-negative?))
 
 (def MatchRequest
   {:uri sc/URI
@@ -39,7 +39,7 @@
    (s/optional-key :graph_uri) sc/URI
    (s/optional-key :limit) (s/both s/Int
                                    positive?
-                                   (s/pred (partial >= 100) 'lower-than-100?)) 
+                                   (s/pred (partial >= 100) 'lower-than-100?))
    (s/optional-key :offset) (s/both s/Int
                                     non-negative?)
    (s/optional-key :oldest_creation_date) sc/Date 
@@ -182,7 +182,6 @@
                                            (clojure.walk/keywordize-keys query-params))]
                   (cond (empty? query-params) [false ctx-defaults]
                         exists? (try
-                                  (s/validate MatchRequest match-request)
                                   (let [coerced-request (parse-match-request match-request)]
                                     [false (util/deep-merge ctx-defaults
                                                             {:request {:params coerced-request}})])
