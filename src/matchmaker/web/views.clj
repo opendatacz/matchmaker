@@ -1,14 +1,20 @@
 (ns matchmaker.web.views
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.template :refer [render-template]]
+            [matchmaker.lib.sparql :as sparql]
             [liberator.representation :refer [render-map-generic]]
-            [cheshire.core :as json]))
+            [cheshire.core :as json]
+            [clj-time.core :as clj-time]
+            [matchmaker.lib.util :refer [format-date]]))
 
-(declare transform-match wrap-in-collection)
+(declare get-random-resource transform-match wrap-in-collection)
 
 ;; ----- Private vars -----
 
-(def ^{:private true} hydra-context "http://www.w3.org/ns/hydra/context.jsonld")
+(def ^:private hydra-context "http://www.w3.org/ns/hydra/context.jsonld")
+
+(def ^:private a-month-ago
+  (format-date (clj-time/minus (clj-time/now) (clj-time/months 1))))
 
 ;; ----- Private functions -----
 
@@ -39,6 +45,26 @@
                     "gr:BusinessEntity" ["/match/business-entity/to/contract"]
                     [])]
     (mapv (partial generate-match-operation ctx) paths)))
+
+(defn- get-random-business-entity
+  "Get a URI of random business entity"
+  [ctx]
+  (get-random-resource ctx sparql/get-random-business-entities))
+
+(defn- get-random-contract
+  "Get a URI of random contract"
+  [ctx]
+  (get-random-resource ctx sparql/get-random-contracts))
+
+(defn- get-random-resource
+  "Get a URI of random resource using @generator-fn"
+  [ctx generator-fn]
+  (let [sparql-endpoint (get-in ctx [:server :sparql-endpoint])]
+    (first (generator-fn sparql-endpoint 1))))
+
+;(defn- match-operation-template
+;  [operation-path expects returns]
+;  )
 
 (defn- match-resource
   "JSON-LD view of @matchmaker-results for contract @uri using @additional-mappings
@@ -302,7 +328,8 @@
    "rdfs:comment" "URI of the matched business entity"
    "variable" "uri"
    "property" "rdf:subject"
-   "required" true})
+   "required" true
+   "vann:example" (get-random-business-entity ctx)})
 
 (defmethod vocabulary-term "contract-uri-mapping"
   [ctx]
@@ -312,7 +339,8 @@
    "rdfs:comment" "URI of the matched contract"
    "variable" "uri"
    "property" "rdf:subject"
-   "required" true})
+   "required" true
+   "vann:example" (get-random-contract ctx)})
 
 (defmethod vocabulary-term "current-mapping"
   [ctx]
@@ -322,7 +350,8 @@
    "rdfs:comment" "Boolean flag indicating filtering to current contracts"
    "variable" "current"
    "property" {"rdfs:range" "xsd:boolean"}
-   "required" false})
+   "required" false
+   "vann:example" ["true" "false"]})
 
 (defmethod vocabulary-term "oldest-creation-date-mapping"
   [ctx]
@@ -332,7 +361,8 @@
    "rdfs:comment" "The oldest date when a relevant contract could be created"
    "variable" "oldest_creation_date"
    "property" {"rdfs:range" "xsd:date"}
-   "required" false})
+   "required" false
+   "vann:example" a-month-ago})
 
 (defmethod vocabulary-term "publication-date-path-mapping"
   [ctx]
@@ -342,7 +372,8 @@
    "rdfs:comment" "SPARQL 1.1 property path to contract's publication date"
    "variable" "publication_date_path"
    "property" {"rdfs:range" "xsd:string"}
-   "required" false})
+   "required" false
+   "vann:example" "pc:publicNotice/pc:publicationDate"})
 
 ; Extend Liberator's multimethod for rendering maps to cover JSON-LD
 (defmethod render-map-generic "application/ld+json"

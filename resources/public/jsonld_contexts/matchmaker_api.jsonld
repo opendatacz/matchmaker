@@ -14,6 +14,7 @@
   "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
   "schema" : "http://schema.org/",
   "skos" : "http://www.w3.org/2004/02/skos/core#",
+  "vann" : "http://purl.org/vocab/vann/",
   "voaf" : "http://purl.org/vocommons/voaf#",
   "vrank" : "http://purl.org/voc/vrank#",
   "xsd" : "http://www.w3.org/2001/XMLSchema#",

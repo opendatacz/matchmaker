@@ -5,7 +5,16 @@
             [cheshire.core :as json])
   (:import [java.security MessageDigest]))
 
-; Public functions
+; ----- Private functions -----
+
+(defn- date-time-formatter
+  "Format a @date-time using @formatter."
+  [^org.joda.time.DateTime date-time
+   formatter]
+  {:pre [(keyword? formatter)]}
+  (time-format/unparse (time-format/formatters formatter) date-time))
+
+; ----- Public functions -----
 
 (declare format-date-time
          join-file-path)
@@ -44,10 +53,15 @@
   (println msg)
   (System/exit status))
 
+(defn format-date
+  "Encode @date-time as xsd:date"
+  [date-time]
+  (date-time-formatter date-time :date))
+
 (defn format-date-time
   "Encode @date-time as xsd:dateTime"
-  [^org.joda.time.DateTime date-time]
-  (time-format/unparse (time-format/formatters :date-time) date-time))
+  [date-time]
+  (date-time-formatter date-time :date-time))
 
 (defn get-int
   "Converts @string to integer.

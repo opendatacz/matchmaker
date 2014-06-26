@@ -198,10 +198,10 @@
                  (views/match-operation ctx)
                  (controllers/dispatch-to-matchmaker ctx))))
 
-(defresource vocabulary
+(defresource vocabulary [server]
   :available-media-types #{"application/ld+json"}
   :allowed-methods #{:get}
   :exists? (fn [ctx] (let [term (get-in ctx [:request :route-params :term])]
-                       (multimethod-implements? views/vocabulary-term term)))
+                       [(multimethod-implements? views/vocabulary-term term) {:server server}]))
   :handle-ok (fn [ctx] (views/vocabulary-term ctx))) ; Partial application of multimethod
                                                      ; here makes Liberator upset

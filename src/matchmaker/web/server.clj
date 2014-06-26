@@ -21,8 +21,8 @@
   (routes
     (GET "/" [] (redirect "/doc"))
     (ANY "/doc" [] resources/documentation)
-    (ANY "/vocab" [] resources/vocabulary)
-    (ANY "/vocab/:term" [] resources/vocabulary)
+    (ANY "/vocab" [] (resources/vocabulary server))
+    (ANY "/vocab/:term" [] (resources/vocabulary server))
     (ANY "/load/:class" [] (resources/load-resource server))
     (ANY "/match/:source/to/:target" [] (resources/match-resource server))
     (route/not-found (views/not-found))))
