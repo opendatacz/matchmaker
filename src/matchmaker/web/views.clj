@@ -214,7 +214,7 @@
                           "method" "GET"
                           "expects" (base-url+ ctx "/vocab/BusinessEntity")
                           "returns" (base-url+ ctx "/vocab/ContractCollection")}
-    "vann:example" (base-url+ ctx operation-path :query {:uri (get-random-business-entity ctx)})}))
+    "skos:example" (base-url+ ctx operation-path :query {:uri (get-random-business-entity ctx)})}))
 
 (defmethod match-operation ["contract" "business-entity"]
   [ctx]
@@ -225,7 +225,7 @@
                            "method" "GET"
                            "expects" (base-url+ ctx "/vocab/Contract")
                            "returns" (base-url+ ctx "/vocab/BusinessEntityCollection")}
-     "vann:example" (base-url+ ctx operation-path :query {:uri (get-random-contract ctx)})}))
+     "skos:example" (base-url+ ctx operation-path :query {:uri (get-random-contract ctx)})}))
 
 (defmethod match-operation ["contract" "contract"]
   [ctx]
@@ -236,7 +236,7 @@
                            "method" "GET"
                            "expects" (base-url+ ctx "/vocab/Contract")
                            "returns" (base-url+ ctx "/vocab/ContractCollection")}
-     "vann:example" (base-url+ ctx operation-path :query {:uri (get-random-contract ctx)})}))
+     "skos:example" (base-url+ ctx operation-path :query {:uri (get-random-contract ctx)})}))
 
 (defn not-found
   []
@@ -336,7 +336,7 @@
    "variable" "uri"
    "property" "rdf:subject"
    "required" true
-   "vann:example" (get-random-business-entity ctx)})
+   "skos:example" (get-random-business-entity ctx)})
 
 (defmethod vocabulary-term "contract-uri-mapping"
   [ctx]
@@ -347,7 +347,7 @@
    "variable" "uri"
    "property" "rdf:subject"
    "required" true
-   "vann:example" (get-random-contract ctx)})
+   "skos:example" (get-random-contract ctx)})
 
 (defmethod vocabulary-term "current-mapping"
   [ctx]
@@ -358,7 +358,7 @@
    "variable" "current"
    "property" {"rdfs:range" "xsd:boolean"}
    "required" false
-   "vann:example" ["true" "false"]})
+   "skos:example" ["true" "false"]})
 
 (defmethod vocabulary-term "oldest-creation-date-mapping"
   [ctx]
@@ -369,7 +369,7 @@
    "variable" "oldest_creation_date"
    "property" {"rdfs:range" "xsd:date"}
    "required" false
-   "vann:example" a-month-ago})
+   "skos:example" a-month-ago})
 
 (defmethod vocabulary-term "publication-date-path-mapping"
   [ctx]
@@ -380,7 +380,7 @@
    "variable" "publication_date_path"
    "property" {"rdfs:range" "xsd:string"}
    "required" false
-   "vann:example" "pc:publicNotice/pc:publicationDate"})
+   "skos:example" "pc:publicNotice/pc:publicationDate"})
 
 ; Extend Liberator's multimethod for rendering maps to cover JSON-LD
 (defmethod render-map-generic "application/ld+json"
