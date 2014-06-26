@@ -89,7 +89,7 @@
   component/Lifecycle
   (start [cron] (let [entries [(delete-old-graphs-task (:config cron)
                                                        (:sparql-endpoint cron))]
-                      cj (cronj/cronj :entries entries)] 
+                      cj (cronj/cronj :entries entries)]
                   (cronj/start! cj)
                   (assoc cron :cron cj)))
   (stop [cron] (cronj/stop! (:cron cron))

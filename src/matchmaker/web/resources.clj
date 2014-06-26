@@ -1,16 +1,17 @@
 (ns matchmaker.web.resources
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.util :as util]
-            [cemerick.url :refer [map->URL url]]
+            [cemerick.url :refer [url]]
             [ring.util.request :refer [request-url]]
             [liberator.core :refer [defresource]]
             [liberator.representation :refer [as-response ring-response]]
             [matchmaker.lib.rdf :as rdf]
             [matchmaker.lib.sparql :as sparql]
-            [matchmaker.lib.util :as util]
             [matchmaker.web.controllers :as controllers]
             [matchmaker.web.views :as views]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [schema.coerce :as coerce]
+            [schema-contrib.core :as sc]))
 
 (declare load-rdf multimethod-implements?)
 
@@ -23,43 +24,28 @@
 (def ^:private supported-content-types
   #{"application/ld+json" "text/turtle"})
 
+(def ^:private jsonld-mime-type
+  {:representation {:media-type "application/ld+json"}})
+
+;; ----- Schemata ------
+
+(def ^:private positive? (s/pred pos? 'pos?))
+
+(def ^:private non-negative? (s/pred (partial >= 0) 'non-negative?))
+
+(def MatchRequest
+  {:uri sc/URI
+   (s/optional-key :current) s/Bool
+   (s/optional-key :graph_uri) sc/URI
+   (s/optional-key :limit) (s/both s/Int
+                                   positive?
+                                   (s/pred (partial >= 100) 'lower-than-100?)) 
+   (s/optional-key :offset) (s/both s/Int
+                                    non-negative?)
+   (s/optional-key :oldest_creation_date) sc/Date 
+   (s/optional-key :publication_date_path) String})
+
 ;; ----- Private functions -----
-
-(defn- extract-match-params
-  "Extracts and merges params passed to @request and from @path-params."
-  [request]
-  (let [{{:keys [current graph-uri limit offset
-                 oldest-creation-date publication-date-path uri]
-          :or {limit "10" ; GET params are strings by default
-               offset "0"}} :params} request
-        requested-url (-> request
-                          request-url
-                          url)]
-    {:current current
-     :graph-uri graph-uri
-     :limit limit
-     :offset offset
-     :oldest_creation_date oldest-creation-date
-     :publication_date_path publication-date-path
-     :request-url requested-url
-     :uri uri}))
-
-; (def MatchRequest
-;   {(s/optional-key :current) s/Bool
-;    (s/optional-key :data) s/Str
-;    (s/optional-key :external_uri) s/Str ; TODO: Implement a custom type for URI.
-;    (s/optional-key :graph-uri) s/Str
-;    (s/optional-key :limit) s/Integer})
-
-(defn- exists?
-  "Test if it's possible to match resources of the provided types."
-  [server ctx]
-  (let [{:keys [source target]} (get-in ctx [:request :route-params])]
-    [(multimethod-implements? controllers/dispatch-to-matchmaker [source target])
-     {:graph-uri (get-in server [:sparql-endpoint :source-graph]) ; Default :graph-uri is :source-graph 
-      :server server ; Pass in reference to server component
-      :source source
-      :target target}]))
 
 (defn- get-matched-resources
   "Returns instances of @class-curie from @graph"
@@ -85,17 +71,16 @@
   [server ctx]
   (let [sparql-endpoint (:sparql-endpoint server)
         matched-resource-graph (sparql/load-rdf-data sparql-endpoint (:data ctx))]
-    {:graph-uri matched-resource-graph}))
+    {:request {:query-params {:graph_uri matched-resource-graph}}}))
 
 (defn- load-resource-malformed?
   "Test if @payload to load is malformed"
   [{payload :payload
+    supported-class? :supported-class?
     {{content-type "content-type"} :headers
      {class-label :class} :route-params} :request}]
   (let [class-curie (class-mappings class-label)
-        supported-class? (multimethod-implements? views/load-resource class-label)
-        append (fn [data] (util/deep-merge {:representation {:media-type "application/ld+json"}}
-                                           data))
+        append (fn [data] (util/deep-merge jsonld-mime-type data))
         false-option [false {:supported-class? supported-class?}]]
     (cond (not supported-class?)
             false-option
@@ -117,26 +102,6 @@
                   [true (append {:error-msg (format "More than 1 instance of %s was found." class-curie)})]))
               (catch Exception e [true (append {:error-msg "Data cannot be parsed."})]))
           :else false-option)))
-
-(defn- malformed?
-  "Check whether GET params are malformed."
-  [ctx]
-  (let [request-method (get-in ctx [:request :request-method])
-        match-params (extract-match-params (:request ctx))
-        {:keys [current data external-uri limit syntax uri]} match-params]
-    (cond ((complement pos?) (util/get-int limit))
-            [true {:error-msg (format "Limit must be a positive integer. Limit provided: %s" limit)}]
-          (and ((complement nil?) data) (nil? syntax))
-            [true {:error-msg "Syntax needs to be provided when posting data."}]
-          (and (= :get request-method) (nil? uri))
-            [true {:error-msg "URI of the matched resource must be provided."}]
-          (and (= :get request-method) ((complement nil?) external-uri))
-            [true {:error-msg "Requests loading external URI must be done using POST."}]
-          (and (= :get request-method) ((complement nil?) data))
-            [true {:error-msg "Requests loading external data must be done using POST."}]
-          (and ((complement nil?) current) (not (Boolean/parseBoolean current)))
-            [true {:error-msg "The 'current' parameter needs to be boolean."}]
-          :else [false match-params])))
 
 (defn- multimethod-implements?
   "Test if @multimethod is implemented for @dispatch-value"
@@ -160,11 +125,13 @@
                             (cond (and (= request-method :put)) [true {:payload payload}]
                                   (and (empty? payload) (= request-method :get)) true
                                   :else false))))
-  :malformed? (fn [{{:keys [request-method]} :request
+  :malformed? (fn [{{:keys [request-method]
+                     {class-label :class} :route-params} :request
                     :as ctx}]
-                (case request-method
-                  :get false
-                  :put (load-resource-malformed? ctx)))
+                (let [supported-class? (multimethod-implements? views/load-resource class-label)]
+                  (case request-method
+                    :get [false {:supported-class? supported-class?}]
+                    :put (load-resource-malformed? (assoc ctx :supported-class? supported-class?)))))
   :known-content-type? (fn [{{{content-type "content-type"} :headers
                               :keys [request-method]} :request
                              :keys [supported-class?]}]
@@ -178,7 +145,7 @@
   :can-put-to-missing? false
   :put! (fn [ctx] (load-rdf server ctx))
   :handle-created (partial views/loaded-data)
-  :handle-ok (partial views/load-resource)
+  :handle-ok (fn [ctx] (views/load-resource ctx))
   :handle-malformed (partial views/error)
   :handle-not-implemented (fn [{{:keys [request-method]} :request :as ctx}]
                             (when (= :put request-method)
@@ -190,10 +157,35 @@
   )
 
 (defresource match-resource [server]
-  :available-media-types #{"application/ld+json"}
   :allowed-methods #{:get}
-  :exists? (fn [ctx] (exists? server ctx)) 
-  :malformed? (partial malformed?)
+  :malformed? (fn [{{{:keys [source target]} :route-params
+                     :keys [query-params]
+                     :as request} :request}]
+                (let [ctx-defaults {:request-url (-> request
+                                                     request-url
+                                                     url)
+                                    :server server ; Pass in reference to server component
+                                    :source source
+                                    :target target}
+                      ; Default :graph_uri is :source-graph 
+                      request-defaults {:graph_uri (get-in server [:sparql-endpoint :source-graph])
+                                        :limit 10
+                                        :offset 0}
+                      exists? (multimethod-implements? controllers/dispatch-to-matchmaker [source target])
+                      parse-match-request (coerce/coercer MatchRequest coerce/string-coercion-matcher)
+                      match-request (merge request-defaults (clojure.walk/keywordize-keys query-params))]
+                  (if exists?
+                    (try
+                      (s/validate MatchRequest match-request)
+                      (let [coerced-request (parse-match-request match-request)]
+                        [false (util/deep-merge ctx-defaults
+                                                {:exists? exists?
+                                                :request {:params coerced-request}})])
+                      (catch Exception e [true (util/deep-merge jsonld-mime-type
+                                                                {:error-msg (.getMessage e)})]))
+                    [false jsonld-mime-type])))
+  :available-media-types #{"application/ld+json"}
+  :exists? (fn [{:keys [exists?]}] exists?) 
   :handle-malformed (partial views/error)
   :handle-ok (fn [ctx] (controllers/dispatch-to-matchmaker ctx)))
 

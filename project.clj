@@ -30,7 +30,8 @@
                  [liberator "0.11.0"]
                  [im.chit/cronj "1.0.1"]
                  [uritemplate-clj "1.0.0"]
-                 [prismatic/schema "0.2.2"]]
+                 [prismatic/schema "0.2.4"]
+                 [schema-contrib "0.1.3"]]
   ;:main matchmaker.cli
   :plugins [[lein-ring "0.8.10"]]
   :profiles {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
@@ -39,7 +40,8 @@
                    :resource-paths ["test/resources"]}}
   :ring {:handler matchmaker.system/app}
   :test-paths ["test"]
-  :test-selectors {:default (complement (or :integration :slow))
+  :test-selectors {:current :current
+                   :default (complement (or :integration :slow))
                    :integration :integration
                    :slow :slow
                    :all (constantly true)})
