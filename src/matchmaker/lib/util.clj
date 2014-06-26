@@ -73,10 +73,10 @@
 (defn init-logger
   "Initialize logger"
   []
-  (do ; Disable output to STDOUT
-    (timbre/set-config! [:appenders :standard-out :enabled?] false)
-    (timbre/set-config! [:appenders :spit :enabled?] true)
-    (timbre/set-config! [:shared-appender-config :spit-filename] (join-file-path "log" "logger.log"))))
+  ; Disable output to STDOUT
+  (timbre/set-config! [:appenders :standard-out :enabled?] false)
+  (timbre/set-config! [:appenders :spit :enabled?] true)
+  (timbre/set-config! [:shared-appender-config :spit-filename] (join-file-path "log" "logger.log")))
 
 (defn join-file-path
   "Joins a collection representing path to file."

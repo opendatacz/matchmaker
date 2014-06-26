@@ -122,14 +122,14 @@
 (defresource documentation
   :available-media-types #{"application/ld+json"}
   :allowed-methods #{:get}
-  :handle-ok (partial views/documentation))
+  :handle-ok views/documentation)
 
 (defresource load-resource [server]
   :method-allowed? (fn [{{:keys [request-method body]} :request}]
                      (if (nil? body)
                          true ; Ignore the error to be caught by further processing
                          (let [payload (slurp body)]
-                            (cond (and (= request-method :put)) [true {:payload payload}]
+                            (cond (= request-method :put) [true {:payload payload}]
                                   (and (empty? payload) (= request-method :get)) true
                                   :else false))))
   :malformed? (fn [{{:keys [request-method]
@@ -151,15 +151,15 @@
   :exists? (fn [{:keys [supported-class?]}] supported-class?)
   :can-put-to-missing? false
   :put! (fn [ctx] (load-rdf server ctx))
-  :handle-created (partial views/loaded-data)
+  :handle-created views/loaded-data
   :handle-ok (fn [ctx] (views/load-resource ctx))
-  :handle-malformed (partial views/error)
+  :handle-malformed views/error
   :handle-not-implemented (fn [{{:keys [request-method]} :request :as ctx}]
                             (when (= :put request-method)
                               (-> (as-response "Resource does not exist." ctx)
                                   (assoc :status 404)
                                   (ring-response))))
-  :handle-unsupported-media-type (partial views/error)
+  :handle-unsupported-media-type views/error
   ;:new? (fn [ctx] ) Check if graph exists?
   )
 
@@ -181,16 +181,19 @@
                       match-request (merge (get-request-defaults server)
                                            (clojure.walk/keywordize-keys query-params))]
                   (cond (empty? query-params) [false ctx-defaults]
-                        exists? (try
-                                  (let [coerced-request (parse-match-request match-request)]
-                                    [false (util/deep-merge ctx-defaults
-                                                            {:request {:params coerced-request}})])
-                                  (catch Exception e [true (util/deep-merge jsonld-mime-type
-                                                                            {:error-msg (.getMessage e)})]))
+                        exists? (let [coerced-request (parse-match-request match-request)
+                                      error (:error coerced-request)]
+                                  (if (nil? error)
+                                      [false (util/deep-merge ctx-defaults
+                                                              {:request {:params coerced-request}})]
+                                      [true (util/deep-merge jsonld-mime-type
+                                                              {:error-msg (-> coerced-request
+                                                                              :error
+                                                                              str)})]))
                         :else [false jsonld-mime-type])))
   :available-media-types #{"application/ld+json"}
   :exists? (fn [{:keys [exists?]}] exists?) 
-  :handle-malformed (partial views/error)
+  :handle-malformed views/error 
   :handle-ok (fn [{:keys [query-empty?]
                    :as ctx}]
                (if query-empty?
