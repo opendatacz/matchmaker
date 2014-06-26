@@ -58,7 +58,6 @@
                          (content-type "text/turtle")
                          app)
             body (json/parse-string (:body response))
-            _ (println body)
             graph (first (sparql/select-1-variable @sparql-endpoint
                                                    :graph
                                                    ["get_matched_resource_graph"]
@@ -112,10 +111,15 @@
       (let [response (get-match "/match/contract/to/bork")]
         (is (= 404 (:status response))
             "request to match to unknown target class results in not found")))
+    (testing "self-describing match operations"
+      (let [response (get-match "/match/contract/to/business-entity")]
+        (is (= 200 (:status response))
+            "match operations can be dereferenced without any query params")))
     (testing "matchable contracts"
       (let [random-contract (first (sparql/get-random-contracts @sparql-endpoint 1))
             response (get-business-entity :uri random-contract)]
-        (is (= 200 (:status response)))))))
+        (is (= 200 (:status response))
+            "valid contract can be matched")))))
 
 (deftest ^:integration vocabulary-test
   (testing "dereferenceable vocabulary"

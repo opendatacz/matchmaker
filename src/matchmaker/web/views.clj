@@ -173,38 +173,44 @@
                     :limit limit
                     :paging paging)))
 
+(defmulti match-operation
+  "Self-description of matchmaker's operation"
+  (fn [ctx] 
+    (let [{:keys [source target]} ctx] [source target])))
+
+(defmethod match-operation ["business-entity" "contract"]
+  [ctx]
+  {"@id" (base-url+ ctx "/match/business-entity/to/contract")
+   "@type" "TemplatedLink"
+   "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
+                         "method" "GET"
+                         "expects" (base-url+ ctx "/vocab/BusinessEntity")
+                         "returns" (base-url+ ctx "/vocab/ContractCollection")}})
+
+(defmethod match-operation ["contract" "business-entity"]
+  [ctx]
+  {"@id" (base-url+ ctx "/match/contract/to/business-entity")
+   "@type" "TemplatedLink"
+   "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
+                         "method" "GET"
+                         "expects" (base-url+ ctx "/vocab/Contract")
+                         "returns" (base-url+ ctx "/vocab/BusinessEntityCollection")}})
+
+(defmethod match-operation ["contract" "contract"]
+  [ctx]
+  {"@id" (base-url+ ctx "/match/contract/to/contract")
+   "@type" "TemplatedLink"
+   "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
+                         "method" "GET"
+                         "expects" (base-url+ ctx "/vocab/Contract")
+                         "returns" (base-url+ ctx "/vocab/ContractCollection")}})
+
 (defn not-found
   []
   {"@context" hydra-context
    "@type" "Error"
    "statusCode" 404
    "description" "Not found"})
-
-;; TODO: clean this up
-(defn borkolary
-  [ctx]
-  (let [vocab-uri (base-url+ ctx "/vocab")]
-    {"@graph" [
-      ;; Templated links
-     {"@id" (base-url+ "/match/business-entity/to/contract")
-      "@type" "TemplatedLink"
-      "supportedOperation" {"@type" "#MatchOperation"
-                            "method" "GET"
-                            "expects" "#BusinessEntity"
-                            "returns" "#ContractCollection"}}
-      {"@id" (base-url+ "/match/contract/to/business-entity")
-       "@type" "TemplatedLink"
-       "supportedOperation" {"@type" "#MatchOperation"
-                             "method" "GET"
-                             "expects" "#Contract"
-                             "returns" "#BusinessEntityCollection"}}
-      {"@id" (base-url+ "/match/contract/to/contract")
-       "@type" "TemplatedLink"
-       "supportedOperation" {"@type" "#MatchOperation"
-                             "method" "GET"
-                             "expects" "#Contract"
-                             "returns" "#ContractCollection"}}
-      ]}))
 
 (defmulti vocabulary-term
   "View a vocabulary term"

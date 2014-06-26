@@ -55,6 +55,13 @@
                          ["get_matched_resource"]
                          :data {:class-curie class-curie})))
 
+(defn- get-request-defaults
+  "Default values to fill in a match request on @server"
+  [server]
+  {:graph_uri (get-in server [:sparql-endpoint :source-graph]) ; Default :graph_uri is :source-graph 
+   :limit 10
+   :offset 0})
+
 (defn- is-supported-content-type
   "Test if @content-type is supported and can be loaded."
   [content-type]
@@ -161,33 +168,35 @@
   :malformed? (fn [{{{:keys [source target]} :route-params
                      :keys [query-params]
                      :as request} :request}]
-                (let [ctx-defaults {:request-url (-> request
+                (let [exists? (multimethod-implements? controllers/dispatch-to-matchmaker [source target])
+                      ctx-defaults {:exists? exists?
+                                    :query-empty? (empty? query-params)
+                                    :request-url (-> request
                                                      request-url
                                                      url)
                                     :server server ; Pass in reference to server component
                                     :source source
                                     :target target}
-                      ; Default :graph_uri is :source-graph 
-                      request-defaults {:graph_uri (get-in server [:sparql-endpoint :source-graph])
-                                        :limit 10
-                                        :offset 0}
-                      exists? (multimethod-implements? controllers/dispatch-to-matchmaker [source target])
                       parse-match-request (coerce/coercer MatchRequest coerce/string-coercion-matcher)
-                      match-request (merge request-defaults (clojure.walk/keywordize-keys query-params))]
-                  (if exists?
-                    (try
-                      (s/validate MatchRequest match-request)
-                      (let [coerced-request (parse-match-request match-request)]
-                        [false (util/deep-merge ctx-defaults
-                                                {:exists? exists?
-                                                :request {:params coerced-request}})])
-                      (catch Exception e [true (util/deep-merge jsonld-mime-type
-                                                                {:error-msg (.getMessage e)})]))
-                    [false jsonld-mime-type])))
+                      match-request (merge (get-request-defaults server)
+                                           (clojure.walk/keywordize-keys query-params))]
+                  (cond (empty? query-params) [false ctx-defaults]
+                        exists? (try
+                                  (s/validate MatchRequest match-request)
+                                  (let [coerced-request (parse-match-request match-request)]
+                                    [false (util/deep-merge ctx-defaults
+                                                            {:request {:params coerced-request}})])
+                                  (catch Exception e [true (util/deep-merge jsonld-mime-type
+                                                                            {:error-msg (.getMessage e)})]))
+                        :else [false jsonld-mime-type])))
   :available-media-types #{"application/ld+json"}
   :exists? (fn [{:keys [exists?]}] exists?) 
   :handle-malformed (partial views/error)
-  :handle-ok (fn [ctx] (controllers/dispatch-to-matchmaker ctx)))
+  :handle-ok (fn [{:keys [query-empty?]
+                   :as ctx}]
+               (if query-empty?
+                 (views/match-operation ctx)
+                 (controllers/dispatch-to-matchmaker ctx))))
 
 (defresource vocabulary
   :available-media-types #{"application/ld+json"}
