@@ -1,13 +1,8 @@
 {
-  "@vocab" : "http://www.w3.org/ns/hydra/core#",
-
   "api" : "http://purl.org/linked-data/api/vocab#",
-  "api:vocabulary" : {
-    "@type" : ["@id", "Link"]
-  },
-
   "dcterms" : "http://purl.org/dc/terms/",
   "gr" : "http://purl.org/goodrelations/v1#",
+  "hydra" : "http://www.w3.org/ns/hydra/core#",
   "owl" : "http://www.w3.org/2002/07/owl#",
   "pc" : "http://purl.org/procurement/public-contracts#",
   "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
@@ -19,9 +14,19 @@
   "vrank" : "http://purl.org/voc/vrank#",
   "xsd" : "http://www.w3.org/2001/XMLSchema#",
 
-  "@language" : "en",
-  
-  "vrank:hasRank" : {
-    "@type" : "vrank:Rank"
+  "api:vocabulary" : {
+    "@type" : "@id"
+  },
+  "hydra:nextPage" : {
+    "@type" : "@id"
+  },
+  "hydra:previousPage" : {
+    "@type" : "@id"
+  },
+  "hydra:firstPage" : {
+    "@type" : "@id"
+  },
+  "vrank:hasValue" : {
+    "@type" : "xsd:decimal"
   }
 }
