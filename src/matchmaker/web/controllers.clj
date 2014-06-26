@@ -29,6 +29,7 @@
          (vector? template)
          (fn? view-fn)]}
   (let [{:keys [graph_uri limit offset uri]} (get-in params [:request :params])
+        _ (timbre/debug limit)
         request-url (:request-url params)
         sparql-endpoint (get-in params [:server :sparql-endpoint])
         matchmaker-results (sparql-match/match-resource

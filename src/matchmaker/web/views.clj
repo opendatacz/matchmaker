@@ -166,12 +166,13 @@
 (defn match-business-entity-to-contract
   "JSON-LD view of @matchmaker-results containing potentially
   interesting contracts for business entity @uri."
-  [uri matchmaker-results & {:keys [base-url paging]}]
+  [uri matchmaker-results & {:keys [base-url limit paging]}]
   (let [additional-mappings {:label "dcterms:title"}]
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings
                     :base-url base-url
+                    :limit limit 
                     :match-type "pc:Contract"
                     :paging paging)))
 
@@ -182,9 +183,9 @@
     (match-resource uri
                     matchmaker-results
                     :additional-mappings additional-mappings
-                    :match-type "gr:BusinessEntity"
                     :base-url base-url
                     :limit limit
+                    :match-type "gr:BusinessEntity"
                     :paging paging)))
 
 (defn match-contract-to-contract
@@ -195,8 +196,8 @@
                     matchmaker-results
                     :additional-mappings additional-mappings
                     :base-url base-url
-                    :match-type "pc:Contract"
                     :limit limit
+                    :match-type "pc:Contract"
                     :paging paging)))
 
 (defmulti match-operation
@@ -206,30 +207,36 @@
 
 (defmethod match-operation ["business-entity" "contract"]
   [ctx]
-  {"@id" (base-url+ ctx "/match/business-entity/to/contract")
-   "@type" "TemplatedLink"
-   "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
-                         "method" "GET"
-                         "expects" (base-url+ ctx "/vocab/BusinessEntity")
-                         "returns" (base-url+ ctx "/vocab/ContractCollection")}})
+  (let [operation-path "/match/business-entity/to/contract"]
+    {"@id" (base-url+ ctx operation-path)
+    "@type" "TemplatedLink"
+    "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
+                          "method" "GET"
+                          "expects" (base-url+ ctx "/vocab/BusinessEntity")
+                          "returns" (base-url+ ctx "/vocab/ContractCollection")}
+    "vann:example" (base-url+ ctx operation-path :query {:uri (get-random-business-entity ctx)})}))
 
 (defmethod match-operation ["contract" "business-entity"]
   [ctx]
-  {"@id" (base-url+ ctx "/match/contract/to/business-entity")
-   "@type" "TemplatedLink"
-   "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
-                         "method" "GET"
-                         "expects" (base-url+ ctx "/vocab/Contract")
-                         "returns" (base-url+ ctx "/vocab/BusinessEntityCollection")}})
+  (let [operation-path "/match/contract/to/business-entity"]
+    {"@id" (base-url+ ctx operation-path)
+     "@type" "TemplatedLink"
+     "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
+                           "method" "GET"
+                           "expects" (base-url+ ctx "/vocab/Contract")
+                           "returns" (base-url+ ctx "/vocab/BusinessEntityCollection")}
+     "vann:example" (base-url+ ctx operation-path :query {:uri (get-random-contract ctx)})}))
 
 (defmethod match-operation ["contract" "contract"]
   [ctx]
-  {"@id" (base-url+ ctx "/match/contract/to/contract")
-   "@type" "TemplatedLink"
-   "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
-                         "method" "GET"
-                         "expects" (base-url+ ctx "/vocab/Contract")
-                         "returns" (base-url+ ctx "/vocab/ContractCollection")}})
+  (let [operation-path "/match/contract/to/contract"]
+    {"@id" (base-url+ ctx operation-path)
+     "@type" "TemplatedLink"
+     "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
+                           "method" "GET"
+                           "expects" (base-url+ ctx "/vocab/Contract")
+                           "returns" (base-url+ ctx "/vocab/ContractCollection")}
+     "vann:example" (base-url+ ctx operation-path :query {:uri (get-random-contract ctx)})}))
 
 (defn not-found
   []
