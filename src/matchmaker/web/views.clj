@@ -62,9 +62,18 @@
   (let [sparql-endpoint (get-in ctx [:server :sparql-endpoint])]
     (first (generator-fn sparql-endpoint 1))))
 
-;(defn- match-operation-template
-;  [operation-path expects returns]
-;  )
+(defn- match-operation-template
+  "Template for match operation on @operation-path.
+  Operation expects instance of @expects and returns instances of @returns.
+  Example use of operation is generated via @generate-random-fn."
+  [{:keys [ctx operation-path expects returns generate-random-fn]}]
+  {"@id" (base-url+ ctx operation-path)
+   "@type" "TemplatedLink"
+   "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
+                         "method" "GET"
+                         "expects" (base-url+ ctx expects)
+                         "returns" (base-url+ ctx returns)}
+   "skos:example" (base-url+ ctx operation-path :query {:uri (generate-random-fn ctx)})})
 
 (defn- match-resource
   "JSON-LD view of @matchmaker-results for contract @uri using @additional-mappings
@@ -207,36 +216,27 @@
 
 (defmethod match-operation ["business-entity" "contract"]
   [ctx]
-  (let [operation-path "/match/business-entity/to/contract"]
-    {"@id" (base-url+ ctx operation-path)
-    "@type" "TemplatedLink"
-    "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
-                          "method" "GET"
-                          "expects" (base-url+ ctx "/vocab/BusinessEntity")
-                          "returns" (base-url+ ctx "/vocab/ContractCollection")}
-    "skos:example" (base-url+ ctx operation-path :query {:uri (get-random-business-entity ctx)})}))
+  (match-operation-template {:ctx ctx
+                             :operation-path "/match/business-entity/to/contract"
+                             :expects "/vocab/BusinessEntity"
+                             :returns "/vocab/ContractCollection"
+                             :generate-random-fn get-random-business-entity}))
 
 (defmethod match-operation ["contract" "business-entity"]
   [ctx]
-  (let [operation-path "/match/contract/to/business-entity"]
-    {"@id" (base-url+ ctx operation-path)
-     "@type" "TemplatedLink"
-     "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
-                           "method" "GET"
-                           "expects" (base-url+ ctx "/vocab/Contract")
-                           "returns" (base-url+ ctx "/vocab/BusinessEntityCollection")}
-     "skos:example" (base-url+ ctx operation-path :query {:uri (get-random-contract ctx)})}))
+  (match-operation-template {:ctx ctx
+                             :operation-path "/match/contract/to/business-entity" 
+                             :expects "/vocab/Contract"
+                             :returns "/vocab/BusinessEntityCollection"
+                             :generate-random-fn get-random-contract}))
 
 (defmethod match-operation ["contract" "contract"]
   [ctx]
-  (let [operation-path "/match/contract/to/contract"]
-    {"@id" (base-url+ ctx operation-path)
-     "@type" "TemplatedLink"
-     "supportedOperation" {"@type" (base-url+ ctx "/vocab/MatchOperation")
-                           "method" "GET"
-                           "expects" (base-url+ ctx "/vocab/Contract")
-                           "returns" (base-url+ ctx "/vocab/ContractCollection")}
-     "skos:example" (base-url+ ctx operation-path :query {:uri (get-random-contract ctx)})}))
+  (match-operation-template {:ctx ctx
+                             :operation-path "/match/contract/to/contract" 
+                             :expects "/vocab/Contract"
+                             :returns "/vocab/ContractCollection"
+                             :generate-random-fn get-random-contract}))
 
 (defn not-found
   []
