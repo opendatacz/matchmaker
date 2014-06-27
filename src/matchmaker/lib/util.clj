@@ -1,6 +1,5 @@
 (ns matchmaker.lib.util
-  (:require [taoensso.timbre :as timbre]
-            [clj-time.core :refer [now]]
+  (:require [clj-time.core :refer [now]]
             [clj-time.format :as time-format]
             [cheshire.core :as json])
   (:import [java.security MessageDigest]))
@@ -69,14 +68,6 @@
   [string]
   (try (Integer/parseInt string)
        (catch NumberFormatException _)))
-
-(defn init-logger
-  "Initialize logger"
-  []
-  ; Disable output to STDOUT
-  (timbre/set-config! [:appenders :standard-out :enabled?] false)
-  (timbre/set-config! [:appenders :spit :enabled?] true)
-  (timbre/set-config! [:shared-appender-config :spit-filename] (join-file-path "log" "logger.log")))
 
 (defn join-file-path
   "Joins a collection representing path to file."

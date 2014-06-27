@@ -33,12 +33,16 @@
                  [prismatic/schema "0.2.4"]
                  [schema-contrib "0.1.3"]]
   ;:main matchmaker.cli
-  :plugins [[lein-ring "0.8.10"]]
+  :plugins [[lein-ring "0.8.11"]]
   :profiles {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                                   [ring-mock "0.1.5"]
                                   [org.clojure/test.check "0.5.8"]]
-                   :resource-paths ["test/resources"]}}
-  :ring {:handler matchmaker.system/app}
+                   :env {:dev true}
+                   :resource-paths ["test/resources"]}
+             :uberjar {:aot :all}}
+  :ring {:handler matchmaker.system/app
+         :init matchmaker.system/init
+         :destroy matchmaker.system/destroy}
   :test-paths ["test"]
   :test-selectors {:current :current
                    :default (complement (or :integration :slow))

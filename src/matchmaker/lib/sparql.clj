@@ -1,8 +1,10 @@
 (ns matchmaker.lib.sparql
   (:require [com.stuartsierra.component :as component]
             [taoensso.timbre :as timbre]
+            [environ.core :refer [env]]
             [matchmaker.lib.util :as util]
             [matchmaker.lib.template :refer [render-sparql]]
+            [stencil.loader :refer [set-cache]]
             [matchmaker.lib.rdf :as rdf]
             [clj-http.client :as client]
             [cheshire.core :as json]
@@ -91,7 +93,7 @@
        xml/parse
        zip/xml-zip))
 
-; Public functions
+; ----- Public functions -----
 
 (defn construct-query
   "Execute SPARQL CONSTRUCT query rendered from @template-path with @data."
@@ -100,7 +102,8 @@
     (rdf/string->graph results)))
 
 (defn delete-graph
-  "Use SPARQL 1.1 Graph Store to DELETE a graph named @graph-uri."
+  "Use SPARQL 1.1 Graph Store to DELETE a graph named @graph-uri.
+  If graph doesn't exist, raise HTTP 404 exception."
   [sparql-endpoint graph-uri] 
   {:pre [(util/url? graph-uri)]}
   (crud sparql-endpoint
@@ -278,6 +281,8 @@
                                  authentication [username password]
                                  authentication? (not-any? nil? authentication)]
                              (do (sparql-endpoint-alive? (:query-url endpoints))
+                                 (when (:dev env)
+                                       (set-cache (clojure.core.cache/ttl-cache-factory {} :ttl 0)))
                                  (merge sparql-endpoint
                                         data
                                         {:authentication authentication

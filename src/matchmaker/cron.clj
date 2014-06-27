@@ -40,7 +40,9 @@
 (defn delete-metadata-graph
   "Delete matchmaker's metadata graph."
   [sparql-endpoint]
-  (sparql/delete-graph sparql-endpoint (:metadata-graph sparql-endpoint)))
+  (let [metadata-graph (:metadata-graph sparql-endpoint)]
+    (when (sparql/graph-exists? sparql-endpoint metadata-graph)
+          (sparql/delete-graph sparql-endpoint metadata-graph))))
 
 (defn delete-all-graphs
   "Delete all graph's recorded in matchmaker's metadata graph."

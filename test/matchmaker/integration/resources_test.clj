@@ -1,12 +1,14 @@
 (ns matchmaker.integration.resources-test
   (:require [clojure.test :refer :all]
             [ring.mock.request :refer :all]
-            [matchmaker.helpers :refer [sparql-endpoint sparql-endpoint-fixture]]
+            [matchmaker.helpers :refer [matchmaker-fixture
+                                        sparql-endpoint
+                                        sparql-endpoint-fixture]]
             [cheshire.core :as json]
             [matchmaker.system :refer [app]]
             [matchmaker.lib.sparql :as sparql]))
 
-(use-fixtures :once sparql-endpoint-fixture)
+(use-fixtures :once matchmaker-fixture sparql-endpoint-fixture)
 
 (deftest ^:integration dereferenceable-documentation
   (let [response (app (request :get "/doc"))
@@ -83,7 +85,7 @@
     (testing "malformed GET params" ; DRY up by using `are` and lose custom messages?
       (is (= 400 (get-business-entity-status :uri "example.com/contract/1"))
           "malformed URI")
-      ;Coercion doesn't report invalid boolean value as error.
+      ;Coercion doesn't report invalid boolean value as an error.
       ;(is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
       ;                                       :current "BORK"))
       ;    "malformed current flag")

@@ -10,7 +10,8 @@
 (defn- load-config
   "Loads configuration"
   [config-file-path]
-  (let [filenames [(util/join-file-path "resources" "config" "config-public.edn") config-file-path]
+  (let [filenames [(clojure.java.io/resource (util/join-file-path "config" "config-public.edn"))
+                   config-file-path]
         data (reduce util/deep-merge (map (comp edn/read-string slurp) filenames))
         source-graph (get-in data [:data :source-graph])
         [sample-graph metadata-graph] (map (partial util/append-to-uri source-graph)

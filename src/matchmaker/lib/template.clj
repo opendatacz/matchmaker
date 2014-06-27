@@ -2,11 +2,7 @@
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.util :refer [join-file-path]]
             [clojure.java.io :as io]
-            [stencil.core :refer [render-file]]
-            [stencil.loader :refer [set-cache]]))
-
-; Use for development
-(set-cache (clojure.core.cache/ttl-cache-factory {} :ttl 0))
+            [stencil.core :refer [render-file]]))
 
 ; Private functions
 

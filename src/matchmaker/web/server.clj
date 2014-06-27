@@ -9,7 +9,6 @@
             [ring.middleware.resource :refer [wrap-resource]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.not-modified :refer [wrap-not-modified]]
-            [matchmaker.lib.util :refer [init-logger]]
             [matchmaker.web.resources :as resources]
             [matchmaker.web.views :as views]))
 
@@ -42,8 +41,6 @@
 
 (defrecord Server []
   component/Lifecycle
-  (start [server] (init-logger)
-                  (let [;api-version (get-in server [:config :api :version])
-                        app (setup-app server)]
+  (start [server] (let [app (setup-app server)]
                     (assoc server :app app)))
   (stop [server] server))
