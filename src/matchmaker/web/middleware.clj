@@ -11,6 +11,7 @@
                        request-url
                        url
                        (dissoc :query :path)
+                       (assoc :path (:context request))
                        map->URL)]
     (handler (assoc request
                     :base-url base-url)))))

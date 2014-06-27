@@ -5,6 +5,7 @@
             [liberator.representation :refer [render-map-generic]]
             [cheshire.core :as json]
             [clj-time.core :as clj-time]
+            [noir.request :as noir-req]
             [matchmaker.lib.util :refer [format-date]]))
 
 (declare get-random-resource transform-match wrap-in-collection)
@@ -20,10 +21,10 @@
 
 (defn- base-url+
   "Append @path to base URL"
-  [{{:keys [base-url context-path]} :request} path & {:keys [query]
+  [{{:keys [base-url]} :request} path & {:keys [query]
                                                       :or {query {}}}]
   (-> base-url
-      (assoc :path (str context-path path))
+      (update-in [:path] str path)
       (assoc :query query)
       str))
 
@@ -385,7 +386,10 @@
   [data context]
   (let [base-url (get-in context [:request :base-url])
         default-json-ld-context (when-not (nil? base-url)
-                                  (str (assoc base-url :path "/jsonld_contexts/matchmaker_api.jsonld")))
+                                  (str (update-in base-url
+                                                  [:path]
+                                                  str
+                                                  "/jsonld_contexts/matchmaker_api.jsonld")))
         data-in-context (if (nil? (data "@context"))
                           (assoc data "@context" default-json-ld-context)
                           data)]

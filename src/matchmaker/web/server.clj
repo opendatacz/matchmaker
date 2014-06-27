@@ -1,6 +1,6 @@
 (ns matchmaker.web.server
   (:require [com.stuartsierra.component :as component]
-            [compojure.core :refer [ANY context defroutes GET routes]]
+            [compojure.core :refer [ANY defroutes GET routes]]
             [compojure.handler :as handler]
             [compojure.route :as route]
             ;[ring.middleware.json :as middleware]
@@ -18,7 +18,7 @@
   "Setup API routes for a @server."
   [server]
   (routes
-    (GET "/" [] (redirect "/doc"))
+    (GET "/" request (fn [{{:keys [context]} :request}] (redirect (str context "/doc"))))
     (ANY "/doc" [] resources/documentation)
     (ANY "/vocab" [] (resources/vocabulary server))
     (ANY "/vocab/:term" [] (resources/vocabulary server))
