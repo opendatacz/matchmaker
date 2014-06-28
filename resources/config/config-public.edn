@@ -1,4 +1,4 @@
-; Do not overwrite this file. Copy this file, save it as config/config-private.edn and make your changes there.
+; Do not overwrite this file. Copy this file, save it and make your changes there.
 {:api {:version "0.1"}
  :benchmark {:evaluation-metrics [:avg-rank
                                   :avg-response-time

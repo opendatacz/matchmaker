@@ -4,8 +4,6 @@ Services for matchmaking offers and demands on the web of data.
 
 ## Usage
 
-FIXME
-
 ## Implementation
 
 ### SPARQL queries
@@ -31,6 +29,18 @@ FIXME
   - Quality 
     - Before/after cleanup, such as deduplication
   - Improvement for business entities that supplied to more public contracts
+
+## Deployment
+
+The application can be deployed in several ways. Luminus provides a [good overview of the standard deployment options](http://www.luminusweb.net/docs/deployment.md) for Clojure web applications. The application expects its host environment to provide `MATCHMAKER_CONFIG` environment variable, which needs to be set to the path to the configuration file:
+
+```bash
+export MATCHMAKER_CONFIG=/path/to/config.edn
+```
+
+For example, if you deploy to [Tomcat](http://tomcat.apache.org/), you can add `MATCHMAKER_CONFIG` into `$TOMCAT_HOME/bin/setenv.sh` (which may need to be created first). Then, restart Tomcat to put the change into effect. 
+
+The configuration file needs to be formatted using [EDN](https://github.com/edn-format/edn). A configuration template, which is used to provide default values, can be found in `/resources/config/config-public.edn` (see [here](https://github.com/opendatacz/matchmaker/blob/master/resources/config/config-public.edn)). You can copy the template and fill in the required missing values (e.g., SPARQL Update endpoint access credentials). 
 
 ## Acknowledgement
 
