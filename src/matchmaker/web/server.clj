@@ -18,7 +18,8 @@
   "Setup API routes for a @server."
   [server]
   (routes
-    (GET "/" request (fn [{{:keys [context]} :request}] (redirect (str context "/doc"))))
+    (GET "/" request (fn [{:keys [base-url]}]
+                       (redirect (str (update-in base-url [:path] str "/doc")))))
     (ANY "/doc" [] resources/documentation)
     (ANY "/vocab" [] (resources/vocabulary server))
     (ANY "/vocab/:term" [] (resources/vocabulary server))

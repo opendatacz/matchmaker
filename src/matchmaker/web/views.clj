@@ -5,7 +5,6 @@
             [liberator.representation :refer [render-map-generic]]
             [cheshire.core :as json]
             [clj-time.core :as clj-time]
-            [noir.request :as noir-req]
             [matchmaker.lib.util :refer [format-date]]))
 
 (declare get-random-resource transform-match wrap-in-collection)

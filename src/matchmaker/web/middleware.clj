@@ -37,6 +37,6 @@
   [handler]
   (fn [request]
     (let [response (handler request)
-          header-value (str (assoc (:base-url request) :path "/doc")
+          header-value (str (update-in (:base-url request) [:path] str "/doc")
                             "; rel=\"http://www.w3.org/ns/hydra/core#apiDocumentation\"")]
       (assoc-in response [:headers "Link"] header-value))))

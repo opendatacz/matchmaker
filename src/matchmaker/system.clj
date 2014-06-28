@@ -11,7 +11,7 @@
 
 ;; ----- Public vars -----
 
-(defonce system (atom nil))
+(defonce system nil)
 
 ;; ----- Private functions -----
 
@@ -33,13 +33,13 @@
 
 (defn app [request]
   "App handler"
-  (let [handler (get-in @system [:server :app])]
+  (let [handler (get-in system [:server :app])]
     (handler request)))
 
 (defn destroy 
   "Destroy the matchmaker system."
   []
-  (component/stop @system)
+  (component/stop system)
   (timbre/debug "System stopped."))
 
 (defn init
@@ -49,6 +49,6 @@
     (if-not (nil? config-file-path)
             (do
               (init-logger)
-              (reset! system (component/start (matchmaker-system config-file-path)))
+              (alter-var-root #'system (fn [_] (component/start (matchmaker-system config-file-path))))
               (timbre/debug "System started."))
             (throw (Exception. "Environment variable MATCHMAKER_CONFIG is not set.")))))
