@@ -155,7 +155,7 @@
 (defmethod load-resource "business-entity"
   [ctx]
   (let [business-entity-uri (prefix-vocabulary-term ctx "BusinessEntity")]
-    {"@id" "/load/business-entity"
+    {"@id" (base-url+ ctx "/load/business-entity")
      "@type" "CreateResourceOperation"
      "method" "PUT"
      "expects" business-entity-uri 
@@ -164,7 +164,7 @@
 (defmethod load-resource "contract"
   [ctx]
   (let [contract-uri (prefix-vocabulary-term ctx "Contract")]
-    {"@id" "/load/contract"
+    {"@id" (base-url+ ctx "/load/contract")
      "@type" "CreateResourceOperation"
      "method" "PUT"
      "expects" contract-uri
@@ -262,7 +262,7 @@
 
 (defmethod vocabulary-term "BusinessEntity"
   [ctx]
-  {"@id" "/vocab/BusinessEntity"
+  {"@id" (prefix-vocabulary-term ctx "BusinessEntity")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "rdfs:subClassOf" "gr:BusinessEntity"
    "supportedOperation" (base-url+ ctx "/load/business-entity")
@@ -278,7 +278,7 @@
 
 (defmethod vocabulary-term "BusinessEntityCollection"
   [ctx]
-  {"@id" "/vocab/BusinessEntityCollection"
+  {"@id" (prefix-vocabulary-term ctx "BusinessEntityCollection")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "rdfs:subClassOf" ["Collection"
                       {"@type" "owl:Restriction"
@@ -287,7 +287,7 @@
 
 (defmethod vocabulary-term "Contract"
   [ctx]
-  {"@id" "/vocab/Contract"
+  {"@id" (prefix-vocabulary-term ctx "Contract")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "rdfs:subClassOf" "pc:Contract"
    "supportedOperation" (base-url+ ctx "/load/contract")
@@ -307,7 +307,7 @@
 
 (defmethod vocabulary-term "ContractCollection"
   [ctx]
-  {"@id" "/vocab/ContractCollection"
+  {"@id" (prefix-vocabulary-term ctx "ContractCollection")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "rdfs:subClassOf" ["Collection"
                       {"@type" "owl:Restriction"
@@ -316,7 +316,7 @@
 
 (defmethod vocabulary-term "MatchOperation"
   [ctx]
-  {"@id" "/vocab/MatchOperation"
+  {"@id" (prefix-vocabulary-term ctx "MatchOperation")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "@type" "Class"
    "rdfs:subClassOf" ["Operation" "schema:SearchAction"]
@@ -327,7 +327,7 @@
 
 (defmethod vocabulary-term "business-entity-uri-mapping"
   [ctx]
-  {"@id" "/vocab/business-entity-uri-mapping"
+  {"@id" (prefix-vocabulary-term ctx "business-entity-uri-mapping")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "@type" "IriTemplateMapping"
    "rdfs:comment" "URI of the matched business entity"
@@ -338,7 +338,7 @@
 
 (defmethod vocabulary-term "contract-uri-mapping"
   [ctx]
-  {"@id" "/vocab/contract-uri-mapping"
+  {"@id" (prefix-vocabulary-term ctx "contract-uri-mapping")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "@type" "IriTemplateMapping"
    "rdfs:comment" "URI of the matched contract"
@@ -349,18 +349,18 @@
 
 (defmethod vocabulary-term "current-mapping"
   [ctx]
-  {"@id" "/vocab/current-mapping"
+  {"@id" (prefix-vocabulary-term ctx "current-mapping")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "@type" "IriTemplateMapping"
    "rdfs:comment" "Boolean flag indicating filtering to current contracts"
    "variable" "current"
    "property" {"rdfs:range" "xsd:boolean"}
    "required" false
-   "skos:example" ["true" "false"]})
+   "skos:example" [true false]})
 
 (defmethod vocabulary-term "oldest-creation-date-mapping"
   [ctx]
-  {"@id" "/vocab/oldest-creation-date-mapping"
+  {"@id" (prefix-vocabulary-term ctx "oldest-creation-date-mapping")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "@type" "IriTemplateMapping"
    "rdfs:comment" "The oldest date when a relevant contract could be created"
@@ -371,7 +371,7 @@
 
 (defmethod vocabulary-term "publication-date-path-mapping"
   [ctx]
-  {"@id" "/vocab/publication-date-path-mapping"
+  {"@id" (prefix-vocabulary-term ctx "publication-date-path-mapping")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
    "@type" "IriTemplateMapping"
    "rdfs:comment" "SPARQL 1.1 property path to contract's publication date"
