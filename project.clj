@@ -1,6 +1,6 @@
 (defproject matchmaker "0.1.0-SNAPSHOT"
   :description "Services for matchmaking offers and demands on the web of data"
-  :url "http://github.com/jindrichmynarz/matchmaker"
+  :url "http://github.com/opendatacz/matchmaker"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
@@ -29,10 +29,9 @@
                  [ring/ring-json "0.2.0"]
                  [liberator "0.11.0"]
                  [im.chit/cronj "1.0.1"]
-                 [uritemplate-clj "1.0.0"]
                  [prismatic/schema "0.2.4"]
                  [schema-contrib "0.1.3"]]
-  ;:main matchmaker.cli
+  :main matchmaker.cli
   :plugins [[lein-ring "0.8.11"]]
   :profiles {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                                   [ring-mock "0.1.5"]

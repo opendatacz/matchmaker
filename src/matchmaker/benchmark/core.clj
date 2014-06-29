@@ -1,12 +1,18 @@
 (ns matchmaker.benchmark.core
   (:require [taoensso.timbre :as timbre]
-            [matchmaker.lib.sparql :as sparql]
+            [environ.core :refer [env]]
+            [matchmaker.common.config :refer [->Config]]
+            [matchmaker.lib.util :refer [init-logger]]
+            [matchmaker.lib.sparql :refer [->SparqlEndpoint]]
             [matchmaker.benchmark.setup :as setup]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.teardown :as teardown]
-            [com.stuartsierra.component :as component]))
+            [com.stuartsierra.component :as component]
+            [incanter.core :refer [save view]]))
 
-; Private functions
+(declare ->Benchmark)
+
+; ----- Private functions -----
 
 (defn- format-number
   "Returns @number formatted as float-like string."
@@ -20,35 +26,36 @@
   [results]
   (reduce (fn [result [k v]] (assoc result k (format-number v))) {} results))
 
-(defn- load-correct-matches
-  "Load correct contract-supplier pairs into a map"
-  [config]
-  (sparql/select-query config ["benchmark" "evaluate" "load_correct_matches"]))
-
-(defn- sufficient-data?
-  "Raises an exception if SPARQL endpoint described in @config provides insufficient data for matchmaking."
-  [config]
-  (let [source-graph (-> config :data :source-graph)]
-    (assert (sparql/sparql-assert config 
-                                  true?
-                                  (str "Data in source graph <" source-graph "> isn't sufficient for matchmaking.")
-                                  ["matchmaker" "sparql" "awarded_tender_test"]))))
+(defn- load-benchmark
+  "Setup benchmark system with its dependencies"
+  []
+  (let [config-file-path (:matchmaker-config env)
+        benchmark-system (component/system-map
+                           :config (->Config config-file-path)
+                           :sparql-endpoint (component/using (->SparqlEndpoint) [:config])
+                           :benchmark (component/using (->Benchmark) [:config :sparql-endpoint]))]
+    (component/start benchmark-system)))
 
 ; Records
 
 (defrecord
   ^{:doc "Setup and teardown a benchmark according to @config."}
-  Benchmark [config]
+  Benchmark []
   component/Lifecycle
-  (start [benchmark] (timbre/debug "Starting benchmark...")
-                     (sufficient-data? config)
-                     (setup/load-contracts config)
-                     (setup/delete-awarded-tenders config)
-                     (assoc benchmark :correct-matches (load-correct-matches config)))
-  (stop [benchmark] (timbre/debug "Stopping benchmark...")
-                    (teardown/return-awarded-tenders config)
-                    (teardown/clear-graph config)
-                    benchmark))
+  (start [{:keys [sparql-endpoint]
+           :as benchmark}]
+    (init-logger)
+    (timbre/debug "Starting benchmark...")
+    (setup/sufficient-data? sparql-endpoint)
+    (setup/load-contracts sparql-endpoint)
+    (setup/delete-awarded-tenders sparql-endpoint)
+    (assoc benchmark :correct-matches (setup/load-correct-matches sparql-endpoint)))
+  (stop [{:keys [sparql-endpoint]
+          :as benchmark}]
+    (timbre/debug "Stopping benchmark...")
+    (teardown/return-awarded-tenders sparql-endpoint)
+    (teardown/clear-graph sparql-endpoint)
+    benchmark))
 
 ; Public functions
 
@@ -58,26 +65,36 @@
   (format-numbers (evaluate/avg-metrics benchmark-results)))
 
 (defn compute-benchmark
-  "Constructs benchmark from @config and tests @matchmaking-fn,
+  "Constructs benchmark for @matchmaking-endpoint (URL), 
   setting up and tearing down whole benchmark.
   May run multiple times, if @number-of-times is provided."
-  ([config matchmaking-fn]
-    (let [benchmark (component/start (->Benchmark config))]
+  ([matchmaking-endpoint]
+    (let [benchmark (load-benchmark)]
       (try
-        (evaluate/evaluate-rank config matchmaking-fn (:correct-matches benchmark))
+        (evaluate/evaluate-rank benchmark matchmaking-endpoint)
         (finally (component/stop benchmark)))))
-  ([config matchmaking-fn
+  ([matchmaking-endpoint
     ^Integer number-of-runs]
-    (doall (repeatedly number-of-runs #(compute-benchmark config matchmaking-fn)))))
+    (doall (repeatedly number-of-runs #(compute-benchmark matchmaking-endpoint)))))
  
 (defn run-benchmark
-  "Wrapper function to run benchmark for given @matchmaking-fn.
+  "Wrapper function to run benchmark for given @matchmaking-endpoint (URL).
   Aggregate benchmark results using @aggregation-fn and format them using @formatting-fn."
-  [config matchmaking-fn & {:keys [aggregation-fn formatting-fn]
-                            :or {aggregation-fn identity
-                                 formatting-fn identity}}]
-  (let [number-of-runs (-> config :benchmark :number-of-runs)]
-    (-> (compute-benchmark config matchmaking-fn number-of-runs)
+  [config matchmaking-endpoint & {:keys [aggregation-fn formatting-fn]
+                                  :or {aggregation-fn identity
+                                       formatting-fn identity}}]
+  (let [number-of-runs (get-in config [:benchmark :number-of-runs])]
+    (-> (compute-benchmark matchmaking-endpoint number-of-runs)
         flatten
         aggregation-fn
         formatting-fn)))
+
+(comment
+  (def benchmark-system (load-benchmark))
+  (def correct-matches (setup/load-correct-matches (:sparql-endpoint benchmark-system)))
+  (component/stop benchmark-system)
+  (def results (run-benchmark "http://localhost:3000/match/contract/to/business-entity"))
+  (def config (component/start (->Config (:matchmaker-config env))))
+  (evaluate/compute-avg-rank-metrics config results)
+  (view (evaluate/top-n-curve-chart results))
+  )

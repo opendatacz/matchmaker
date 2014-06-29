@@ -2,6 +2,7 @@
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.template :refer [render-template]]
             [matchmaker.lib.sparql :as sparql]
+            [clojure.edn :as edn]
             [liberator.representation :refer [render-map-generic]]
             [cheshire.core :as json]
             [clj-time.core :as clj-time]
@@ -108,7 +109,7 @@
       (-> match
           (clojure.set/rename-keys mappings)
           (assoc "@type" match-type)
-          (update-in ["vrank:hasRank"] (fn [rank] {"vrank:hasValue" (read-string rank)}))))))
+          (update-in ["vrank:hasRank"] (fn [rank] {"vrank:hasValue" (edn/read-string rank)}))))))
 
 (defn- wrap-in-collection
   "Wraps @matches for @uri hydra:Collection"

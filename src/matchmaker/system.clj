@@ -1,9 +1,9 @@
 (ns matchmaker.system
   (:gen-class)
   (:require [taoensso.timbre :as timbre]
-            [taoensso.timbre.appenders.rotor :as rotor]
             [com.stuartsierra.component :as component]
             [environ.core :refer [env]]
+            [matchmaker.lib.util :refer [init-logger]]
             [matchmaker.common.config :refer [->Config]]
             [matchmaker.lib.sparql :refer [->SparqlEndpoint]]
             [matchmaker.cron :refer [->Cron]]
@@ -15,12 +15,6 @@
 
 ;; ----- Private functions -----
 
-(defn- init-logger
-  "Initialize logger"
-  []
-  (timbre/set-config! [:appenders :spit :enabled?] true)
-  (timbre/set-config! [:shared-appender-config :spit-filename] "log/matchmaker.log"))
-
 (defn- matchmaker-system
   [config-file-name]
   (component/system-map :config (->Config config-file-name)
@@ -31,8 +25,9 @@
 
 ;; ----- Public functions -----
 
-(defn app [request]
+(defn app
   "App handler"
+  [request]
   (let [handler (get-in system [:server :app])]
     (handler request)))
 
