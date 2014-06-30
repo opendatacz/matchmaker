@@ -107,3 +107,8 @@
   (try
     (java.net.URL. url)
     (catch Exception e false)))
+
+(defn uuid
+  "Generates a random UUID"
+  []
+  (str (java.util.UUID/randomUUID)))

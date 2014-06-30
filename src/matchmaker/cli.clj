@@ -1,26 +1,18 @@
 (ns matchmaker.cli
+  (:gen-class)
   (:require [clojure.tools.cli :refer [parse-opts]]
-            [matchmaker.lib.util :refer [exit init-logger]]
-            [matchmaker.system :as system]
+            [matchmaker.lib.util :as util]
             [matchmaker.common.config :refer [->Config]]
+            [environ.core :refer [env]]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.core :refer [format-results run-benchmark]]
             [matchmaker.core.sparql :as sparql-matchmaker]
-            [matchmaker.lib.sparql :as sparql]
-            [clojure.data.zip.xml :as zip-xml]
-            [matchmaker.lib.rdf :as rdf]
-            [matchmaker.lib.template :refer [render-sparql]]
-            [incanter.core :refer [save view]]
+            [incanter.core :refer [save]]
+            [schema.core :as s]
+            [schema-contrib.core :as sc]
             [com.stuartsierra.component :as component]))
 
-(init-logger)
-
-; Private vars
-
-(def ^{:doc "Available command-line sub-commands"
-       :private true}
-  available-commands
-  #{"benchmark"})
+; ----- Private vars -----
 
 (def ^{:doc "Keyword to function lookup for matchmaking functions"
        :private true}
@@ -28,13 +20,42 @@
   {:match-contract-exact-cpv sparql-matchmaker/contract-to-business-entity-exact-cpv})
 
 (def ^:private
-  main-cli-options
-  [["-c" "--command COMMAND" "Sub-command"
-    :validate [#(contains? available-commands %)
-               (str "Command not available. Available commands: " (clojure.string/join ", " available-commands))]]
+  cli-options
+  [["-e" "--endpoint ENDPOINT" "Matchmaker's HTTP endpoint"
+    :default "http://localhost:3000/match/contract/to/business-entity"
+    :validate [(fn [endpoint] (try
+                                (s/validate sc/URI endpoint)
+                                (catch Exception e false)))]]
+   ["-n" "--number-of-runs RUNS" "Number of benchmark's runs"
+    :default 10
+    :parse-fn #(Integer/parseInt %)
+    :validate [pos?]]
+   ["-d" "--diagram-path DIAGRAM" "Path to output diagram"
+    :default "diagrams"
+    :validate [(fn [path] (.exists (clojure.java.io/file path)))]]
+   ["-m" "--matchmaker MATCHMAKER" "Matchmaker to benchmark"
+    ;:parse-fn to convert to the actual matchmaking fn
+    ;:validate only allow implemented matchmaker fns
+    ]
    ["-h" "--help"]])
 
-; Private functions
+; ----- Private functions -----
+
+(defn- benchmark
+  [{:keys [diagram-path endpoint number-of-runs]} evaluation-metrics]
+  (println "Running the benchmark...")
+  (let [results (run-benchmark endpoint number-of-runs)
+        ; TODO: Encode matchmaker name + basic params into diagram name
+        diagram-path (util/join-file-path diagram-path
+                                          (str (util/date-time-now)
+                                               "-"
+                                               (util/uuid)
+                                               ".png"))]
+    (save (evaluate/top-n-curve-chart results)
+          diagram-path
+          :width 1000
+          :height 800)
+    (println (format "Rendered benchmark results into %s" diagram-path))))
 
 (defn- resolve-matchmaking-fn
   "Maps matchmaking function string to function."
@@ -43,7 +64,7 @@
         unavailable-error (str "Matchmaking function not available. Available functions: "
                                 available-matchmaking-fns)]
     (or ((keyword matchmaking-fn) matchmaking-fns)
-        (exit 1 unavailable-error))))
+        (util/exit 1 unavailable-error))))
 
 (defn- error-msg
   [errors]
@@ -60,49 +81,17 @@
         options-summary
         ""
         "Actions:"]
-       (clojure.string/join \newline)))
+        (clojure.string/join \newline)))
 
-(defn- benchmark
-  [matchmaking-fn-key]
-  ;(let [matchmaking-fn (resolve-matchmaking-fn matchmaking-fn-key)]
-  ;  (run-benchmark config matchmaking-fn format-results)))
-  )
-
-; Public functions
+; ----- Public functions -----
 
 (defn -main
   [& args]
-  (let [available-commands-list (clojure.string/join ", " available-commands)]
-    (cond
-      (not (seq args)) (exit 1 (str "No command to run. Available commands: " available-commands-list))
-      (first args) (case (first args)
-                         "benchmark" (if-let [matchmaking-fn (second args)]
-                                             (benchmark matchmaking-fn)
-                                             (exit 1 "Missing matchmaking function to benchmark."))
-                         (exit 1 (str "Command not recognized. Available commands: " available-commands-list))))))
-
-(comment
-  (def test-data (slurp (clojure.java.io/resource "example.ttl")))
-  (def sparql-endpoint (:sparql-endpoint @matchmaker.system/system))
-  (def graph-uri (sparql/load-rdf-data sparql-endpoint test-data))
-  (sparql/graph-exists? sparql-endpoint graph-uri)
-  
-  (def matchmaker-results (sparql-matchmaker/business-entity-to-contract-expand-to-narrower-cpv config
-                                                                                                "http://linked.opendata.cz/resource/business-entity/CZ60838744"))
-  (def matchmaker-results (sparql-matchmaker/contract-to-business-entity-exact-cpv config
-                                                                                   "http://linked.opendata.cz/resource/vestnikverejnychzakazek.cz/public-contract/231075-7302041031075"))
-  (def matchmaker-results (sparql-matchmaker/contract-to-contract-expand-to-narrower-cpv config
-                                                                            "http://linked.opendata.cz/resource/vestnikverejnychzakazek.cz/public-contract/231075-7302041031075"))
-  (println matchmaker-results)
-
-  (def benchmark-results (run-benchmark config sparql-matchmaker/contract-to-business-entity-exact-cpv))
-  (println benchmark-results)
-
-  (def benchmark-metrics (evaluate/compute-avg-rank-metrics config benchmark-results))
-  (println benchmark-metrics)
-  (view (evaluate/top-n-curve-chart benchmark-results))
-  (save (evaluate/top-n-curve-chart benchmark-results)
-        "diagrams/exact_CPV_min_1_main_CPV_min_3_additional_CPV.png"
-        :width 1000
-        :height 800)
-  )
+  (let [{{:keys [help]
+          :as options} :options
+         :keys [errors summary]} (parse-opts args cli-options)
+        config (component/start (->Config (:matchmaker-config env)))]
+    (cond help (println summary)
+          errors (println (error-msg errors))
+          :else (benchmark (get-in config [:benchmark :evaluation-metrics])
+                           options))))

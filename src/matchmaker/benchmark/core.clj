@@ -80,21 +80,16 @@
 (defn run-benchmark
   "Wrapper function to run benchmark for given @matchmaking-endpoint (URL).
   Aggregate benchmark results using @aggregation-fn and format them using @formatting-fn."
-  [config matchmaking-endpoint & {:keys [aggregation-fn formatting-fn]
-                                  :or {aggregation-fn identity
-                                       formatting-fn identity}}]
-  (let [number-of-runs (get-in config [:benchmark :number-of-runs])]
-    (-> (compute-benchmark matchmaking-endpoint number-of-runs)
-        flatten
-        aggregation-fn
-        formatting-fn)))
+  [matchmaking-endpoint number-of-runs]
+  (flatten (compute-benchmark matchmaking-endpoint number-of-runs)))
 
 (comment
-  (def benchmark-system (load-benchmark))
-  (def correct-matches (setup/load-correct-matches (:sparql-endpoint benchmark-system)))
-  (component/stop benchmark-system)
-  (def results (run-benchmark "http://localhost:3000/match/contract/to/business-entity"))
-  (def config (component/start (->Config (:matchmaker-config env))))
+  (def results (run-benchmark config "http://localhost:3000/match/contract/to/business-entity"))
+  (def results (run-benchmark config "http://lod2.vse.cz:8080/matchmaker/match/contract/to/business-entity"))
   (evaluate/compute-avg-rank-metrics config results)
   (view (evaluate/top-n-curve-chart results))
+  (save (evaluate/top-n-curve-chart results)
+        "diagrams/fused_vvz_data_exact_CPV.png"
+        :width 1000
+        :height 800)
   )

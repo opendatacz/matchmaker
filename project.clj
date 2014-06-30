@@ -10,7 +10,7 @@
                                                     com.sun.jmdk/jmxtools
                                                     com.sun.jmx/jmxri]]
                  [environ "0.5.0"]
-                 [org.clojure/tools.cli "0.3.0"]
+                 [org.clojure/tools.cli "0.3.1"]
                  [org.clojure/data.zip "0.1.1"]
                  [slingshot "0.10.3"]
                  [clj-http "0.6.3"]

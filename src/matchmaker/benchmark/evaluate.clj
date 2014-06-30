@@ -33,13 +33,6 @@
   (let [times (map :time evaluation-results)]
     (avg times)))
 
-(defn- compute-metrics
-  "Compute @metrics ([:metric-name]) looked up from metric-fns
-   for given evaluation @results ({:rank rank :time time})."
-  [results metrics]
-  (into {} (for [metric metrics]
-                [metric ((metric metric-fns) results)])))
-
 (defn- count-business-entities
   "Count business entities available in configured dataset."
   [sparql-endpoint]
@@ -97,11 +90,12 @@
     {:matches-found (/ max-number-of-results business-entity-count)
      :avg-rank (/ (inc business-entity-count) 2)})) ;; FIXME
 
-(defn compute-avg-rank-metrics
-  "Average rank metrics for @benchmark-results."
-  [config benchmark-results]
-  (let [evaluation-metrics (-> config :benchmark :evaluation-metrics)]
-    (compute-metrics benchmark-results evaluation-metrics)))
+(defn compute-metrics
+  "Compute @metrics ([:metric-name]) looked up from metric-fns
+   for given evaluation @results ({:rank rank :time time})."
+  [results metrics]
+  (into {} (for [metric metrics]
+                [metric ((metric metric-fns) results)])))
 
 (defn evaluate-rank
   "Evaluate @matchmaking-fn using @correct-matches."

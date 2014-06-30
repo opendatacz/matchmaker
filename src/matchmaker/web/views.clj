@@ -22,7 +22,7 @@
 (defn- base-url+
   "Append @path to base URL"
   [{{:keys [base-url]} :request} path & {:keys [query]
-                                                      :or {query {}}}]
+                                         :or {query {}}}]
   (-> base-url
       (update-in [:path] str path)
       (assoc :query query)
