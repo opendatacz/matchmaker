@@ -32,15 +32,28 @@ Services for matchmaking offers and demands on the web of data.
 
 ## Deployment
 
-The application can be deployed in several ways. Luminus provides a [good overview of the standard deployment options](http://www.luminusweb.net/docs/deployment.md) for Clojure web applications. The application expects its host environment to provide `MATCHMAKER_CONFIG` environment variable, which needs to be set to the path to the configuration file:
+The application can be deployed in several ways. Luminus provides a [good overview of the standard deployment options](http://www.luminusweb.net/docs/deployment.md) for Clojure web applications. Typical deployment using [Git](http://git-scm.com/) (`git`), [Leiningen](http://leiningen.org/) (`lein`) and a web app container, such as [Tomcat](http://tomcat.apache.org/) or [Jetty](http://www.eclipse.org/jetty/), may consist of the following steps:
+
+```bash
+git clone git@github.com:opendatacz/matchmaker.git
+cd matchmaker
+lein ring uberwar
+cp target/matchmaker*.war /path/to/container/webapps/matchmaker.war
+```
+
+Immediately, or after restart of the web app container, the application will be available in the `matchmaker` context (e.g., <http://localhost:8080/matchmaker/>).
+
+Template of the application configuration, which provides default values, can be found in `/resources/config/config-public.edn` (see [here](https://github.com/opendatacz/matchmaker/blob/master/resources/config/config-public.edn)). The configuration file needs to be formatted using [EDN](https://github.com/edn-format/edn). You can copy the template and fill in the required missing values (e.g., SPARQL Update endpoint access credentials). 
+
+The path to the configuration file must be provided by the application host environment as the value of the `MATCHMAKER_CONFIG` environment variable: 
 
 ```bash
 export MATCHMAKER_CONFIG=/path/to/config.edn
 ```
 
-For example, if you deploy to [Tomcat](http://tomcat.apache.org/), you can add `MATCHMAKER_CONFIG` into `$TOMCAT_HOME/bin/setenv.sh` (which may need to be created first). Then, restart Tomcat to put the change into effect. 
+For example, if you deploy to Tomcat, you can add `MATCHMAKER_CONFIG` into `$TOMCAT_HOME/bin/setenv.sh` (which may need to be created first). Then, restart Tomcat to put the change into effect. 
 
-The configuration file needs to be formatted using [EDN](https://github.com/edn-format/edn). A configuration template, which is used to provide default values, can be found in `/resources/config/config-public.edn` (see [here](https://github.com/opendatacz/matchmaker/blob/master/resources/config/config-public.edn)). You can copy the template and fill in the required missing values (e.g., SPARQL Update endpoint access credentials). 
+A configuration template, which is used to provide default values, can be found in `/resources/config/config-public.edn` (see [here](https://github.com/opendatacz/matchmaker/blob/master/resources/config/config-public.edn)). 
 
 ## Acknowledgement
 
