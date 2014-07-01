@@ -50,8 +50,9 @@
 (defn- get-matches
   "Get matches for @resource (URI) from @matchmaker-endpoint (URL).
   Optionally specific maximum number of matches via @limit (defaults to 10)."
-  [matchmaker-endpoint resource & {:keys [limit]}]
+  [matchmaker-endpoint resource & {:keys [limit matchmaker]}]
   (let [matches (-> (client/get matchmaker-endpoint {:query-params {:limit (str (or limit 10))
+                                                                    :matchmaker matchmaker
                                                                     :uri resource}
                                                      :as :json-string-keys})
                     :body
@@ -98,14 +99,17 @@
                 [metric ((metric metric-fns) results)])))
 
 (defn evaluate-rank
-  "Evaluate @matchmaking-fn using @correct-matches."
-  [benchmark matchmaking-endpoint]
+  "Evaluate @matchmaker provided by @matchmaking-endpoint using @correct-matches."
+  [benchmark matchmaking-endpoint matchmaker]
   (let [correct-matches (get-in benchmark [:benchmark :correct-matches])
         limit (get-in benchmark [:config :benchmark :max-number-of-results])]
     (doall (for [correct-match correct-matches 
                 :let [start-time (System/nanoTime)
                       {:keys [resource match]} correct-match
-                      matches (get-matches matchmaking-endpoint resource :limit limit)]] 
+                      matches (get-matches matchmaking-endpoint
+                                           resource
+                                           :limit limit
+                                           :matchmaker matchmaker)]] 
                 {:rank (rank matches match)
                  :time (time-difference start-time)}))))
 

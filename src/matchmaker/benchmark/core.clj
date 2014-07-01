@@ -65,31 +65,18 @@
   (format-numbers (evaluate/avg-metrics benchmark-results)))
 
 (defn compute-benchmark
-  "Constructs benchmark for @matchmaking-endpoint (URL), 
+  "Constructs benchmark of @matchmaker (String) on @matchmaking-endpoint (URL), 
   setting up and tearing down whole benchmark.
   May run multiple times, if @number-of-times is provided."
-  ([matchmaking-endpoint]
+  ([matchmaking-endpoint matchmaker]
     (let [benchmark (load-benchmark)]
       (try
-        (evaluate/evaluate-rank benchmark matchmaking-endpoint)
+        (evaluate/evaluate-rank benchmark
+                                matchmaking-endpoint
+                                matchmaker)
         (finally (component/stop benchmark)))))
   ([matchmaking-endpoint
+    matchmaker
     ^Integer number-of-runs]
-    (doall (repeatedly number-of-runs #(compute-benchmark matchmaking-endpoint)))))
- 
-(defn run-benchmark
-  "Wrapper function to run benchmark for given @matchmaking-endpoint (URL).
-  Aggregate benchmark results using @aggregation-fn and format them using @formatting-fn."
-  [matchmaking-endpoint number-of-runs]
-  (flatten (compute-benchmark matchmaking-endpoint number-of-runs)))
-
-(comment
-  (def results (run-benchmark config "http://localhost:3000/match/contract/to/business-entity"))
-  (def results (run-benchmark config "http://lod2.vse.cz:8080/matchmaker/match/contract/to/business-entity"))
-  (evaluate/compute-avg-rank-metrics config results)
-  (view (evaluate/top-n-curve-chart results))
-  (save (evaluate/top-n-curve-chart results)
-        "diagrams/fused_vvz_data_exact_CPV.png"
-        :width 1000
-        :height 800)
-  )
+    (flatten (doall (repeatedly number-of-runs
+                                #(compute-benchmark matchmaking-endpoint matchmaker))))))

@@ -73,6 +73,7 @@
 (defn init-logger
   "Initialize logger"
   []
+  (timbre/set-config! [:appenders :standard-out :enabled?] false)
   (timbre/set-config! [:appenders :spit :enabled?] true)
   (timbre/set-config! [:shared-appender-config :spit-filename] "log/matchmaker.log"))
 

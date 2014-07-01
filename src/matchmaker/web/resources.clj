@@ -1,6 +1,7 @@
 (ns matchmaker.web.resources
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.util :as util]
+            [matchmaker.core.common :refer [matchmakers]]
             [cemerick.url :refer [url]]
             [ring.util.request :refer [request-url]]
             [liberator.core :refer [defresource]]
@@ -43,7 +44,8 @@
    (s/optional-key :offset) (s/both s/Int
                                     non-negative?)
    (s/optional-key :oldest_creation_date) sc/Date 
-   (s/optional-key :publication_date_path) String})
+   (s/optional-key :publication_date_path) String
+   (s/optional-key :matchmaker) (apply s/enum matchmakers)})
 
 ;; ----- Private functions -----
 
@@ -60,6 +62,7 @@
   [server]
   {:graph_uri (get-in server [:sparql-endpoint :source-graph]) ; Default :graph_uri is :source-graph 
    :limit 10
+   :matchmaker "exact-cpv"
    :offset 0})
 
 (defn- is-supported-content-type
@@ -168,7 +171,12 @@
   :malformed? (fn [{{{:keys [source target]} :route-params
                      :keys [query-params]
                      :as request} :request}]
-                (let [exists? (multimethod-implements? controllers/dispatch-to-matchmaker [source target])
+                (let [match-request (merge (get-request-defaults server)
+                                           (clojure.walk/keywordize-keys query-params))
+                      exists? (multimethod-implements? controllers/dispatch-to-matchmaker
+                                                       {:matchmaker (:matchmaker match-request)
+                                                        :source source
+                                                        :target target})
                       ctx-defaults {:exists? exists?
                                     :query-empty? (empty? query-params)
                                     :request-url (-> request
@@ -177,15 +185,14 @@
                                     :server server ; Pass in reference to server component
                                     :source source
                                     :target target}
-                      parse-match-request (coerce/coercer MatchRequest coerce/string-coercion-matcher)
-                      match-request (merge (get-request-defaults server)
-                                           (clojure.walk/keywordize-keys query-params))]
+                      parse-match-request (coerce/coercer MatchRequest coerce/string-coercion-matcher)]
                   (cond (empty? query-params) [false ctx-defaults]
                         exists? (let [coerced-request (parse-match-request match-request)
                                       error (:error coerced-request)]
                                   (if (nil? error)
                                       [false (util/deep-merge ctx-defaults
-                                                              {:request {:params coerced-request}})]
+                                                              {:matchmaker (:matchmaker coerced-request)
+                                                               :request {:params coerced-request}})]
                                       [true (util/deep-merge jsonld-mime-type
                                                               {:error-msg (-> coerced-request
                                                                               :error

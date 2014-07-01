@@ -1,23 +1,19 @@
 (ns matchmaker.cli
   (:gen-class)
-  (:require [clojure.tools.cli :refer [parse-opts]]
+  (:require [taoensso.timbre :as timbre]
+            [clojure.tools.cli :refer [parse-opts]]
             [matchmaker.lib.util :as util]
             [matchmaker.common.config :refer [->Config]]
             [environ.core :refer [env]]
             [matchmaker.benchmark.evaluate :as evaluate]
-            [matchmaker.benchmark.core :refer [format-results run-benchmark]]
-            [matchmaker.core.sparql :as sparql-matchmaker]
+            [matchmaker.benchmark.core :refer [compute-benchmark]]
+            [matchmaker.core.common :refer [matchmakers]]
             [incanter.core :refer [save]]
             [schema.core :as s]
             [schema-contrib.core :as sc]
             [com.stuartsierra.component :as component]))
 
 ; ----- Private vars -----
-
-(def ^{:doc "Keyword to function lookup for matchmaking functions"
-       :private true}
-  matchmaking-fns
-  {:match-contract-exact-cpv sparql-matchmaker/contract-to-business-entity-exact-cpv})
 
 (def ^:private
   cli-options
@@ -34,20 +30,22 @@
     :default "diagrams"
     :validate [(fn [path] (.exists (clojure.java.io/file path)))]]
    ["-m" "--matchmaker MATCHMAKER" "Matchmaker to benchmark"
-    ;:parse-fn to convert to the actual matchmaking fn
-    ;:validate only allow implemented matchmaker fns
-    ]
+    :default "exact-cpv"
+    :validate [(partial contains? matchmakers)]
+   ]
    ["-h" "--help"]])
 
 ; ----- Private functions -----
 
 (defn- benchmark
-  [{:keys [diagram-path endpoint number-of-runs]} evaluation-metrics]
+  [evaluation-metris {:keys [diagram-path endpoint matchmaker number-of-runs]}]
   (println "Running the benchmark...")
-  (let [results (run-benchmark endpoint number-of-runs)
-        ; TODO: Encode matchmaker name + basic params into diagram name
+  (let [results (compute-benchmark endpoint matchmaker number-of-runs) 
+        ; TODO: Encode basic params into diagram name
         diagram-path (util/join-file-path diagram-path
                                           (str (util/date-time-now)
+                                               "-"
+                                               matchmaker
                                                "-"
                                                (util/uuid)
                                                ".png"))]
@@ -56,15 +54,6 @@
           :width 1000
           :height 800)
     (println (format "Rendered benchmark results into %s" diagram-path))))
-
-(defn- resolve-matchmaking-fn
-  "Maps matchmaking function string to function."
-  [^String matchmaking-fn]
-  (let [available-matchmaking-fns (clojure.string/join ", " (map name (keys matchmaking-fns)))
-        unavailable-error (str "Matchmaking function not available. Available functions: "
-                                available-matchmaking-fns)]
-    (or ((keyword matchmaking-fn) matchmaking-fns)
-        (util/exit 1 unavailable-error))))
 
 (defn- error-msg
   [errors]

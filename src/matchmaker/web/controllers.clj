@@ -60,25 +60,64 @@
   "@source is the label of the resource type provided
   @target is the label of the resource to match to"
   (fn [params] ; Destructuring params directly in fn doesn't work. Why?
-    (let [{:keys [source target]} params] [source target])))
+    (select-keys params [:matchmaker :source :target])))
 
-(defmethod dispatch-to-matchmaker ["business-entity" "contract"]
+(defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv"
+                                   :source "business-entity"
+                                   :target "contract"}
   [params]
   (match-resource params
                   :resource-key :business-entity
-                  :template ["matchmaker" "sparql" "business_entity" "to" "contract" "exact_cpv"]
+                  :template ["matchmaker" "sparql" "business_entity"
+                             "to" "contract" "exact_cpv"]
                   :view-fn views/match-business-entity-to-contract))
 
-(defmethod dispatch-to-matchmaker ["contract" "business-entity"]
+(defmethod dispatch-to-matchmaker {:matchmaker "expand-to-narrower-cpv"
+                                   :source "business-entity"
+                                   :target "contract"}
+  [params]
+  (match-resource params
+                  :resource-key :business-entity
+                  :template ["matchmaker" "sparql" "business_entity"
+                             "to" "contract" "expand_to_narrower_cpv"]
+                  :view-fn views/match-business-entity-to-contract))
+
+(defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv"
+                                   :source "contract"
+                                   :target "business-entity"}
   [params]
   (match-resource params
                   :resource-key :contract
-                  :template ["matchmaker" "sparql" "contract" "to" "business_entity" "exact_cpv"]
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "exact_cpv"]
                   :view-fn views/match-contract-to-business-entity))
 
-(defmethod dispatch-to-matchmaker ["contract" "contract"]
+(defmethod dispatch-to-matchmaker {:matchmaker "expand-to-narrower-cpv"
+                                   :source "contract"
+                                   :target "business-entity"}
   [params]
   (match-resource params
                   :resource-key :contract
-                  :template ["matchmaker" "sparql" "contract" "to" "contract" "expand_to_narrower_cpv"]
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "expand_to_narrower_cpv"]
+                  :view-fn views/match-contract-to-business-entity))
+
+(defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv"
+                                   :source "contract"
+                                   :target "contract"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "contract" "exact_cpv"]
+                  :view-fn views/match-contract-to-contract))
+
+(defmethod dispatch-to-matchmaker {:matchmaker "expand-to-narrower-cpv"
+                                   :source "contract"
+                                   :target "contract"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "contract" "expand_to_narrower_cpv"]
                   :view-fn views/match-contract-to-contract))

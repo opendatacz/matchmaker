@@ -107,7 +107,9 @@
       (is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
                                              :bork "MORK"))
           "malformed superfluous GET param"))
-    (testing "unsupported match source or target"
+    (testing "unsupported match matchmaker, source or target"
+      (is (= 404 (get-business-entity-status :uri "http://example.com/contract/1"
+                                             :matchmaker "BORK")))
       (let [response (get-match "/match/bork/to/contract")]
         (is (= 404 (:status response))
             "request to match unknown source class results in not found"))
