@@ -36,7 +36,7 @@
 
 (def MatchRequest
   {:uri sc/URI
-   (s/optional-key :current) s/Bool
+   (s/optional-key :current) (s/enum "true" "false")
    (s/optional-key :graph_uri) sc/URI
    (s/optional-key :limit) (s/both s/Int
                                    positive?

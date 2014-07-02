@@ -85,9 +85,9 @@
       (is (= 400 (get-business-entity-status :uri "example.com/contract/1"))
           "malformed URI")
       ;Coercion doesn't report invalid boolean value as an error.
-      ;(is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
-      ;                                       :current "BORK"))
-      ;    "malformed current flag")
+      (is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
+                                             :current "BORK"))
+          "malformed current flag")
       (is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
                                              :graph_uri "example.com"))
           "malformed graph URI")
