@@ -1,14 +1,28 @@
 (ns matchmaker.lib.rdf
   (:require [taoensso.timbre :as timbre]
+            [clojure.java.io :as io]
             [matchmaker.lib.template :refer [render-template]])
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
            [com.github.jsonldjava.jena JenaJSONLD]
-           [com.hp.hpl.jena.query QueryExecutionFactory QueryFactory]
-           [com.hp.hpl.jena.rdf.model Literal Resource]))
+           [com.hp.hpl.jena.query QueryExecutionFactory QueryFactory QueryParseException]
+           [com.hp.hpl.jena.rdf.model Literal Resource]
+           [com.hp.hpl.jena.sparql.core Prologue]
+           [com.hp.hpl.jena.sparql.path PathParser]))
 
 (declare graph->string string->graph)
 
 (JenaJSONLD/init) ; Initialization of the JSON-LD library
+
+; ----- Public vars -----
+
+(def prefix-map
+  ^{:doc "Map (com.hp.hpl.jena.sparql.core.Prologue) of available prefixes"}
+  (let [prolog (Prologue.)]
+    (with-open [rdr (io/reader (io/resource "templates/prefixes.mustache"))]
+      (doseq [line (line-seq rdr)]
+        (let [[_ prefix uri] (re-matches #"(?i)prefix\s+(\w+):\s*<([^>]+)>" line)]
+          (.setPrefix prolog prefix uri))))
+    prolog))
 
 ; ----- Protocols -----
 
@@ -103,3 +117,11 @@
   (let [canonical-rdf-syntax-name (canonicalize-rdf-syntax-name rdf-syntax)
         input-stream (java.io.ByteArrayInputStream. (.getBytes string))]
     (.read (ModelFactory/createDefaultModel) input-stream nil canonical-rdf-syntax-name)))
+
+(defn valid-property-path?
+  "Tests if SPARQL 1.1 property path is valid,
+  and if it contains only supported prefixes."
+  [property-path]
+  (try
+    (PathParser/parse property-path prefix-map) true
+    (catch QueryParseException e (.getMessage e) false)))

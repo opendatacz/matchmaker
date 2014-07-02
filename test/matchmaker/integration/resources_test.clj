@@ -81,10 +81,9 @@
     (testing "well-formed GET params"
       (is (= 200 (get-business-entity-status :uri "http://example.com/contract/1"))
           "well-formed request is dereferenceable"))
-    (testing "malformed GET params" ; DRY up by using `are` and lose custom messages?
+    (testing "malformed GET params" ; TODO: DRY up by using `are` and lose custom messages?
       (is (= 400 (get-business-entity-status :uri "example.com/contract/1"))
           "malformed URI")
-      ;Coercion doesn't report invalid boolean value as an error.
       (is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
                                              :current "BORK"))
           "malformed current flag")
@@ -103,6 +102,9 @@
       (is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
                                              :oldest_creation_date "1. 1. 2000"))
           "malformed date format")
+      (is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
+                                             :publication_date_path "bork:mork"))
+          "malformed publication data SPARQL 1.1 property path")
       (is (= 400 (get-business-entity-status :uri "http://example.com/contract/1"
                                              :bork "MORK"))
           "malformed superfluous GET param"))
