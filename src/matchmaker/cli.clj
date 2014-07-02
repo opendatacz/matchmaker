@@ -39,21 +39,23 @@
 
 (defn- benchmark
   [evaluation-metris {:keys [diagram-path endpoint matchmaker number-of-runs]}]
-  (println "Running the benchmark...")
-  (let [results (compute-benchmark endpoint matchmaker number-of-runs) 
-        ; TODO: Encode basic params into diagram name
-        diagram-path (util/join-file-path diagram-path
-                                          (str (util/date-time-now)
-                                               "-"
-                                               matchmaker
-                                               "-"
-                                               (util/uuid)
-                                               ".png"))]
-    (save (evaluate/top-n-curve-chart results)
-          diagram-path
-          :width 1000
-          :height 800)
-    (println (format "Rendered benchmark results into %s" diagram-path))))
+  (if (util/url-alive? endpoint)
+      (do (println "Running the benchmark...")
+          (let [results (compute-benchmark endpoint matchmaker number-of-runs) 
+                ; TODO: Encode basic params into diagram name
+                diagram-path (util/join-file-path diagram-path
+                                                  (str (util/date-time-now)
+                                                      "-"
+                                                      matchmaker
+                                                      "-"
+                                                      (util/uuid)
+                                                      ".png"))]
+            (save (evaluate/top-n-curve-chart results)
+                  diagram-path
+                  :width 1000
+                  :height 800)
+            (println (format "Rendered benchmark results into %s" diagram-path))))
+      (println (format "Matchmaker's endpoint <%s> isn't available." endpoint))))
 
 (defn- error-msg
   [errors]

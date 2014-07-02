@@ -2,6 +2,7 @@
   (:require [taoensso.timbre :as timbre]
             [clj-time.core :refer [now]]
             [clj-time.format :as time-format]
+            [clj-http.client :as client]
             [cheshire.core :as json])
   (:import [java.security MessageDigest]))
 
@@ -107,7 +108,14 @@
   [url]
   (try
     (java.net.URL. url)
-    (catch Exception e false)))
+    (catch Exception _ false)))
+
+(defn url-alive?
+  "Pings a @url to test if it's alive."
+  [url]
+  (try
+    (client/get url) true
+    (catch Exception _ false)))
 
 (defn uuid
   "Generates a random UUID"
