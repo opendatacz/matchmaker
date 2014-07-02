@@ -8,11 +8,14 @@
             [clj-time.core :as clj-time]
             [matchmaker.lib.util :refer [format-date]]))
 
-(declare get-random-resource transform-match wrap-in-collection)
+(declare get-random-resource prefix-vocabulary-term
+         transform-match wrap-in-collection)
 
 ;; ----- Private vars -----
 
-(def ^:private hydra-context "http://www.w3.org/ns/hydra/context.jsonld")
+; Temporarily set to the following URI instead of the correct "http://www.w3.org/ns/hydra/context.jsonld",
+; which currently doesn't dereference.
+(def ^:private hydra-context "http://www.hydra-cg.com/spec/latest/core/core.jsonld") 
 
 (def ^:private a-month-ago
   (format-date (clj-time/minus (clj-time/now) (clj-time/months 1))))
@@ -35,7 +38,7 @@
                     path
                     :query {"uri" (:uri ctx)
                             "graph_uri" (get-in ctx [:request :query-params :graph_uri])})
-   "@type" "/vocab/MatchOperation"})
+   "@type" (prefix-vocabulary-term ctx "MatchOperation")})
 
 (defn- generate-match-operations
   "Generate Hypermedia controls to matchmaking operations"
@@ -74,7 +77,7 @@
                          "method" "GET"
                          "expects" (base-url+ ctx expects)
                          "returns" (base-url+ ctx returns)}
-   "skos:example" (base-url+ ctx operation-path :query {:uri (generate-random-fn ctx)})})
+   "skos:example" {"@id" (base-url+ ctx operation-path :query {:uri (generate-random-fn ctx)})}})
 
 (defn- match-resource
   "JSON-LD view of @matchmaker-results for contract @uri using @additional-mappings
@@ -116,11 +119,11 @@
   [uri matches paging limit]
   {:pre [(map? paging)]} 
   (let [collection-type (if (some (complement nil?) (select-keys paging [:prev :next]))
-                            "hydra:PagedCollection"
-                            "hydra:Collection")]
+                            "PagedCollection"
+                            "Collection")]
     (merge paging {"@type" collection-type
-                           "hydra:itemsPerPage" limit
-                           "hydra:member" matches})))
+                           "itemsPerPage" limit
+                           "member" matches})))
 
 ;; ----- Public functions -----
 
@@ -239,8 +242,7 @@
 
 (defn not-found
   []
-  {"@context" hydra-context
-   "@type" "Error"
+  {"@type" "Error"
    "statusCode" 404
    "description" "Not found"})
 
@@ -257,7 +259,7 @@
    "voaf:extends" "http://www.w3.org/ns/hydra/core#"
    "voaf:specializes" ["http://purl.org/procurement/public-contracts#"
                        "http://purl.org/goodrelations/v1#"]
-   "dcterms:creator" "http://mynarz.net/#jindrich"})
+   "dcterms:creator" {"@id" "http://mynarz.net/#jindrich"}})
 
 ;; ----- Classes -----
 
@@ -265,7 +267,7 @@
   [ctx]
   {"@id" (prefix-vocabulary-term ctx "BusinessEntity")
    "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
-   "rdfs:subClassOf" "gr:BusinessEntity"
+   "rdfs:subClassOf" ["gr:BusinessEntity" "schema:Organization"]
    "supportedOperation" (base-url+ ctx "/load/business-entity")
    (base-url+ ctx "/match/business-entity/to/contract") {
      "@type" "IriTemplate"
@@ -284,7 +286,7 @@
    "rdfs:subClassOf" ["Collection"
                       {"@type" "owl:Restriction"
                        "owl:onProperty" "member"
-                       "owl:allValuesFrom" "#BusinessEntity"}]})
+                       "owl:allValuesFrom" (prefix-vocabulary-term ctx "BusinessEntity")}]})
 
 (defmethod vocabulary-term "Contract"
   [ctx]
@@ -313,7 +315,7 @@
    "rdfs:subClassOf" ["Collection"
                       {"@type" "owl:Restriction"
                        "owl:onProperty" "member"
-                       "owl:allValuesFrom" "#Contract"}]})
+                       "owl:allValuesFrom" {"@id" (prefix-vocabulary-term ctx "Contract")}}]})
 
 (defmethod vocabulary-term "MatchOperation"
   [ctx]
@@ -335,7 +337,7 @@
    "variable" "uri"
    "property" "rdf:subject"
    "required" true
-   "skos:example" (get-random-business-entity ctx)})
+   "skos:example" {"@id" (get-random-business-entity ctx)}})
 
 (defmethod vocabulary-term "contract-uri-mapping"
   [ctx]
@@ -346,7 +348,7 @@
    "variable" "uri"
    "property" "rdf:subject"
    "required" true
-   "skos:example" (get-random-contract ctx)})
+   "skos:example" {"@id" (get-random-contract ctx)}})
 
 (defmethod vocabulary-term "current-mapping"
   [ctx]
@@ -391,6 +393,6 @@
                                                   str
                                                   "/jsonld_contexts/matchmaker_api.jsonld")))
         data-in-context (if (nil? (data "@context"))
-                          (assoc data "@context" default-json-ld-context)
+                          (assoc data "@context" [hydra-context default-json-ld-context])
                           data)]
     (json/generate-string data-in-context {:escape-non-ascii true})))

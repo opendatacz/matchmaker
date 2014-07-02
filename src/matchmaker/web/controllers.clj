@@ -20,9 +20,9 @@
         next-link (merge-query-fn (= results-size limit) next-link-params)
         prev-link (merge-query-fn (>= offset limit) prev-link-params)
         first-page-link (merge-query-fn (>= offset limit) first-page-params)]
-    (into {} (filter (comp (complement nil?) second) {"hydra:nextPage" next-link
-                                                      "hydra:previousPage" prev-link
-                                                      "hydra:firstPage" first-page-link}))))
+    (into {} (filter (comp (complement nil?) second) {"nextPage" next-link
+                                                      "previousPage" prev-link
+                                                      "firstPage" first-page-link}))))
 
 (defn- match-resource
   "Match resource by using @matchmaking-fn.

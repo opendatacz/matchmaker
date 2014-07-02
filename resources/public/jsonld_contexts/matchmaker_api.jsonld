@@ -1,8 +1,8 @@
 {
+  "@vocab" : "http://www.w3.org/ns/hydra/core#",
   "api" : "http://purl.org/linked-data/api/vocab#",
   "dcterms" : "http://purl.org/dc/terms/",
   "gr" : "http://purl.org/goodrelations/v1#",
-  "hydra" : "http://www.w3.org/ns/hydra/core#",
   "owl" : "http://www.w3.org/2002/07/owl#",
   "pc" : "http://purl.org/procurement/public-contracts#",
   "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
@@ -17,13 +17,25 @@
   "api:vocabulary" : {
     "@type" : "@id"
   },
-  "hydra:nextPage" : {
+  "owl:onProperty" : {
     "@type" : "@id"
   },
-  "hydra:previousPage" : {
+  "rdfs:domain" : {
     "@type" : "@id"
   },
-  "hydra:firstPage" : {
+  "rdfs:isDefinedBy" : {
+    "@type" : "@id"
+  },
+  "rdfs:range" : {
+    "@type" : "@id"
+  },
+  "rdfs:subClassOf" : {
+    "@type" : "@id"
+  },
+  "voaf:extends" : {
+    "@type" : "@id"
+  },
+  "voaf:specializes" : {
     "@type" : "@id"
   },
   "vrank:hasValue" : {
