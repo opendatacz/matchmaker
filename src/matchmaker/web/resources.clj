@@ -19,8 +19,8 @@
 ;; ----- Private vars ------
 
 (def ^:private class-mappings
-  {"business-entity" "gr:BusinessEntity"
-   "contract" "pc:Contract"})
+  {"business-entity" ["gr:BusinessEntity" "schema:Organization"]
+   "contract" ["pc:Contract"]})
 
 (def ^:private supported-content-types
   #{"application/ld+json" "text/turtle"})
@@ -50,12 +50,12 @@
 ;; ----- Private functions -----
 
 (defn- get-matched-resources
-  "Returns instances of @class-curie from @graph"
-  [graph class-curie]
-  (map :resource
+  "Returns instances of @class-curies from @graph"
+  [graph class-curies]
+  (map #(select-keys % [:resource :class])
        (rdf/select-query graph
                          ["get_matched_resource"]
-                         :data {:class-curie class-curie})))
+                         :data {:class-curies class-curies})))
 
 (defn- get-request-defaults
   "Default values to fill in a match request on @server"
@@ -89,7 +89,7 @@
     supported-class? :supported-class?
     {{content-type "content-type"} :headers
      {class-label :class} :route-params} :request}]
-  (let [class-curie (class-mappings class-label)
+  (let [class-curies (class-mappings class-label)
         append (fn [data] (util/deep-merge jsonld-mime-type data))
         false-option [false {:supported-class? supported-class?}]]
     (cond (not supported-class?)
@@ -102,14 +102,16 @@
                     turtle (if (= content-type "text/turtle")
                                payload
                                (rdf/graph->string graph))
-                    matched-resources (get-matched-resources graph class-curie)]
+                    matched-resources (get-matched-resources graph class-curies)]
                 (case (count matched-resources)
-                  0 [true (append {:error-msg (format "No instance of %s was found." class-curie)})]
-                  1 [false {:class-curie class-curie
+                  0 [true (append {:error-msg (format "No instance of any of %s was found."
+                                                      (clojure.string/join ", " class-curies))})]
+                  1 [false {:class-uri (-> matched-resources first :class)
                             :data turtle
                             :supported-class? supported-class?
-                            :uri (first matched-resources)}]
-                  [true (append {:error-msg (format "More than 1 instance of %s was found." class-curie)})]))
+                            :uri (-> matched-resources first :resource)}]
+                  [true (append {:error-msg (format "More than 1 instance of classes %s was found."
+                                                    (clojure.string/join ", " class-curies))})]))
               (catch Exception e [true (append {:error-msg "Data cannot be parsed."})]))
           :else false-option)))
 

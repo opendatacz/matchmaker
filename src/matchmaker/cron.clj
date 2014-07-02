@@ -94,5 +94,7 @@
                       cj (cronj/cronj :entries entries)]
                   (cronj/start! cj)
                   (assoc cron :cron cj)))
-  (stop [cron] (cronj/stop! (:cron cron))
-               (delete-metadata-graph (:sparql-endpoint cron)))) 
+  (stop [cron] (let [sparql-endpoint (:sparql-endpoint cron)]
+                 (cronj/stop! (:cron cron))
+                 (delete-all-graphs sparql-endpoint)
+                 (delete-metadata-graph sparql-endpoint))))

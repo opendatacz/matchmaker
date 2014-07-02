@@ -52,8 +52,7 @@
                          app)
             body (json/parse-string (:body response))]
         (is (= 400 (:status response))
-            "putting empty data results in HTTP 400 Bad Request")
-        (is (= "No instance of pc:Contract was found." (body "description")))))
+            "putting empty data results in HTTP 400 Bad Request")))
     (testing "successful load"
       (let [payload (slurp (clojure.java.io/resource "data/valid_contract.ttl"))
             response (-> (put-fn payload)
@@ -67,7 +66,7 @@
                                                           :metadata-graph (:metadata-graph @sparql-endpoint)}))]
         (is (= 201 (:status response))
             "successfully loads valid data")
-        (is (= "pc:Contract" (body "@type"))
+        (is (.endsWith (body "@type") "Contract")
             "responds with a representation of the loaded instance type")
         (sparql/delete-graph @sparql-endpoint graph)))))
 

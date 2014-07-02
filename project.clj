@@ -30,7 +30,8 @@
                  [liberator "0.11.0"]
                  [im.chit/cronj "1.0.1"]
                  [prismatic/schema "0.2.4"]
-                 [schema-contrib "0.1.3"]]
+                 [schema-contrib "0.1.3"]
+                 [clojurewerkz/elastisch "2.0.0"]]
   :main matchmaker.cli
   :plugins [[lein-ring "0.8.11"]]
   :profiles {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]

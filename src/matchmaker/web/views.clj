@@ -31,6 +31,12 @@
       (assoc :query query)
       str))
 
+(defn- generate-iri-template-mapping-skeleton
+  "Generate the fixed part of IriTemplateMapping's description"
+  [ctx]
+  {"@type" "IriTemplateMapping"
+   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")})
+
 (defn- generate-match-operation
   "Generate description of matchmaking operation on @path"
   [ctx path]
@@ -42,12 +48,14 @@
 
 (defn- generate-match-operations
   "Generate Hypermedia controls to matchmaking operations"
-  [ctx class-curie]
-  (let [paths (case class-curie
-                    "pc:Contract" ["/match/contract/to/business-entity"
-                                   "/match/contract/to/contract"]
-                    "gr:BusinessEntity" ["/match/business-entity/to/contract"]
-                    [])]
+  [ctx class-uri]
+  (let [paths (cond (= "http://purl.org/procurement/public-contracts#Contract" class-uri)
+                      ["/match/contract/to/business-entity"
+                      "/match/contract/to/contract"]
+                    (contains? #{"http://purl.org/goodrelations/v1#BusinessEntity"
+                                 "http://schema.org/Organization"} class-uri)
+                      ["/match/business-entity/to/contract"]
+                    :else [])]
     (mapv (partial generate-match-operation ctx) paths)))
 
 (defn- get-random-business-entity
@@ -101,6 +109,11 @@
        (str "/vocab/")
        (base-url+ ctx)))
 
+(defn- prefix-vocabulary-terms
+  "Prefix multiple vocabulary @terms with vocabulary URI"
+  [ctx & terms]
+  (mapv (partial prefix-vocabulary-term ctx) terms))
+
 (defn- transform-match
   "Transform @match to JSON-LD-like structure using @key-mappings that map
   keys of @match hash-map to JSON-LD keys. Adds rdf:type of @match-type for
@@ -147,10 +160,10 @@
 (defn loaded-data
   "View of uploaded data with hypermedia controls"
   [ctx]
-  (let [class-curie (:class-curie ctx)]
+  (let [class-uri (:class-uri ctx)]
     {"@id" (:uri ctx)
-    "@type" class-curie
-    "operation" (generate-match-operations ctx class-curie)}))
+     "@type" class-uri 
+     "operation" (generate-match-operations ctx class-uri)}))
 
 (defmulti load-resource
   "Documentation for load-resource operations" 
@@ -272,12 +285,13 @@
    (base-url+ ctx "/match/business-entity/to/contract") {
      "@type" "IriTemplate"
      "template" (base-url+ ctx (str "/match/business-entity/to/contract"
-                                    "{?uri,current,oldest_creation_date,publication_date_path}"))
-     "mapping" (mapv (partial prefix-vocabulary-term ctx)
-                     ["business-entity-uri-mapping"
-                      "current-mapping"
-                      "oldest-creation-date-mapping"
-                      "publication-date-path-mapping"])}})
+                                    "{?uri,current,matchmaker,oldest_creation_date,publication_date_path}"))
+     "mapping" (prefix-vocabulary-terms ctx
+                                        "business-entity-uri-mapping"
+                                        "current-mapping"
+                                        "matchmaker-mapping"
+                                        "oldest-creation-date-mapping"
+                                        "publication-date-path-mapping")}})
 
 (defmethod vocabulary-term "BusinessEntityCollection"
   [ctx]
@@ -296,17 +310,20 @@
    "supportedOperation" (base-url+ ctx "/load/contract")
    (base-url+ ctx "/match/contract/to/business-entity") {
      "@type" "IriTemplate"
-     "template" (base-url+ ctx "/match/contract/to/business-entity{?uri}")
-     "mapping" (base-url+ ctx "/vocab/contract-uri-mapping")}
+     "template" (base-url+ ctx "/match/contract/to/business-entity{?uri,matchmaker}")
+     "mapping" (prefix-vocabulary-terms ctx
+                                        "contract-uri-mapping"
+                                        "matchmaker-mapping")}
    (base-url+ ctx "/match/contract/to/contract") {
      "@type" "IriTemplate"
      "template" (base-url+ ctx (str "/match/contract/to/contract"
-                                    "{?uri,current,oldest_creation_date,publication_date_path}"))
-     "mapping" (mapv (partial prefix-vocabulary-term ctx)
-                     ["contract-uri-mapping"
-                      "current-mapping"
-                      "oldest-creation-date-mapping"
-                      "publication-date-path-mapping"])}})
+                                    "{?uri,current,matchmaker,oldest_creation_date,publication_date_path}"))
+     "mapping" (prefix-vocabulary-terms ctx
+                                        "contract-uri-mapping"
+                                        "current-mapping"
+                                        "matchmaker-mapping"
+                                        "oldest-creation-date-mapping"
+                                        "publication-date-path-mapping")}})
 
 (defmethod vocabulary-term "ContractCollection"
   [ctx]
@@ -330,58 +347,65 @@
 
 (defmethod vocabulary-term "business-entity-uri-mapping"
   [ctx]
-  {"@id" (prefix-vocabulary-term ctx "business-entity-uri-mapping")
-   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
-   "@type" "IriTemplateMapping"
-   "rdfs:comment" "URI of the matched business entity"
-   "variable" "uri"
-   "property" "rdf:subject"
-   "required" true
-   "skos:example" {"@id" (get-random-business-entity ctx)}})
+  (merge (generate-iri-template-mapping-skeleton ctx)
+         {"@id" (prefix-vocabulary-term ctx "business-entity-uri-mapping")
+          "rdfs:comment" "URI of the matched business entity"
+          "variable" "uri"
+          "property" "rdf:subject"
+          "required" true
+          "skos:example" {"@id" (get-random-business-entity ctx)}}))
 
 (defmethod vocabulary-term "contract-uri-mapping"
   [ctx]
-  {"@id" (prefix-vocabulary-term ctx "contract-uri-mapping")
-   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
-   "@type" "IriTemplateMapping"
-   "rdfs:comment" "URI of the matched contract"
-   "variable" "uri"
-   "property" "rdf:subject"
-   "required" true
-   "skos:example" {"@id" (get-random-contract ctx)}})
+  (merge (generate-iri-template-mapping-skeleton ctx)
+         {"@id" (prefix-vocabulary-term ctx "contract-uri-mapping")
+          "rdfs:comment" "URI of the matched contract"
+          "variable" "uri"
+          "property" "rdf:subject"
+          "required" true
+          "skos:example" {"@id" (get-random-contract ctx)}}))
 
 (defmethod vocabulary-term "current-mapping"
   [ctx]
-  {"@id" (prefix-vocabulary-term ctx "current-mapping")
-   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
-   "@type" "IriTemplateMapping"
-   "rdfs:comment" "Boolean flag indicating filtering to current contracts"
-   "variable" "current"
-   "property" {"rdfs:range" "xsd:boolean"}
-   "required" false
-   "skos:example" [true false]})
+  (merge (generate-iri-template-mapping-skeleton ctx)
+         {"@id" (prefix-vocabulary-term ctx "current-mapping")
+          "rdfs:comment" "Boolean flag indicating filtering to current contracts"
+          "variable" "current"
+          "property" {"rdfs:range" "xsd:boolean"}
+          "required" false
+          "qudt:default" false
+          "skos:example" [true false]}))
+
+(defmethod vocabulary-term "matchmaker-mapping"
+  [ctx]
+  (merge (generate-iri-template-mapping-skeleton ctx)
+         {"@id" (prefix-vocabulary-term ctx "matchmaker-mapping")
+          "rdfs:comment" "Identifier of matchmaker to be used"
+          "variable" "matchmaker"
+          "property" {"rdfs:range" {"owl:oneOf" ["exact-cpv"
+                                                 "expand-to-narrower-cpv"]}}
+          "required" false
+          "qudt:default" "exact-cpv"}))
 
 (defmethod vocabulary-term "oldest-creation-date-mapping"
   [ctx]
-  {"@id" (prefix-vocabulary-term ctx "oldest-creation-date-mapping")
-   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
-   "@type" "IriTemplateMapping"
-   "rdfs:comment" "The oldest date when a relevant contract could be created"
-   "variable" "oldest_creation_date"
-   "property" {"rdfs:range" "xsd:date"}
-   "required" false
-   "skos:example" a-month-ago})
+  (merge (generate-iri-template-mapping-skeleton ctx)
+         {"@id" (prefix-vocabulary-term ctx "oldest-creation-date-mapping")
+          "rdfs:comment" "The oldest date when a relevant contract could be created"
+          "variable" "oldest_creation_date"
+          "property" {"rdfs:range" "xsd:date"}
+          "required" false
+          "skos:example" a-month-ago}))
 
 (defmethod vocabulary-term "publication-date-path-mapping"
   [ctx]
-  {"@id" (prefix-vocabulary-term ctx "publication-date-path-mapping")
-   "rdfs:isDefinedBy" (base-url+ ctx "/vocab")
-   "@type" "IriTemplateMapping"
-   "rdfs:comment" "SPARQL 1.1 property path to contract's publication date"
-   "variable" "publication_date_path"
-   "property" {"rdfs:range" "xsd:string"}
-   "required" false
-   "skos:example" "pc:publicNotice/pc:publicationDate"})
+  (merge (generate-iri-template-mapping-skeleton ctx)
+         {"@id" (prefix-vocabulary-term ctx "publication-date-path-mapping")
+          "rdfs:comment" "SPARQL 1.1 property path to contract's publication date"
+          "variable" "publication_date_path"
+          "property" {"rdfs:range" "xsd:string"}
+          "required" false
+          "qudt:default" "pc:publicNotice/pc:publicationDate"}))
 
 ; Extend Liberator's multimethod for rendering maps to cover JSON-LD
 (defmethod render-map-generic "application/ld+json"

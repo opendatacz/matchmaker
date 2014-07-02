@@ -1,0 +1,11 @@
+{{!
+@param IRI graph-uri
+@param IRI metadata-graph
+}}
+
+ASK
+WHERE {
+  GRAPH <{{metadata-graph}}> {
+    <{{graph-uri}}> ?p [] .
+  }
+}

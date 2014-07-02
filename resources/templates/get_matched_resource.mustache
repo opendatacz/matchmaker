@@ -1,11 +1,16 @@
 {{!
-@param CURIe class-curie
+@param Array<CURIe> class-curies
 }}
 
 {{> templates/prefixes.mustache}}
 
-SELECT DISTINCT ?resource
+SELECT DISTINCT ?resource ?class
 WHERE {
-  ?resource a {{class-curie}} .
+  VALUES ?class {
+    {{#class-curies}}
+    {{.}}
+    {{/class-curies}}
+  }
+  ?resource a ?class .
 }
 LIMIT 2

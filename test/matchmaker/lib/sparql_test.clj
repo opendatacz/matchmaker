@@ -8,6 +8,11 @@
             [matchmaker.lib.sparql :refer :all]
             [matchmaker.lib.rdf :as rdf]))
 
+;; ----- Private vars -----
+
+(def ^:private sample-triple
+  (slurp (clojure.java.io/resource "data/triple.ttl")))
+
 ;; ----- Private functions -----
 
 (defn- generate-random-ints
@@ -76,9 +81,8 @@
       "returns true when expecting true and receives true"))
 
 (deftest ^:slow crud-test
-   (let [data (slurp (clojure.java.io/resource "data/triple.ttl"))
-         graph-uri (generate-graph-uri @sparql-endpoint data)
-         put-fn (fn [] (put-graph @sparql-endpoint data graph-uri))
+   (let [graph-uri (generate-graph-uri @sparql-endpoint sample-triple)
+         put-fn (fn [] (put-graph @sparql-endpoint sample-triple graph-uri))
          delete-fn (fn [] (delete-graph @sparql-endpoint graph-uri))]
      (testing "delete-graph"
        (put-fn)
@@ -91,7 +95,20 @@
            "creates a new graph")
        (delete-fn))
      (testing "read-graph"
-       (let [local-count (.size (rdf/string->graph data))]
+       (let [local-count (.size (rdf/string->graph sample-triple))]
          (put-fn)
          (is (= local-count (.size (rdf/string->graph (read-graph @sparql-endpoint graph-uri))))
              "retrieves the expected number of triples")))))
+
+(deftest ^:slow record-loaded-graph-test
+  (let [graph-uri (generate-graph-uri @sparql-endpoint sample-triple)
+        metadata-graph (:metadata-graph @sparql-endpoint)]
+    (do (record-loaded-graph @sparql-endpoint graph-uri)
+        (is (graph-exists? @sparql-endpoint metadata-graph)
+            "after recording a graph metadata graph must exist")
+        (is (sparql-ask @sparql-endpoint
+                        ["graph_is_recorded"]
+                        :data {:graph-uri graph-uri
+                               :metadata-graph metadata-graph})
+            "graph must be recorded in the metadata graph.")
+        (delete-graph @sparql-endpoint graph-uri))))

@@ -13,7 +13,7 @@
             [clojure.zip :as zip :refer [down right rights node]]
             [slingshot.slingshot :refer [throw+ try+]]))
 
-(declare delete-graph execute-query post-graph put-graph read-graph
+(declare delete-graph execute-query post-graph put-graph read-graph record-loaded-graph
          select-query select-1-variable sparql-ask sparql-query sparql-update)
 
 ; Private functions
@@ -61,22 +61,6 @@
                      template-path
                      :data {:limit number}))
 
-(defn- record-loaded-graph
-  "Records uploaded graph named @graph-uri into the metadata graph"
-  [sparql-endpoint graph-uri]
-  {:pre [(util/url? graph-uri)]}
-  (let [date-time-now (util/date-time-now)
-        metadata {"@context" (get-in sparql-endpoint [:config :context]) 
-                  "@id" graph-uri
-                  "@type" "sd:Graph"
-                  "dcterms:created" date-time-now}
-        metadata-jsonld (json/generate-string metadata {:escape-non-ascii true})
-        metadata-turtle (rdf/graph->string (rdf/string->graph metadata-jsonld
-                                                              :rdf-syntax "JSON-LD"))]
-    (post-graph sparql-endpoint
-                metadata-turtle
-                (:metadata-graph sparql-endpoint))))
-
 (defn- sparql-endpoint-alive?
   "Raises an exception if @sparql-endpoint-url is not responding to HEAD request."
   [sparql-endpoint-url]
@@ -102,13 +86,14 @@
     (rdf/string->graph results)))
 
 (defn delete-graph
-  "Use SPARQL 1.1 Graph Store to DELETE a graph named @graph-uri.
-  If graph doesn't exist, raise HTTP 404 exception."
+  "Use SPARQL 1.1 Graph Store to DELETE a graph named @graph-uri."
   [sparql-endpoint graph-uri] 
   {:pre [(util/url? graph-uri)]}
-  (crud sparql-endpoint
-        :DELETE
-        graph-uri))
+  (try+
+    (crud sparql-endpoint
+          :DELETE
+          graph-uri)
+    (catch [:status 404] _)))
 
 (defn execute-query
   "Execute SPARQL @query-string on @endpoint-url of @sparql-endpoint using @method."
@@ -215,6 +200,22 @@
   (:body (crud sparql-endpoint
                :GET
                graph-uri)))
+
+(defn record-loaded-graph
+  "Records uploaded graph named @graph-uri into the metadata graph"
+  [sparql-endpoint graph-uri]
+  {:pre [(util/url? graph-uri)]}
+  (let [date-time-now (util/date-time-now)
+        metadata {"@context" (get-in sparql-endpoint [:config :context]) 
+                  "@id" graph-uri
+                  "@type" "sd:Graph"
+                  "dcterms:created" date-time-now}
+        metadata-jsonld (json/generate-string metadata {:escape-non-ascii true})
+        metadata-turtle (rdf/graph->string (rdf/string->graph metadata-jsonld
+                                                              :rdf-syntax "JSON-LD"))]
+    (post-graph sparql-endpoint
+                metadata-turtle
+                (:metadata-graph sparql-endpoint))))
 
 (defn select-1-variable
   "Execute SPARQL SELECT query rendered from @template-path with @data.

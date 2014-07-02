@@ -17,7 +17,8 @@
   }
   OPTIONAL {
     GRAPH <{{source-graph}}> {
-      ?match gr:legalName ?_label .
+      {{> templates/matchmaker/sparql/partials/business_entity_legal_names.mustache}}
+      ?match ?businessEntityLegalName ?_label .
     }
   }
 }
