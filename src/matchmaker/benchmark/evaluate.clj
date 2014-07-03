@@ -56,7 +56,7 @@
                                                                     :uri resource}
                                                      :as :json-string-keys})
                     :body
-                    (get "hydra:member"))]
+                    (get "member"))]
     (map #(get % "@id") matches)))
 
 (defn- matches-found

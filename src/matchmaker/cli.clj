@@ -62,8 +62,9 @@
 (comment
   (def config (component/start (->Config (:matchmaker-config env))))
   (def evaluation-metrics (get-in config [:benchmark :evaluation-metrics]))
-  (def endpoint "http://lod2.vse.cz:8080/matchmaker/match/contract/to/business-entity")
-  (def results (compute-benchmark endpoint "exact-cpv" 2))
+  ;(def endpoint "http://lod2.vse.cz:8080/matchmaker/match/contract/to/business-entity")
+  (def endpoint "http://localhost:3000/match/contract/to/business-entity")
+  (def results (compute-benchmark endpoint "exact-cpv" 1))
   (def metrics (evaluate/compute-metrics results evaluation-metrics))
   )
 
