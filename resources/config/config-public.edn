@@ -4,7 +4,6 @@
                                   :avg-response-time
                                   :matches-found]
              :max-number-of-results 100 ; Set maximum number of results taken into account by the benchmark.
-             :number-of-runs 10 ; How many times benchmark should be run.
              :sample {:min-main-object-count 0
                       :min-additional-object-count 0
                       :size 100}

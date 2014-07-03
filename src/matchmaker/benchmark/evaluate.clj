@@ -84,7 +84,7 @@
                   [k (/ v results-count)]))))
 
 (defn compute-metrics-random
-  "Compute metrics for random matchmaking given @config."
+  "Compute metrics for random matchmaking given @sparql-endpoint."
   [sparql-endpoint]
   (let [business-entity-count (count-business-entities sparql-endpoint)
         max-number-of-results (get-in sparql-endpoint [:config :benchmark :max-number-of-results])]

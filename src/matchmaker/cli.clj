@@ -38,10 +38,11 @@
 ; ----- Private functions -----
 
 (defn- benchmark
-  [evaluation-metris {:keys [diagram-path endpoint matchmaker number-of-runs]}]
+  [evaluation-metrics {:keys [diagram-path endpoint matchmaker number-of-runs]}]
   (if (util/url-alive? endpoint)
       (do (println "Running the benchmark...")
-          (let [results (compute-benchmark endpoint matchmaker number-of-runs) 
+          (let [results (compute-benchmark endpoint matchmaker number-of-runs)
+                metrics (evaluate/compute-metrics results evaluation-metrics) 
                 ; TODO: Encode basic params into diagram name
                 diagram-path (util/join-file-path diagram-path
                                                   (str (util/date-time-now)
@@ -50,12 +51,21 @@
                                                       "-"
                                                       (util/uuid)
                                                       ".png"))]
+            (println (str metrics))
             (save (evaluate/top-n-curve-chart results)
                   diagram-path
                   :width 1000
                   :height 800)
             (println (format "Rendered benchmark results into %s" diagram-path))))
       (println (format "Matchmaker's endpoint <%s> isn't available." endpoint))))
+
+(comment
+  (def config (component/start (->Config (:matchmaker-config env))))
+  (def evaluation-metrics (get-in config [:benchmark :evaluation-metrics]))
+  (def endpoint "http://lod2.vse.cz:8080/matchmaker/match/contract/to/business-entity")
+  (def results (compute-benchmark endpoint "exact-cpv" 2))
+  (def metrics (evaluate/compute-metrics results evaluation-metrics))
+  )
 
 (defn- error-msg
   [errors]
