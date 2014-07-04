@@ -44,19 +44,20 @@
           (let [results (compute-benchmark endpoint matchmaker number-of-runs)
                 metrics (evaluate/compute-metrics results evaluation-metrics) 
                 ; TODO: Encode basic params into diagram name
-                diagram-path (util/join-file-path diagram-path
-                                                  (str (util/date-time-now)
-                                                      "-"
-                                                      matchmaker
-                                                      "-"
-                                                      (util/uuid)
-                                                      ".png"))]
+                output-name (str (util/date-time-now)
+                                 "-"
+                                 matchmaker
+                                 "-"
+                                 (util/uuid))
+                data-file (util/join-file-path diagram-path (str output-name".edn"))
+                diagram-file (util/join-file-path diagram-path (str output-name ".png"))]
             (println (str metrics))
+            (spit data-file (pr-str results))
             (save (evaluate/top-n-curve-chart results)
-                  diagram-path
+                  diagram-file
                   :width 1000
                   :height 800)
-            (println (format "Rendered benchmark results into %s" diagram-path))))
+            (println (format "Rendered benchmark results into %s" diagram-file))))
       (println (format "Matchmaker's endpoint <%s> isn't available." endpoint))))
 
 (comment

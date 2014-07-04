@@ -4,6 +4,7 @@
             [matchmaker.lib.sparql :as sparql]
             [clj-http.client :as client]
             [incanter.core :as incanter]
+            [clojure.edn :as edn]
             [incanter.charts :as charts]
             [incanter.stats :refer [linear-model]]))
 
@@ -129,16 +130,47 @@
 (defn top-n-curve-chart
   "Create line chart for top N results in @benchmark-results."
   [benchmark-results]
-  (let [data (top-n-curve-data benchmark-results)
+  (let [data (sort-by key (top-n-curve-data benchmark-results))
         x (keys data)
         y (vals data)
         regression-line (if (> (count data) 3) ; At least 4 points are needed for the linear model to work
                             (:fitted (linear-model y x)))
-        plot (charts/scatter-plot x
-                                  y
-                                  :title "Ratio of matches found in top N results"
-                                  :x-label "Number of top results (N)"
-                                  :y-label "Percentage of cases when match is found")]
+        plot (charts/xy-plot x
+                             y
+                             :title "Ratio of matches found in top N results"
+                             :x-label "Number of top results (N)"
+                             :y-label "Percentage of cases when match is found")]
     (if regression-line
         (charts/add-lines plot x regression-line)
         plot)))
+
+(comment
+  (defn load-data
+    [path]
+    (sort-by key (-> path
+                     slurp
+                     edn/read-string
+                     top-n-curve-data)))
+
+  (def exact-cpv (load-data "diagrams/exact_cpv.edn"))
+  (def expand-cpv (load-data "diagrams/expand_to_narrower_cpv.edn"))
+  (def better-sample (load-data "diagrams/exact_cpv_min_1_main_min_3_additional.edn"))
+
+  (def chart (charts/xy-plot (keys exact-cpv)
+                             (vals exact-cpv)
+                             ;:title "Ratio of matches found in top N results"
+                             :legend true
+                             :series-label "Exact CPV"
+                             :x-label "Number of top matches (N)"
+                             :y-label "Percentage of cases when winner is found"))
+  (incanter/save (doto chart
+                   (charts/add-lines (keys expand-cpv) (vals expand-cpv) :series-label "Expanded CPV")
+                   (charts/add-lines (keys better-sample) (vals better-sample) :series-label "Exact CPV on richer data")
+                   ;(charts/set-stroke :dash 4)
+                   ;(charts/set-stroke :dataset 1 :dash 4)
+                   ;(charts/set-stroke :dataset 2 :dash 4)
+                   )
+    "combined_xy_plot.png"
+    :width 1000
+    :height 800)
+  )
