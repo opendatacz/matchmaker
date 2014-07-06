@@ -235,6 +235,19 @@
         get-bindings (comp (partial zipmap sparql-variables) #(zip-xml/xml-> % :binding zip-xml/text))] 
     (map get-bindings sparql-results)))
 
+(defn select-query-unlimited
+  "Execute a SPARQL query (rendered from @template-path and @data)
+  repeatedly with paging until empty results are returned.
+  Returns a lazy sequence of @limit-sized chunks."
+  [sparql-endpoint template-path & {:keys [data limit]
+                                    :or {limit 500}}]
+  (letfn [(select-fn [offset] (select-query sparql-endpoint
+                                            template-path
+                                            :data (merge {:limit limit
+                                                          :offset offset}
+                                                         data)))]
+    (take-while seq (map select-fn (iterate (partial + limit) 0)))))
+
 (defn sparql-ask
   "Render @template-path using @data and execute the resulting SPARQL ASK query."
   [sparql-endpoint template-path & {:keys [data]}]
