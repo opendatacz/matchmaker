@@ -1,0 +1,140 @@
+{
+  "@context" : {
+    "@vocab" : "http://purl.org/procurement/public-contracts#",
+    "adms" : "http://www.w3.org/ns/adms#",
+    "dcterms" : "http://purl.org/dc/terms/",
+    "gr" : "http://purl.org/goodrelations/v1#",
+    "pc" : "http://purl.org/procurement/public-contracts#",
+    "pcdt" : "http://purl.org/procurement/public-contracts-datatypes#",
+    "pceu" : "http://purl.org/procurement/public-contracts-eu#",
+    "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
+    "schema" : "http://schema.org/",
+    "skos" : "http://www.w3.org/2004/02/skos/core#",
+    "xsd" : "http://www.w3.org/2001/XMLSchema#",
+
+    "activityKind" : {
+      "@type" : "@id"
+    },
+    "additionalObject" : {
+      "@type" : "@id"
+    },
+    "adms:identifier" : {
+      "@type" : "@id"
+    },
+    "agreedPrice" : {
+      "@type" : "@id"
+    },
+    "authorityKind" : {
+      "@type" : "@id"
+    },
+    "awardCriteriaCombination" : {
+      "@type" : "@id"
+    },
+    "awardCriterion" : {
+      "@type" : "@id"
+    },
+    "awardDate" : {
+      "@type" : "xsd:date"
+    },
+    "awardedTender" : {
+      "@type" : "@id"
+    },
+    "contractingAuthority" : {
+      "@type" : "@id"
+    },
+    "criterionWeight" : {
+      "@type" : "pcdt:percentage"
+    },
+    "dcterms:creator" : {
+      "@type" : "@id"
+    },
+    "dcterms:date" : {
+      "@type" : "xsd:date"
+    },
+    "documentationRequestDeadline" : {
+      "@type" : "xsd:date"
+    },
+    "documentsPrice" : {
+      "@type" : "@id"
+    },
+    "duration" : {
+      "@type" : "xsd:duration"
+    },
+    "estimatedEndDate" : {
+      "@type" : "xsd:date"
+    },
+    "estimatedPrice" : {
+      "@type" : "@id"
+    },
+    "gr:valueAddedTaxIncluded" : {
+      "@type" : "xsd:boolean"
+    },
+    "kind" : {
+      "@type" : "@id"
+    },
+    "location" : {
+      "@type" : "@id"
+    },
+    "lot" : {
+      "@type" : "@id"
+    },
+    "mainObject" : {
+      "@type" : "@id"
+    },
+    "offeredPrice" : {
+      "@type" : "@id"
+    },
+    "onBehalfOf" : {
+      "@type" : "@id"
+    },
+    "pceu:hasParentRegion" : {
+      "@type" : "@id"
+    },
+    "procedureType" : {
+      "@type" : "@id"
+    },
+    "profile" : {
+      "@type" : "@id"
+    },
+    "publicationDate" : {
+      "@type" : "xsd:date"
+    },
+    "publicNotice" : {
+      "@type" : "@id"
+    },
+    "rdf:type" : {
+      "@type" : "@id"
+    },
+    "rdfs:seeAlso" : {
+      "@type" : "@id"
+    },
+    "schema:address" : {
+      "@type" : "@id"
+    },
+    "schema:contact" : {
+      "@type" : "@id"
+    },
+    "schema:location" : {
+      "@type" : "@id"
+    },
+    "skos:inScheme" : {
+      "@type" : "@id"
+    },
+    "skos:topConceptOf" : {
+      "@type" : "@id"
+    },
+    "startDate" : {
+      "@type" : "xsd:date"
+    },
+    "supplier" : {
+      "@type" : "@id"
+    },
+    "tenderDeadline" : {
+      "@type" : "@id"
+    },
+    "weightedCriterion" : {
+      "@type" : "@id"
+    }
+  }
+}

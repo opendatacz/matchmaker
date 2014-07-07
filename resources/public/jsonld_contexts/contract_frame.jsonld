@@ -1,0 +1,4 @@
+{
+  "@context" : "http://lod2.vse.cz:8080/matchmaker/jsonld_contexts/contract.jsonld",
+  "@type" : "Contract"
+}
