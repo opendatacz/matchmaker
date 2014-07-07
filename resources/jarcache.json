@@ -1,0 +1,7 @@
+[
+  {
+    "Content-Location" : "http://lod2.vse.cz:8080/matchmaker/jsonld_contexts/contract.jsonld",
+    "X-Classpath" : "public/jsonld_contexts/contract.jsonld",
+    "Content-Type": "application/ld+json"
+  }
+]
