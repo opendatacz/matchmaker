@@ -2,7 +2,6 @@
   (:require [taoensso.timbre :as timbre]
             [environ.core :refer [env]]
             [matchmaker.common.config :refer [->Config]]
-            [matchmaker.lib.util :refer [init-logger]]
             [matchmaker.lib.sparql :refer [->SparqlEndpoint]]
             [matchmaker.benchmark.setup :as setup]
             [matchmaker.benchmark.evaluate :as evaluate]
@@ -38,13 +37,10 @@
 
 ; Records
 
-(defrecord
-  ^{:doc "Setup and teardown a benchmark according to @config."}
-  Benchmark []
+(defrecord Benchmark []
   component/Lifecycle
   (start [{:keys [sparql-endpoint]
            :as benchmark}]
-    (init-logger)
     (timbre/debug "Starting benchmark...")
     (setup/sufficient-data? sparql-endpoint)
     (setup/load-contracts sparql-endpoint)

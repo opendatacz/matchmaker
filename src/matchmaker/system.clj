@@ -3,7 +3,6 @@
   (:require [taoensso.timbre :as timbre]
             [com.stuartsierra.component :as component]
             [environ.core :refer [env]]
-            [matchmaker.lib.util :refer [init-logger]]
             [matchmaker.common.config :refer [->Config]]
             [matchmaker.lib.sparql :refer [->SparqlEndpoint]]
             [matchmaker.cron :refer [->Cron]]
@@ -18,7 +17,7 @@
 (defn- matchmaker-system
   [config-file-name]
   (component/system-map :config (->Config config-file-name)
-                        :sparql-endpoint (component/using (->SparqlEndpoint) [:config]) 
+                        :sparql-endpoint (component/using (->SparqlEndpoint) [:config])
                         :cron (component/using (->Cron) [:config :sparql-endpoint])
                         :server (component/using (->Server) [:config :sparql-endpoint])))
 
@@ -43,7 +42,6 @@
   (let [config-file-path (:matchmaker-config env)]
     (if-not (nil? config-file-path)
             (do
-              (init-logger)
               (alter-var-root #'system (fn [_] (component/start (matchmaker-system config-file-path))))
               (timbre/debug "System started."))
             (throw (Exception. "Environment variable MATCHMAKER_CONFIG is not set.")))))
