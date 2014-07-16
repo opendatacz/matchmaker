@@ -14,7 +14,7 @@
             [slingshot.slingshot :refer [throw+ try+]]))
 
 (declare delete-graph execute-query post-graph put-graph read-graph record-loaded-graph
-         select-query select-1-variable sparql-ask sparql-query sparql-update)
+         select-query select-1-variable sparql-ask sparql-assert sparql-query sparql-update)
 
 ; Private functions
 
@@ -62,11 +62,15 @@
                      :data {:limit number}))
 
 (defn- sparql-endpoint-alive?
-  "Raises an exception if @sparql-endpoint-url is not responding to HEAD request."
-  [sparql-endpoint-url]
-  {:pre [(util/url? sparql-endpoint-url)]}
-  (assert (client/head sparql-endpoint-url)
-          (str "SPARQL endpoint <" sparql-endpoint-url "> is not responding.")))
+  "Raises an exception if @sparql-endpoint is not responding to ASK query."
+  [sparql-endpoint]
+  (let [sparql-endpoint-url (get-in sparql-endpoint [:endpoints :query-url])]
+    (sparql-assert sparql-endpoint
+                   ["ping_endpoint"]
+                   :assert-fn true?
+                   :error-message (str "SPARQL endpoint <"
+                                       sparql-endpoint-url
+                                       "> is not responding."))))
 
 (defn- xml->zipper
   "Take XML string @s, parse it, and return XML zipper"
@@ -82,8 +86,10 @@
 (defn construct-query
   "Execute SPARQL CONSTRUCT query rendered from @template-path with @data."
   [sparql-endpoint template-path & {:keys [data]}]
-  (let [results (sparql-query sparql-endpoint template-path :data data)]
-    (rdf/string->graph results)))
+  (sparql-query sparql-endpoint
+                template-path
+                :accept "text/turtle"
+                :data data))
 
 (defn delete-graph
   "Use SPARQL 1.1 Graph Store to DELETE a graph named @graph-uri."
@@ -97,7 +103,7 @@
 
 (defn execute-query
   "Execute SPARQL @query-string on @endpoint-url of @sparql-endpoint using @method."
-  [sparql-endpoint & {:keys [endpoint-url method query-string]}]
+  [sparql-endpoint & {:keys [accept endpoint-url method query-string]}]
   (let [authentication (:authentication sparql-endpoint)
         authentication? (= method :POST)
         [method-fn params-key query-key] (case method
@@ -105,6 +111,7 @@
                                               ; Fuseki requires form-encoded params
                                               :POST [client/post :form-params "update"]) 
         params (merge {params-key {query-key query-string}
+                       :accept accept
                        :throw-entire-message? true}
                        (when authentication? 
                          {:digest-auth authentication}))]
@@ -211,8 +218,7 @@
                   "@type" "sd:Graph"
                   "dcterms:created" date-time-now}
         metadata-jsonld (json/generate-string metadata {:escape-non-ascii true})
-        metadata-turtle (rdf/graph->string (rdf/string->graph metadata-jsonld
-                                                              :rdf-syntax "JSON-LD"))]
+        metadata-turtle (rdf/convert-syntax metadata-jsonld :input-syntax "JSON-LD")]
     (post-graph sparql-endpoint
                 metadata-turtle
                 (:metadata-graph sparql-endpoint))))
@@ -251,7 +257,9 @@
 (defn sparql-ask
   "Render @template-path using @data and execute the resulting SPARQL ASK query."
   [sparql-endpoint template-path & {:keys [data]}]
-  (let [sparql-results (sparql-query sparql-endpoint template-path :data data)]
+  (let [sparql-results (-> (sparql-query sparql-endpoint template-path :data data)
+                           xml->zipper
+                           (zip-xml/xml1-> :boolean zip-xml/text))]
     (boolean (Boolean/valueOf sparql-results))))
 
 (defn sparql-assert
@@ -263,8 +271,9 @@
 
 (defn sparql-query
   "Render @template using @data and execute the resulting SPARQL query." 
-  [sparql-endpoint template-path & {:keys [data endpoint method]
-                                    :or {data {}
+  [sparql-endpoint template-path & {:keys [accept data endpoint method]
+                                    :or {accept "application/sparql-results+xml"
+                                         data {}
                                          endpoint (get-in sparql-endpoint [:endpoints :query-url])
                                          method :GET}}]
   (let [limited-data (update-in data [:limit] #(or % 10))
@@ -274,7 +283,8 @@
     (execute-query sparql-endpoint
                    :query-string query
                    :endpoint-url endpoint 
-                   :method method)))
+                   :method method
+                   :accept accept)))
 
 (defn sparql-update
   "Render @template-path using @data and execute the resulting SPARQL update request."
@@ -293,13 +303,14 @@
                                     endpoints :endpoints} :sparql-endpoint
                                     data :data} :config} sparql-endpoint
                                  authentication [username password]
-                                 authentication? (not-any? nil? authentication)]
-                             (do (sparql-endpoint-alive? (:query-url endpoints))
+                                 authentication? (not-any? nil? authentication)
+                                 endpoint (merge sparql-endpoint
+                                                 data
+                                                 {:authentication authentication
+                                                  :authentication? authentication?
+                                                  :endpoints endpoints})]
+                             (do (sparql-endpoint-alive? endpoint)
                                  (when (:dev env)
                                        (set-cache (clojure.core.cache/ttl-cache-factory {} :ttl 0)))
-                                 (merge sparql-endpoint
-                                        data
-                                        {:authentication authentication
-                                         :authentication? authentication?
-                                         :endpoints endpoints}))))
+                                 endpoint)))
   (stop [sparql-endpoint] sparql-endpoint))
