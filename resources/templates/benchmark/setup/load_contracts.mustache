@@ -32,7 +32,7 @@ WHERE {
         }
       }
     }
-    GROUP BY ?contract
+    GROUP BY ?contract ?awardedTender ?supplier
     HAVING (
             (COUNT(DISTINCT ?mainObject) >= {{min-main-object-count}})
             &&
