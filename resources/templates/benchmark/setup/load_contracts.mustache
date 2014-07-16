@@ -17,23 +17,28 @@ INSERT {
   }
 }
 WHERE {
-  GRAPH <{{source-graph}}> {
-    ?contract a pc:Contract ;
-      pc:awardedTender ?awardedTender .
-    ?awardedTender pc:supplier ?supplier .
-    OPTIONAL {
-      ?contract pc:mainObject ?mainObject .
+  {
+    SELECT ?contract ?awardedTender ?supplier
+    WHERE {
+      GRAPH <{{source-graph}}> {
+        ?contract a pc:Contract ;
+          pc:awardedTender ?awardedTender .
+        ?awardedTender pc:supplier ?supplier .
+        OPTIONAL {
+          ?contract pc:mainObject ?mainObject .
+        }
+        OPTIONAL {
+          ?contract pc:additionalObject ?additionalObject .
+        }
+      }
     }
-    OPTIONAL {
-      ?contract pc:additionalObject ?additionalObject .
-    }
+    GROUP BY ?contract
+    HAVING (
+            (COUNT(DISTINCT ?mainObject) >= {{min-main-object-count}})
+            &&
+            (COUNT(DISTINCT ?additionalObject) >= {{min-additional-object-count}})
+          )
+    OFFSET {{offset}}
+    LIMIT {{size}}
   }
 }
-GROUP BY ?contract
-HAVING (
-        (COUNT(DISTINCT ?mainObject) >= {{min-main-object-count}})
-        &&
-        (COUNT(DISTINCT ?additionalObject) >= {{min-additional-object-count}})
-       )
-OFFSET {{offset}}
-LIMIT {{size}}
