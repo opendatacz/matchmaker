@@ -1,6 +1,7 @@
 {{!
 @param IRI source-graph
 @param int limit
+@parem int offset
 }}
 
 {{> templates/prefixes.mustache}}
@@ -12,7 +13,7 @@ WHERE {
     FILTER NOT EXISTS {
        [] pc:lot ?resource .
     }
-    FILTER (1 > <SHORT_OR_LONG::bif:rnd>(10, ?resource))
   }
 }
 LIMIT {{limit}}
+OFFSET {{offset}}

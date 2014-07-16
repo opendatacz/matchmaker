@@ -52,14 +52,27 @@
   [sparql-variables sparql-result]
   (mapv (partial get-binding sparql-result) sparql-variables))
 
+(defn- get-count
+  "Return an integer count based on query from @template-path projecting variable ?count."
+  [sparql-endpoint template-path]
+  (-> (select-1-variable sparql-endpoint
+                         :count
+                         template-path)
+      first
+      Integer.))
+
 (defn- get-random-resources
-  "Get a list of @number of resource using SPARQL @template-path"
-  [sparql-endpoint template-path number]
-  {:pre [(integer? number) (pos? number)]}
-  (select-1-variable sparql-endpoint
-                     :resource
-                     template-path
-                     :data {:limit number}))
+  "Get a list of @number of @resource-type using SPARQL @template-path"
+  [sparql-endpoint template-path & {:keys [number resource-type]}]
+  {:pre [(integer? number)
+         (pos? number)
+         (contains? #{:contracts :business-entities} resource-type)]}
+  (let [offset (rand-int (- (get-in sparql-endpoint [:counts resource-type]) number))] 
+    (select-1-variable sparql-endpoint
+                       :resource
+                       template-path
+                       :data {:limit number
+                              :offset offset})))
 
 (defn- sparql-endpoint-alive?
   "Raises an exception if @sparql-endpoint is not responding to ASK query."
@@ -150,15 +163,17 @@
   "Get a list of @number of business entities"
   [sparql-endpoint number]
   (get-random-resources sparql-endpoint
-                        ["matchmaker" "sparql" "virtuoso_random_business_entities"]
-                        number))
+                        ["matchmaker" "sparql" "random_business_entities"]
+                        :number number
+                        :resource-type :business-entities))
 
 (defn get-random-contracts
   "Get a list of @number public contracts."
   [sparql-endpoint number]
   (get-random-resources sparql-endpoint 
-                        ["matchmaker" "sparql" "virtuoso_random_contracts"]
-                        number))
+                        ["matchmaker" "sparql" "random_contracts"]
+                        :number number
+                        :resource-type :contracts))
 
 (defn graph-exists?
   "Tests if graph named @graph-uri exists in the associated SPARQL endpoint."
@@ -308,9 +323,11 @@
                                                  data
                                                  {:authentication authentication
                                                   :authentication? authentication?
-                                                  :endpoints endpoints})]
+                                                  :endpoints endpoints})
+                                 counts {:business-entities (get-count endpoint ["count_business_entities"])
+                                         :contracts (get-count endpoint ["count_contracts"])}]
                              (do (sparql-endpoint-alive? endpoint)
                                  (when (:dev env)
                                        (set-cache (clojure.core.cache/ttl-cache-factory {} :ttl 0)))
-                                 endpoint)))
+                                 (assoc endpoint :counts counts))))
   (stop [sparql-endpoint] sparql-endpoint))

@@ -1,0 +1,15 @@
+{{!
+@param IRI source-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT (COUNT(DISTINCT ?contract) AS ?count)
+WHERE {
+  GRAPH <{{source-graph}}> {
+    ?contract a pc:Contract .
+    FILTER NOT EXISTS {
+      [] pc:lot ?contract .
+    }
+  }
+}

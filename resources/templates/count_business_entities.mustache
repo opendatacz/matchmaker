@@ -1,0 +1,15 @@
+{{!
+@param IRI source-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT (COUNT(DISTINCT ?businessEntity) AS ?count)
+WHERE {
+  GRAPH <{{source-graph}}> {
+    {{> templates/matchmaker/sparql/partials/business_entity_classes.mustache}}
+    {{> templates/matchmaker/sparql/partials/business_entity_links.mustache}}
+    ?businessEntity a ?businessEntityClass .
+    [] ?businessEntityLink ?businessEntity .
+  }
+}

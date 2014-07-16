@@ -1,6 +1,7 @@
 {{!
 @param IRI source-graph
 @param int limit
+@param int offset
 }}
 
 {{> templates/prefixes.mustache}}
@@ -15,7 +16,7 @@ WHERE {
     }
     ?resource a ?businessEntityClass .
     [] ?businessEntityLink ?resource .
-    FILTER (1 > <SHORT_OR_LONG::bif:rnd>(10, ?resource))
   }
 }
 LIMIT {{limit}}
+OFFSET {{offset}}
