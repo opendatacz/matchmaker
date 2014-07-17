@@ -12,5 +12,8 @@ WHERE {
     {{/class-curies}}
   }
   ?resource a ?class .
+  FILTER NOT EXISTS {
+    [] pc:lot ?resource .
+  }
 }
 LIMIT 2
