@@ -20,10 +20,14 @@
 }
 GRAPH <{{source-graph}}> {
   {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
-  ?contract pc:awardedTender [
-      pc:supplier ?match
-    ] ;
-    ?objectProperty ?cpvObject .
+  {
+    ?contract pc:awardedTender [
+        pc:supplier ?match
+      ] ;
+      ?objectProperty ?cpvObject .
+  } UNION {
+    ?match ?objectProperty ?cpvObject .
+  }
 }
 
 {{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_tail.mustache}}

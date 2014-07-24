@@ -16,10 +16,14 @@ GRAPH <{{matched-resource-graph}}> {
   {{> templates/matchmaker/sparql/partials/bidder_property.mustache}}
   {{> templates/matchmaker/sparql/partials/tender_property.mustache}}
   {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
-  ?contract ?tenderProperty [
-      ?bidderProperty <{{business-entity}}>
-    ] ;
-    ?objectProperty ?cpvObject .
+  {
+    ?contract ?tenderProperty [
+        ?bidderProperty <{{business-entity}}>
+      ] ;
+      ?objectProperty ?cpvObject .
+  } UNION {
+    <{{business-entity}}> ?objectProperty ?cpvObject .
+  }
 }
                   
 {{> templates/matchmaker/sparql/business_entity/to/contract/partials/cpv_query_tail.mustache}}
