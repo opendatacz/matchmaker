@@ -16,7 +16,6 @@
             GROUP BY ?cpvObject
           }
           GRAPH <{{source-graph}}> {
-            {{> templates/matchmaker/sparql/business_entity/partials/bidder_property.mustache}}
             {{> templates/matchmaker/sparql/business_entity/partials/tender_property.mustache}}
             {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
             ?match ?objectProperty ?cpvObject .
@@ -33,7 +32,7 @@
 
             FILTER NOT EXISTS {
               ?match ?tenderProperty [
-                  ?bidderProperty <{{business-entity}}> 
+                  pc:supplier <{{business-entity}}> 
                 ] .
             }
           }
