@@ -14,9 +14,9 @@
 {{> templates/matchmaker/sparql/business_entity/partials/cpv_query_head.mustache}}
 
 GRAPH <{{matched-resource-graph}}> {
+  {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
   {
     {{> templates/matchmaker/sparql/business_entity/partials/tender_property.mustache}}
-    {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
     ?contract ?tenderProperty [
         pc:supplier <{{business-entity}}> 
       ] ;
