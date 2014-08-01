@@ -4,6 +4,10 @@
             [matchmaker.lib.template :refer [render-template]])
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
            [com.github.jsonldjava.jena JenaJSONLD]
+           [com.github.jsonldjava.core JsonLdApi JsonLdError JsonLdOptions JsonLdProcessor]
+           [com.github.jsonldjava.utils JsonUtils]
+           [com.github.jsonldjava.sesame SesameRDFParser]
+           [org.openrdf.rio RDFFormat Rio]
            [com.hp.hpl.jena.query QueryExecutionFactory QueryFactory QueryParseException]
            [com.hp.hpl.jena.rdf.model Literal Resource]
            [com.hp.hpl.jena.sparql.core Prologue]
@@ -45,6 +49,12 @@
   {"TURTLE" #{"text/turtle" "n3" "ttl" "turtle"}
    "JSON-LD" #{"application/ld+json" "jsonld" "json-ld"}})
 
+(def ^:private
+  json-ld-options
+  (doto (JsonLdOptions.)
+    (.setUseRdfType false)
+    (.setUseNativeTypes true))) 
+
 ; ----- Private functions -----
 
 (defn- process-select-binding
@@ -85,6 +95,13 @@
             (string->graph :rdf-syntax canonical-input-syntax)
             (graph->string :rdf-syntax canonical-output-syntax)))))
 
+(defn frame-jsonld
+  "Frame JSON-LD with @frame using optional @options."
+  [^java.util.LinkedHashMap frame
+   ^java.util.LinkedHashMap jsonld
+   & {:keys [options]}]
+  (JsonLdProcessor/frame jsonld frame (or options (JsonLdOptions.))))
+
 (defn graph->string
   "Write RDF @graph to string serialized in @rdf-syntax (defaults to Turtle)."
   [graph & {:keys [rdf-syntax]
@@ -117,6 +134,20 @@
   (let [canonical-rdf-syntax-name (canonicalize-rdf-syntax-name rdf-syntax)
         input-stream (java.io.ByteArrayInputStream. (.getBytes string))]
     (.read (ModelFactory/createDefaultModel) input-stream nil canonical-rdf-syntax-name)))
+
+(defn turtle->json-ld
+  "Convert RDF @turtle in Turtle syntax into JSON-LD.
+  Returns nil if @turtle is invalid."
+  [turtle]
+  (try
+    (.fromRDF (JsonLdApi.)
+              (.parse (SesameRDFParser.)
+                      (-> turtle
+                          .getBytes
+                          java.io.ByteArrayInputStream.
+                          ; Note the awkward syntax for the last varargs arguments
+                          (Rio/parse "" RDFFormat/TURTLE (into-array org.openrdf.model.Resource '())))))
+    (catch JsonLdError e (timbre/debug (.getMessage e)))))
 
 (defn valid-property-path?
   "Tests if SPARQL 1.1 property path is valid,

@@ -21,7 +21,9 @@
                  [incanter/incanter-charts "1.5.4"]
                  [org.apache.jena/jena-core "2.11.1"]
                  [org.apache.jena/jena-arq "2.11.2"]
-                 [com.github.jsonld-java/jsonld-java "0.4.1"]
+                 [com.github.jsonld-java/jsonld-java "0.5.0"]
+                 [com.github.jsonld-java/jsonld-java-sesame "0.5.0"]
+                 [org.openrdf.sesame/sesame-rio-turtle "2.8.0-beta1"]
                  [com.github.jsonld-java/jsonld-java-jena "0.4.1"]
                  [com.cemerick/url "0.1.1"]
                  [ring "1.2.2"]
@@ -48,4 +50,5 @@
                    :default (complement (or :integration :slow))
                    :integration :integration
                    :slow :slow
-                   :all (constantly true)})
+                   :all (constantly true)}
+  :jvm-opts ["-Xss1m"])

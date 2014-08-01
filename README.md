@@ -37,6 +37,6 @@ The development of this tool was supported by the [LOD2 project](http://lod2.eu/
 
 ## License
 
-Copyright &copy; 2013 Jindřich Mynarz
+Copyright &copy; 2013-2014 Jindřich Mynarz
 
 Distributed under the Eclipse Public License, the same as Clojure.
