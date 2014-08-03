@@ -43,7 +43,7 @@
                                    (s/pred (partial >= 100) 'lower-than-100?))
    (s/optional-key :offset) (s/both s/Int
                                     non-negative?)
-   (s/optional-key :oldest_creation_date) sc/Date 
+   (s/optional-key :earliest_creation_date) sc/Date 
    (s/optional-key :publication_date_path) (s/pred rdf/valid-property-path? 'valid-property-path?)
    (s/optional-key :matchmaker) (apply s/enum matchmakers)})
 
