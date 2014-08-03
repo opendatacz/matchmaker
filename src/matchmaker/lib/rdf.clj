@@ -1,21 +1,17 @@
 (ns matchmaker.lib.rdf
   (:require [taoensso.timbre :as timbre]
             [clojure.java.io :as io]
-            [matchmaker.lib.template :refer [render-template]])
+            [matchmaker.lib.template :refer [render-template]]
+            [matchmaker.lib.jena-rdf-to-jsonld :refer [jena-rdf-to-jsonld]])
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
-           [com.github.jsonldjava.jena JenaJSONLD]
-           [com.github.jsonldjava.core JsonLdApi JsonLdError JsonLdOptions JsonLdProcessor]
-           [com.github.jsonldjava.utils JsonUtils]
-           [com.github.jsonldjava.sesame SesameRDFParser]
-           [org.openrdf.rio RDFFormat Rio]
+           [com.hp.hpl.jena.rdf.model.impl ModelCom]
+           [com.github.jsonldjava.core JsonLdOptions JsonLdProcessor]
            [com.hp.hpl.jena.query QueryExecutionFactory QueryFactory QueryParseException]
            [com.hp.hpl.jena.rdf.model Literal Resource]
-           [com.hp.hpl.jena.sparql.core Prologue]
+           [com.hp.hpl.jena.sparql.core DatasetGraph DatasetImpl Prologue]
            [com.hp.hpl.jena.sparql.path PathParser]))
 
 (declare graph->string string->graph)
-
-(JenaJSONLD/init) ; Initialization of the JSON-LD library
 
 ; ----- Public vars -----
 
@@ -49,11 +45,9 @@
   {"TURTLE" #{"text/turtle" "n3" "ttl" "turtle"}
    "JSON-LD" #{"application/ld+json" "jsonld" "json-ld"}})
 
-(def ^:private
+(defonce ^:private
   json-ld-options
-  (doto (JsonLdOptions.)
-    (.setUseRdfType false)
-    (.setUseNativeTypes true))) 
+  (doto (JsonLdOptions.) (.setUseNativeTypes true))) 
 
 ; ----- Private functions -----
 
@@ -82,6 +76,13 @@
       (first canonical-syntax-name)
       (throw (IllegalArgumentException. (format "Invalid RDF syntax: %s" rdf-syntax))))))
 
+(defn compact-json-ld
+  "Compact @json-ld using @context with optional @options"
+  [^java.util.LinkedHashMap json-ld
+   ^java.util.LinkedHashMap context
+   & {:keys [options]}]
+  (JsonLdProcessor/compact json-ld context (or options json-ld-options)))
+
 (defn convert-syntax
   "Convert RDF @string from @input-syntax to @output-syntax."
   [string & {:keys [input-syntax output-syntax]
@@ -95,12 +96,17 @@
             (string->graph :rdf-syntax canonical-input-syntax)
             (graph->string :rdf-syntax canonical-output-syntax)))))
 
-(defn frame-jsonld
+(defn dataset-graph->json-ld
+  "Convert Jena DatasetGraph to JSON-LD hash map"
+  [^DatasetGraph dataset-graph]
+  (JsonLdProcessor/fromRDF dataset-graph json-ld-options jena-rdf-to-jsonld))
+
+(defn frame-json-ld
   "Frame JSON-LD with @frame using optional @options."
-  [^java.util.LinkedHashMap frame
-   ^java.util.LinkedHashMap jsonld
+  [^java.util.LinkedHashMap json-ld
+   ^java.util.LinkedHashMap frame
    & {:keys [options]}]
-  (JsonLdProcessor/frame jsonld frame (or options (JsonLdOptions.))))
+  (JsonLdProcessor/frame json-ld frame (or options json-ld-options)))
 
 (defn graph->string
   "Write RDF @graph to string serialized in @rdf-syntax (defaults to Turtle)."
@@ -110,6 +116,13 @@
         output (java.io.ByteArrayOutputStream.)
         _ (.write graph output canonical-rdf-syntax-name)]
     (.toString output)))
+
+(defn model->dataset-graph
+  "Converts ModelCom to DatasetGraph"
+  [^ModelCom model]
+  (->> model
+       DatasetImpl.
+       .asDatasetGraph))
 
 (defn select-query
   "Execute SPARQL SELECT query on @graph.
@@ -134,20 +147,6 @@
   (let [canonical-rdf-syntax-name (canonicalize-rdf-syntax-name rdf-syntax)
         input-stream (java.io.ByteArrayInputStream. (.getBytes string))]
     (.read (ModelFactory/createDefaultModel) input-stream nil canonical-rdf-syntax-name)))
-
-(defn turtle->json-ld
-  "Convert RDF @turtle in Turtle syntax into JSON-LD.
-  Returns nil if @turtle is invalid."
-  [turtle]
-  (try
-    (.fromRDF (JsonLdApi.)
-              (.parse (SesameRDFParser.)
-                      (-> turtle
-                          .getBytes
-                          java.io.ByteArrayInputStream.
-                          ; Note the awkward syntax for the last varargs arguments
-                          (Rio/parse "" RDFFormat/TURTLE (into-array org.openrdf.model.Resource '())))))
-    (catch JsonLdError e (timbre/debug (.getMessage e)))))
 
 (defn valid-property-path?
   "Tests if SPARQL 1.1 property path is valid,
