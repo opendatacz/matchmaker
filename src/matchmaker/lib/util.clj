@@ -1,10 +1,12 @@
 (ns matchmaker.lib.util
   (:require [taoensso.timbre :as timbre]
+            [clojure.java.io :as io]
             [clj-time.core :refer [now]]
             [clj-time.format :as time-format]
             [clj-http.client :as client]
             [cheshire.core :as json])
-  (:import [java.security MessageDigest]))
+  (:import [java.security MessageDigest]
+           [com.github.jsonldjava.utils JsonUtils]))
 
 ; ----- Private functions -----
 
@@ -87,13 +89,21 @@
   "Loads JSON-LD context from @filename."
   [filename]
   (-> (join-file-path "jsonld_contexts" filename)
-      clojure.java.io/resource
-      clojure.java.io/reader
+      io/resource
+      io/reader
       json/parse-stream)) 
+
+(defn parse-json-resource
+  "Parse JSON resource on @resource-path."
+  [^String resource-path]
+  (-> resource-path 
+      io/resource
+      io/input-stream
+      JsonUtils/fromInputStream)) 
 
 (defn sha1
   "Computes SHA1 hash from @string."
-  [string]
+  [^String string]
   (let [digest (.digest (MessageDigest/getInstance "SHA1") (.getBytes string))]
     ;; Stolen from <https://gist.github.com/kisom/1698245#file-sha256-clj-L19>
     (apply str (map #(format "%02x" (bit-and % 0xff)) digest))))
