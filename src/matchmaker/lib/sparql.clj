@@ -10,7 +10,7 @@
             [cheshire.core :as json]
             [clojure.xml :as xml]
             [clojure.data.zip.xml :as zip-xml]
-            [clojure.zip :as zip :refer [down right rights node]]
+            [clojure.zip :as zip]
             [slingshot.slingshot :refer [throw+ try+]]))
 
 (declare delete-graph execute-query post-graph put-graph read-graph record-loaded-graph
@@ -38,19 +38,6 @@
                                graph-uri
                                crud-url))
         (method-fn crud-url (merge base-params params)))))
-
-(defn- get-binding
-  "Return SPARQL binding from @sparql-result for @sparql-variable"
-  [sparql-variable sparql-result]
-  (zip-xml/xml1-> sparql-result
-                  :binding
-                  (zip-xml/attr= :name sparql-variable)
-                  zip-xml/text))
-
-(defn- get-bindings
-  "Return SPARQL bindings from @sparql-result for all @sparql-variables"
-  [sparql-variables sparql-result]
-  (mapv (partial get-binding sparql-result) sparql-variables))
 
 (defn- get-count
   "Return an integer count based on query from @template-path projecting variable ?count."
@@ -326,8 +313,8 @@
                                                   :endpoints endpoints})
                                  counts {:business-entities (get-count endpoint ["count_business_entities"])
                                          :contracts (get-count endpoint ["count_contracts"])}]
-                             (do (sparql-endpoint-alive? endpoint)
-                                 (when (:dev env)
+                             (do (when (:dev env)
                                        (set-cache (clojure.core.cache/ttl-cache-factory {} :ttl 0)))
+                                 (sparql-endpoint-alive? endpoint)
                                  (assoc endpoint :counts counts))))
   (stop [sparql-endpoint] sparql-endpoint))
