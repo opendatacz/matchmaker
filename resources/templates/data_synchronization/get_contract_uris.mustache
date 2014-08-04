@@ -1,0 +1,25 @@
+{{!
+@param IRI   source-graph
+@param int   limit
+@param int   offset
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?contract
+WHERE {
+  {
+    SELECT DISTINCT ?contract
+    WHERE {
+      GRAPH <{{source-graph}}> {
+        ?contract a pc:Contract .
+        FILTER NOT EXISTS {
+          [] pc:lot ?contract .
+        }
+      }
+    }
+    ORDER BY ASC(?contract)
+  }
+}
+LIMIT {{limit}}
+OFFSET {{offset}}

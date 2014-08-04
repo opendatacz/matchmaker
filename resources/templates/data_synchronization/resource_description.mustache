@@ -1,0 +1,25 @@
+{{!
+@param IRI source-graph
+@param IRI resource
+}}
+
+CONSTRUCT {
+  <{{resource}}> ?p1 ?o1 .
+  ?o1 ?p2 ?o2 .
+  ?o2 ?p3 ?o3 .
+  ?o3 ?p4 ?o4 .
+}
+WHERE {
+  GRAPH <{{source-graph}}> {
+    <{{resource}}> ?p1 ?o1 .
+    OPTIONAL {
+      ?o1 ?p2 ?o2 .
+      OPTIONAL {
+        ?o2 ?p3 ?o3 .
+        OPTIONAL {
+          ?o3 ?p4 ?o4 .
+        }
+      }
+    }
+  }
+}
