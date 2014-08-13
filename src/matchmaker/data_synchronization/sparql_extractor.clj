@@ -1,4 +1,5 @@
 (ns matchmaker.data-synchronization.sparql-extractor
+  (:gen-class)
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.sparql :as sparql]
             [matchmaker.lib.rdf :as rdf]
@@ -6,8 +7,7 @@
             [matchmaker.common.config :refer [->Config]]
             [environ.core :refer [env]]
             [com.stuartsierra.component :as component])
-  (:import [com.github.jsonldjava.utils JsonUtils]
-           [com.github.jsonldjava.core JsonLdApi JsonLdOptions JsonLdProcessor]))
+  (:import [com.github.jsonldjava.utils JsonUtils]))
 
 (declare get-contract-description save-json-ld)
 
@@ -22,7 +22,7 @@
 (defn- etl-contract
   "Extract @contract from SPARQL endpoint using @sparql-extractor,
   transform to framed JSON-LD and save it to filesystem to @dir-path."
-  [sparql-extractor contract dir-path]
+  [sparql-extractor dir-path contract]
   (let [contract-uri (:contract contract)
         sha1-hash (util/sha1 contract-uri)
         file-path (util/join-file-path dir-path (str sha1-hash ".jsonld"))]
@@ -41,14 +41,11 @@
         context (get-in sparql-extractor [:sparql-extractor :contract-context])
         frame (get-in sparql-extractor [:sparql-extractor :contract-frame])]
     (when-not (= (.size model) 0)
-      (JsonUtils/toPrettyString (doto (-> model
-                                          rdf/model->dataset-graph
-                                          rdf/dataset-graph->json-ld
-                                          (rdf/compact-json-ld context))
-                                  (.remove "@id") ; JSON-LD framing fails if @graph's @id is present.
-                                  (rdf/frame-json-ld frame)
-                                  ; TODO: Should instead use dynamic base URI.
-                                  (.put "@context" "/matchmaker/jsonld_contexts/contract.jsonld"))))))
+      (let [json-ld (JsonUtils/fromString (rdf/graph->string model :rdf-syntax "JSONLD"))
+            framed-json-ld (rdf/frame-json-ld json-ld frame)
+            triples (.get framed-json-ld "@graph")]
+        (when-not (empty? triples)
+          (JsonUtils/toPrettyString (first triples)))))))
 
 ; ----- Public functions -----
 
@@ -74,10 +71,11 @@
   "Bulk download of contracts in JSON-LD using @sparql-extractor.
   The downloaded files are saved to @dir-path."
   [sparql-extractor dir-path]
-  (map (partial map #(etl-contract sparql-extractor % dir-path))
-       (contract-chunks sparql-extractor)))
+  {:pre [(.exists (clojure.java.io/as-file dir-path))]}
+  (dorun (for [contract-chunk (contract-chunks sparql-extractor)]
+           (dorun (map (partial etl-contract sparql-extractor dir-path) contract-chunk)))))
 
-(comment
-  (def extractor (load-extractor))
-  (bulk-download extractor "/Users/mynarzjindrich/Downloads/vvz-jsonld")
-  )
+(defn -main
+  [& args]
+  (let [extractor (load-extractor)]
+    (bulk-download extractor (first args))))
