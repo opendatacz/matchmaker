@@ -10,6 +10,10 @@
              :sleep 1}
  :cron {:delete-old-graphs {:max-age-minutes 30}}
  :data {:source-graph ""} ; URI of named graph used as source of matched resources
+ :elasticsearch {:cluster-name ""
+                 :host "127.0.0.1"
+                 :index-name ""
+                 :port 9300}
  :sparql-endpoint {:endpoints {:query-url  "" ; SPARQL 1.1 Query endpoint
                                :update-url "" ; SPARQL 1.1 Update endpoint
                                :crud-url ""} ; SPARQL 1.1 Graph Store endpoint
