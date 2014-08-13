@@ -13,12 +13,6 @@
 
 ; ----- Private functions -----
 
-(defn- contract-chunks
-  "Retrieve lazy sequence of chunks of contracts."
-  [sparql-extractor]
-  (sparql/select-query-unlimited (:sparql-endpoint sparql-extractor)
-                                 ["data_synchronization" "get_contract_uris"])) 
-
 (defn- etl-contract
   "Extract @contract from SPARQL endpoint using @sparql-extractor,
   transform to framed JSON-LD and save it to filesystem to @dir-path."
@@ -47,7 +41,7 @@
         (when-not (empty? triples)
           (JsonUtils/toPrettyString (first triples)))))))
 
-; ----- Public functions -----
+; ----- Records -----
 
 (defrecord SparqlExtractor []
   component/Lifecycle
@@ -59,6 +53,14 @@
              :contract-context contract-context)))
   (stop [sparql-extractor] sparql-extractor))
   
+; ----- Public functions -----
+
+(defn contract-chunks
+  "Retrieve lazy sequence of chunks of contracts."
+  [sparql-extractor]
+  (sparql/select-query-unlimited (:sparql-endpoint sparql-extractor)
+                                 ["data_synchronization" "get_contract_uris"])) 
+
 (defn load-extractor
   "Start a SPARQL extractor system."
   []
