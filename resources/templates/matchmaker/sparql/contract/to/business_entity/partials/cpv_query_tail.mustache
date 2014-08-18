@@ -15,9 +15,9 @@
     OFFSET {{offset}}
     {{/offset}}
   }
-  OPTIONAL {
-    GRAPH <{{source-graph}}> {
-      {{> templates/matchmaker/sparql/partials/business_entity_legal_names.mustache}}
+  GRAPH <{{source-graph}}> {
+    {{> templates/matchmaker/sparql/partials/business_entity_legal_names.mustache}}
+    OPTIONAL {
       ?match ?businessEntityLegalName ?_label .
     }
   }

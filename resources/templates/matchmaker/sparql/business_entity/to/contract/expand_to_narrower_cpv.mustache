@@ -22,7 +22,9 @@ GRAPH <{{matched-resource-graph}}> {
       ] ;
       ?objectProperty ?sourceObject .
   } UNION {
-    <{{business-entity}}> ?objectProperty ?sourceObject .
+    {{> templates/matchmaker/sparql/partials/business_entity_classes.mustache}}
+    <{{business-entity}}> a ?businessEntityClass ;
+      ?objectProperty ?sourceObject .
   }
 }
 GRAPH <{{cpv-graph}}> {

@@ -26,7 +26,9 @@ GRAPH <{{source-graph}}> {
       ] ;
       ?objectProperty ?cpvObject .
   } UNION {
-    ?match ?objectProperty ?cpvObject .
+    {{> templates/matchmaker/sparql/partials/business_entity_classes.mustache}}
+    ?match a ?businessEntityClass ;
+      ?objectProperty ?cpvObject .
   }
 }
 
