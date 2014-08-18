@@ -37,10 +37,10 @@
                              o (.getObject quad)
                              g (.getGraph quad)
                              sq (or (blank-node-or-iri-string s)
-                                    (throw RiotException "Subject node is not a URI or a blank node"))
+                                    (throw (RiotException. "Subject node is not a URI or a blank node")))
                              pq (.getURI p)
                              gq (or (blank-node-or-iri-string g)
-                                    (throw RiotException "Graph node is not a URI or a blank node"))]]
+                                    (throw (RiotException. "Graph node is not a URI or a blank node")))]]
                    (if (.isLiteral o)
                      (let [lex (.getLiteralLexicalForm o)
                            lang (if-let [lang (.getLiteralLanguage o)]
@@ -50,6 +50,6 @@
                            dt (or (.getLiteralDatatypeURI o) (.getURI (XSDDatatype/XSDstring)))]
                        (.addQuad result sq pq lex dt lang gq))
                      (.addQuad result sq pq (blank-node-or-iri-string o) gq))))
-          (throw IllegalArgumentException
-                 (format "Parsing isn't implemented for instances of %s." (class object))))
+          (throw (IllegalArgumentException.
+                 (format "Parsing isn't implemented for instances of %s." (class object)))))
         result))))
