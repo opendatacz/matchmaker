@@ -26,7 +26,7 @@ GRAPH <{{source-graph}}> {
   {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
   {
     ?contract pc:awardedTender [
-        pc:supplier ?match
+        pc:bidder ?match
       ] ;
       ?objectProperty ?cpvObject .
   } UNION {

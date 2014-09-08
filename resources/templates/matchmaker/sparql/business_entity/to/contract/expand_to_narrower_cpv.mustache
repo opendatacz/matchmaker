@@ -18,7 +18,7 @@ GRAPH <{{matched-resource-graph}}> {
   {
     {{> templates/matchmaker/sparql/business_entity/partials/tender_property.mustache}}
     ?contract ?tenderProperty [
-        pc:supplier <{{business-entity}}> 
+        pc:bidder <{{business-entity}}> 
       ] ;
       ?objectProperty ?sourceObject .
   } UNION {
