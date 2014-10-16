@@ -9,7 +9,8 @@
                                     :or {data {}}}]
   (let [sparql-config (get-in sparql-endpoint [:config :matchmaker :sparql])
         additional-data (select-keys sparql-config [:additional-object-inhibition
-                                                    :cpv-graph])]
+                                                    :cpv-graph
+                                                    :zindex-graph])]
     (sparql/select-query sparql-endpoint
                          template-path
                          :data (merge data additional-data))))

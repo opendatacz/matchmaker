@@ -1,0 +1,49 @@
+{{!
+@param IRI contract
+@param IRI matched-resource-graph
+@param IRI source-graph
+@param IRI zindex-graph
+@param int additional-object-inhibition
+@param int limit
+@param int offset (optional)
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?match (SAMPLE(?_label) AS ?label) ?score
+WHERE {
+  {
+    SELECT ?match (SUM(?inScoreModifier * ?outScoreModifier * ?zindex * ?contractCount) AS ?score) 
+    WHERE {
+      {
+        SELECT ?match ?inScoreModifier ?outScoreModifier
+               (COUNT(DISTINCT ?contract) AS ?contractCount)
+               (SAMPLE(?__zindex) AS ?zindex)
+        WHERE {
+          {
+            SELECT ?cpvObject ?inScoreModifier 
+            WHERE {
+              GRAPH <{{matched-resource-graph}}> {
+                {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
+                <{{contract}}> ?objectProperty ?cpvObject .
+              }
+            }
+          }
+          GRAPH <{{source-graph}}> {
+            {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
+            ?contract pc:awardedTender/pc:bidder ?match ;
+              pc:contractingAuthority ?contractingAuthority ;
+              ?objectProperty ?cpvObject .
+          }
+          OPTIONAL {
+            GRAPH <{{source-graph}}> {
+              ?contractingAuthority adms:identifier/skos:notation ?identifier .
+            }
+            GRAPH <{{zindex-graph}}> {
+              [] pccz:zindex ?_zindex ;
+                rov:registration/skos:notation ?identifier . 
+            }
+          }
+          BIND (COALESCE(?_zindex, 0.5) AS ?__zindex)
+
+{{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_tail.mustache}}
