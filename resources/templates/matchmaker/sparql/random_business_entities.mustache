@@ -10,12 +10,8 @@ SELECT DISTINCT ?resource
 WHERE {
   GRAPH <{{source-graph}}> {
     {{> templates/matchmaker/sparql/partials/business_entity_classes.mustache}}
-    VALUES ?businessEntityLink {
-      pc:bidder
-      pc:supplier
-    }
     ?resource a ?businessEntityClass .
-    [] ?businessEntityLink ?resource .
+    [] pc:bidder ?resource .
   }
 }
 LIMIT {{limit}}

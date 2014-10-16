@@ -9,8 +9,6 @@ WHERE {
   GRAPH <{{source-graph}}> {
     [] a pc:Contract ;
       pc:mainObject [] ;
-      pc:awardedTender [
-        pc:supplier []
-      ] .
+      pc:awardedTender/pc:bidder [] .
   }
 }

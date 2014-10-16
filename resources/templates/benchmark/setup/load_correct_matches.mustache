@@ -7,8 +7,6 @@
 SELECT ?resource ?match
 WHERE {
   GRAPH <{{sample-graph}}> {
-    ?resource pc:awardedTender [
-        pc:supplier ?match
-      ] .
+    ?resource pc:awardedTender/pc:bidder ?match .
   }
 }

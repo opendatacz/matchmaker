@@ -7,6 +7,6 @@
 SELECT (COUNT(DISTINCT ?businessEntity) AS ?count)
 WHERE {
   GRAPH <{{source-graph}}> {
-    [] pc:supplier ?businessEntity .
+    [] pc:bidder ?businessEntity .
   }
 }
