@@ -17,6 +17,14 @@
   {:pre [(keyword? formatter)]}
   (time-format/unparse (time-format/formatters formatter) date-time))
 
+(defn- format-number
+  "Returns @number formatted as float-like string
+  trimmed to 2 decimal places."
+  [number]
+  (if (number? number)
+      (format "%.2f" (double number))
+      number))
+
 ; ----- Public functions -----
 
 (declare format-date-time
@@ -65,6 +73,12 @@
   "Encode @date-time as xsd:dateTime"
   [date-time]
   (date-time-formatter date-time :date-time))
+
+(defn format-numbers
+  "Formats numeric values in map @m"
+  [m]
+  {:pre [(map? m)]}
+  (reduce (fn [item [k v]] (assoc item k (format-number v))) {} m))
 
 (defn get-int
   "Converts @string to integer.

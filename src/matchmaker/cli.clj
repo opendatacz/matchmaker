@@ -51,7 +51,7 @@
                                  (util/uuid))
                 data-file (util/join-file-path diagram-path (str output-name".edn"))
                 diagram-file (util/join-file-path diagram-path (str output-name ".png"))]
-            (println (str metrics))
+            (println (util/format-numbers metrics))
             (spit data-file (pr-str results))
             (save (evaluate/top-n-curve-chart results)
                   diagram-file
@@ -59,15 +59,6 @@
                   :height 800)
             (println (format "Rendered benchmark results into %s" diagram-file))))
       (println (format "Matchmaker's endpoint <%s> isn't available." endpoint))))
-
-(comment
-  (def config (component/start (->Config (:matchmaker-config env))))
-  (def evaluation-metrics (get-in config [:benchmark :evaluation-metrics]))
-  ;(def endpoint "http://lod2.vse.cz:8080/matchmaker/match/contract/to/business-entity")
-  (def endpoint "http://localhost:3000/match/contract/to/business-entity")
-  (def results (compute-benchmark endpoint "exact-cpv" 1))
-  (def metrics (evaluate/compute-metrics results evaluation-metrics))
-  )
 
 (defn- error-msg
   [errors]

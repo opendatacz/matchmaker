@@ -2,6 +2,7 @@
   (:require [taoensso.timbre :as timbre]
             [environ.core :refer [env]]
             [matchmaker.common.config :refer [->Config]]
+            [matchmaker.lib.util :refer [format-numbers]]
             [matchmaker.lib.sparql :refer [->SparqlEndpoint]]
             [matchmaker.benchmark.setup :as setup]
             [matchmaker.benchmark.evaluate :as evaluate]
@@ -12,18 +13,6 @@
 (declare ->Benchmark)
 
 ; ----- Private functions -----
-
-(defn- format-number
-  "Returns @number formatted as float-like string."
-  [number]
-  (if (number? number)
-      (format "%f" (double number))
-      number))
-
-(defn- format-numbers
-  "Formats numeric values in @results."
-  [results]
-  (reduce (fn [result [k v]] (assoc result k (format-number v))) {} results))
 
 (defn- load-benchmark
   "Setup benchmark system with its dependencies"
