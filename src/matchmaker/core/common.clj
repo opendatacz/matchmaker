@@ -6,4 +6,5 @@
 (def matchmakers
   #{"exact-cpv"
     "exact-cpv-zindex"
+    "expand-to-broader-cpv"
     "expand-to-narrower-cpv"})

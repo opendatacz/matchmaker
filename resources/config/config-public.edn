@@ -2,7 +2,8 @@
 {:api {:version "0.1"}
  :benchmark {:evaluation-metrics [:avg-rank
                                   :avg-response-time
-                                  :matches-found]
+                                  :matches-found
+                                  :mean-reciprocal-rank]
              :max-number-of-results 100 ; Set maximum number of results taken into account by the benchmark.
              :sample {:min-main-object-count 0
                       :min-additional-object-count 0

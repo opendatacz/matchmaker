@@ -1,0 +1,40 @@
+{{!
+@param IRI contract
+@param IRI matched-resource-graph
+@param IRI source-graph
+@param IRI cpv-graph
+@param int additional-object-inhibition
+@param int limit
+@param int offset (optional)
+}}
+
+{{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_head.mustache}}
+
+{
+  SELECT DISTINCT ?cpvObject ?inScoreModifier 
+  WHERE {
+    GRAPH <{{matched-resource-graph}}> {
+      {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
+      <{{contract}}> ?objectProperty ?sourceObject .
+    }
+    GRAPH <{{cpv-graph}}> {
+      # Expand to at most 1-level broader CPV concept
+      ?sourceObject skos:broaderTransitive{,1} ?cpvObject .
+    }
+  }
+}
+GRAPH <{{source-graph}}> {
+  {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
+  {
+    ?contract pc:awardedTender [
+        pc:bidder ?match
+      ] ;
+      ?objectProperty ?cpvObject .
+  } UNION {
+    {{> templates/matchmaker/sparql/partials/business_entity_classes.mustache}}
+    ?match a ?businessEntityClass ;
+      ?objectProperty ?cpvObject .
+  }
+}
+      
+{{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_tail.mustache}}
