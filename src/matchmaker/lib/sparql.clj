@@ -33,11 +33,11 @@
                            :PUT client/put})
         base-params {:digest-auth authentication 
                      :query-params {"graph" graph-uri}}]
-    (do (timbre/debug (format "Sending %s request to graph <%s> using the endpoint %s."
-                               (name method)
-                               graph-uri
-                               crud-url))
-        (method-fn crud-url (merge base-params params)))))
+    (timbre/debug (format "Sending %s request to graph <%s> using the endpoint %s."
+                          (name method)
+                          graph-uri
+                          crud-url))
+    (method-fn crud-url (merge base-params params))))
 
 (defn- get-count
   "Return an integer count based on query from @template-path projecting variable ?count."
@@ -123,8 +123,7 @@
                                    " using the username %s and password %s"
                                    authentication))
                           "."))
-      (-> (method-fn endpoint-url params)
-          :body)
+      (:body (method-fn endpoint-url params))
       (catch [:status 400] {:keys [body]}
         (timbre/error body)
         (throw+))))) ;; TODO: Needs better HTTP error handling
@@ -313,8 +312,8 @@
                                                   :endpoints endpoints})
                                  counts {:business-entities (get-count endpoint ["count_business_entities"])
                                          :contracts (get-count endpoint ["count_contracts"])}]
-                             (do (when (:dev env)
-                                       (set-cache (clojure.core.cache/ttl-cache-factory {} :ttl 0)))
-                                 (sparql-endpoint-alive? endpoint)
-                                 (assoc endpoint :counts counts))))
+                             (when (:dev env)
+                               (set-cache (clojure.core.cache/ttl-cache-factory {} :ttl 0)))
+                             (sparql-endpoint-alive? endpoint)
+                             (assoc endpoint :counts counts)))
   (stop [sparql-endpoint] sparql-endpoint))

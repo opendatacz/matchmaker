@@ -27,8 +27,7 @@
 
 ; ----- Public functions -----
 
-(declare format-date-time
-         join-file-path)
+(declare format-date format-date-time join-file-path)
 
 (defn append-to-uri
   "Appends @suffix to @uri, joined by a slash."
@@ -40,12 +39,16 @@
 (defn avg
   "Compute average of collection @coll of numbers."
   [coll]
-  (when-not (empty? coll)
-    (/ (apply + coll)
-       (count coll))))
+  (/ (apply + coll)
+     (count coll)))
+
+(defn date-now
+  "Returns xsd:date for the current time."
+  []
+  (format-date (now)))
 
 (defn date-time-now
-  "Returns xsd:dateTime for current time."
+  "Returns xsd:dateTime for the current time."
   []
   (format-date-time (now)))
 
@@ -120,7 +123,7 @@
   [^String string]
   (let [digest (.digest (MessageDigest/getInstance "SHA1") (.getBytes string))]
     ;; Stolen from <https://gist.github.com/kisom/1698245#file-sha256-clj-L19>
-    (apply str (map #(format "%02x" (bit-and % 0xff)) digest))))
+    (clojure.string/join (map #(format "%02x" (bit-and % 0xff)) digest))))
 
 (defn time-difference
   "Computes time difference (in seconds) from @start-time."

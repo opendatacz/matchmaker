@@ -15,7 +15,7 @@
                  [slingshot "0.10.3"]
                  [clj-http "0.6.3"]
                  [clj-time "0.7.0"]
-                 [com.stuartsierra/component "0.2.1"]
+                 [com.stuartsierra/component "0.2.2"]
                  [stencil "0.3.3"]
                  [incanter/incanter-core "1.5.4"]
                  [incanter/incanter-charts "1.5.4"]

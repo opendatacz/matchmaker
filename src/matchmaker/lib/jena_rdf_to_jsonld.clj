@@ -43,10 +43,8 @@
                                     (throw (RiotException. "Graph node is not a URI or a blank node")))]]
                    (if (.isLiteral o)
                      (let [lex (.getLiteralLexicalForm o)
-                           lang (if-let [lang (.getLiteralLanguage o)]
-                                  (when-not (= (count lang) 0)
-                                    lang)
-                                  nil)
+                           lang (when-let [lang (.getLiteralLanguage o)]
+                                  (when-not (zero? (count lang)) lang))
                            dt (or (.getLiteralDatatypeURI o) (.getURI (XSDDatatype/XSDstring)))]
                        (.addQuad result sq pq lex dt lang gq))
                      (.addQuad result sq pq (blank-node-or-iri-string o) gq))))

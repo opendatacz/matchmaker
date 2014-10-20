@@ -66,13 +66,13 @@
                                              ["cron" "get_old_graphs"]
                                              :data {:max-date-time max-date-time
                                                     :metadata-graph metadata-graph})]
-    (when-not (empty? old-graphs)
-      (do (timbre/debug (format "Deleting %d old graph(s)." (count old-graphs))) 
-          (doall (map (partial sparql/delete-graph sparql-endpoint) old-graphs))
-          (sparql/sparql-update sparql-endpoint
-                                ["cron" "delete_records_of_old_graphs"]
-                                :data {:metadata-graph metadata-graph
-                                       :old-graphs old-graphs})))))
+    (when (seq old-graphs)
+      (timbre/debug (format "Deleting %d old graph(s)." (count old-graphs))) 
+      (doall (map (partial sparql/delete-graph sparql-endpoint) old-graphs))
+      (sparql/sparql-update sparql-endpoint
+                            ["cron" "delete_records_of_old_graphs"]
+                            :data {:metadata-graph metadata-graph
+                                   :old-graphs old-graphs}))))
 
 ;; ----- Tasks -----
 

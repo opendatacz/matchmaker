@@ -34,11 +34,11 @@
         model (rdf/string->graph turtle)
         context (get-in sparql-extractor [:sparql-extractor :contract-context])
         frame (get-in sparql-extractor [:sparql-extractor :contract-frame])]
-    (when-not (= (.size model) 0)
+    (when-not (zero? (.size model))
       (let [json-ld (JsonUtils/fromString (rdf/graph->string model :rdf-syntax "JSONLD"))
             framed-json-ld (rdf/frame-json-ld json-ld frame)
             triples (.get framed-json-ld "@graph")]
-        (when-not (empty? triples)
+        (when (seq triples)
           (JsonUtils/toPrettyString (first triples)))))))
 
 ; ----- Records -----

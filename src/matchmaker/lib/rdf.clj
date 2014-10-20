@@ -32,11 +32,11 @@
 
 (extend-protocol IStringifiableNode
   Literal
-  (node->string [node] (.toString (.getString node))))
+  (node->string [node] (str (.getString node))))
 
 (extend-protocol IStringifiableNode 
   Resource
-  (node->string [node] (.toString node)))
+  (node->string [node] (str node)))
 
 ; ----- Private vars -----
 
@@ -72,7 +72,7 @@
         canonical-syntax-name (for [[syntax aliases] rdf-syntax-names-mappings
                                     :when (aliases normalized-syntax-name)]
                                 syntax)]
-    (if-not (empty? canonical-syntax-name)
+    (if (seq canonical-syntax-name)
       (first canonical-syntax-name)
       (throw (IllegalArgumentException. (format "Invalid RDF syntax: %s" rdf-syntax))))))
 
@@ -115,7 +115,7 @@
   (let [canonical-rdf-syntax-name (canonicalize-rdf-syntax-name rdf-syntax)
         output (java.io.ByteArrayOutputStream.)
         _ (.write graph output canonical-rdf-syntax-name)]
-    (.toString output)))
+    (str output)))
 
 (defn model->dataset-graph
   "Converts ModelCom to DatasetGraph"

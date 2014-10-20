@@ -38,21 +38,27 @@
 ; ----- Private functions -----
 
 (defn- benchmark
-  [evaluation-metrics {:keys [diagram-path endpoint matchmaker number-of-runs]}]
+  [config {:keys [diagram-path endpoint matchmaker number-of-runs]}]
   (if (util/url-alive? endpoint)
       (do (println "Running the benchmark...")
-          (let [results (compute-benchmark endpoint matchmaker number-of-runs)
-                metrics (evaluate/compute-metrics results evaluation-metrics) 
-                ; TODO: Encode basic params into diagram name
-                output-name (str (util/date-time-now)
+          (let [evaluation-metrics (get-in config [:benchmark :evaluation-metrics])
+                metadata {:config config
+                          :matchmaker matchmaker
+                          :number-of-runs number-of-runs}
+                results (compute-benchmark endpoint matchmaker number-of-runs)
+                metrics (evaluate/compute-metrics results evaluation-metrics)
+                output-name (str (util/date-now)
                                  "-"
                                  matchmaker
                                  "-"
                                  (util/uuid))
-                data-file (util/join-file-path diagram-path (str output-name".edn"))
-                diagram-file (util/join-file-path diagram-path (str output-name ".png"))]
+                output-path (util/join-file-path diagram-path output-name)
+                data-file (str output-path ".edn")
+                diagram-file (str output-path ".png")]
             (println (util/format-numbers metrics))
-            (spit data-file (pr-str results))
+            (spit data-file (pr-str {:metadata metadata
+                                     :metrics metrics
+                                     :results results}))
             (save (evaluate/top-n-curve-chart results)
                   diagram-file
                   :width 1000
@@ -67,15 +73,15 @@
 
 (defn- usage
   [options-summary]
-  (->> ["Matchmaker command-line interface"
-        ""
-        "Usage: program-name [options] command"
-        ""
-        "Options:"
-        options-summary
-        ""
-        "Actions:"]
-        (clojure.string/join \newline)))
+  (clojure.string/join \newline
+                       ["Matchmaker command-line interface"
+                        ""
+                        "Usage: program-name [options] command"
+                        ""
+                        "Options:"
+                        options-summary
+                        ""
+                        "Actions:"]))
 
 ; ----- Public functions -----
 
@@ -87,5 +93,5 @@
         config (component/start (->Config (:matchmaker-config env)))]
     (cond help (println summary)
           errors (println (error-msg errors))
-          :else (benchmark (get-in config [:benchmark :evaluation-metrics])
+          :else (benchmark config 
                            options))))

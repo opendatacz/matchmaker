@@ -24,8 +24,8 @@
 (defrecord Config [config-file-path]
   component/Lifecycle
   (start [config] (let [context (util/load-jsonld-context "internal.jsonld")]
-                    (do (util/init-logger)
-                        (merge config
-                               {:context context}
-                               (load-config config-file-path)))))
+                    (util/init-logger)
+                    (merge config
+                           {:context context}
+                           (load-config config-file-path))))
   (stop [config] config))

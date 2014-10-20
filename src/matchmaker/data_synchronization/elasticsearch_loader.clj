@@ -2,7 +2,8 @@
   (:gen-class)
   (:require [clojure.java.io :as io]
             [cheshire.core :as json]
-            [matchmaker.lib.elasticsearch :as es]))
+            [matchmaker.lib.elasticsearch :as es]
+            [matchmaker.data-synchronization.sparql-extractor :refer [contract-chunks]]))
 
 ; ----- Private functions -----
 
