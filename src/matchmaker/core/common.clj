@@ -7,4 +7,5 @@
   #{"exact-cpv"
     "exact-cpv-zindex"
     "expand-to-broader-cpv"
-    "expand-to-narrower-cpv"})
+    "expand-to-narrower-cpv"
+    "expand-to-narrower-cpv-with-idf"})

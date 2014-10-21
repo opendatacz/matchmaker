@@ -122,6 +122,16 @@
                              "to" "business_entity" "expand_to_narrower_cpv"]
                   :view-fn views/match-contract-to-business-entity))
 
+(defmethod dispatch-to-matchmaker {:matchmaker "expand-to-narrower-cpv-with-idf"
+                                   :source "contract"
+                                   :target "business-entity"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "expand_to_narrower_cpv_with_idf"]
+                  :view-fn views/match-contract-to-business-entity))
+
 (defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv"
                                    :source "contract"
                                    :target "contract"}
