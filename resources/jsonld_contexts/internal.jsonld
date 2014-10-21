@@ -1,6 +1,8 @@
 {
   "dcterms" : "http://purl.org/dc/terms/",
+  "ex" : "http://example.com/",
   "sd" : "http://www.w3.org/ns/sparql-service-description#",
   "xsd" : "http://www.w3.org/2001/XMLSchema#",
-  "dcterms:created" : {"@type" : "xsd:dateTime"}
+  "dcterms:created" : {"@type" : "xsd:dateTime"},
+  "ex:frequency" : {"@type" : "xsd:decimal"}
 }

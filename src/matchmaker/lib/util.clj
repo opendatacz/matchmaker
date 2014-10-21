@@ -118,6 +118,13 @@
       io/input-stream
       JsonUtils/fromInputStream)) 
 
+(defn rescale
+  "Rescale number @n from internal <@min1, @max1>
+  to the interval <@min2, @max2>."
+  [n [min1 max1] [min2 max2]]
+  (+ min2 (/ (* (- n min1) (- max2 min2))
+             (- max1 min1))))
+
 (defn sha1
   "Computes SHA1 hash from @string."
   [^String string]

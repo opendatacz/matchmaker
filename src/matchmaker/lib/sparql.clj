@@ -3,6 +3,7 @@
             [taoensso.timbre :as timbre]
             [environ.core :refer [env]]
             [matchmaker.lib.util :as util]
+            [matchmaker.common.config :refer [->Config]]
             [matchmaker.lib.template :refer [render-sparql]]
             [stencil.loader :refer [set-cache]]
             [matchmaker.lib.rdf :as rdf]
@@ -16,7 +17,7 @@
 (declare delete-graph execute-query post-graph put-graph read-graph record-loaded-graph
          select-query select-1-variable sparql-ask sparql-assert sparql-query sparql-update)
 
-; Private functions
+; ----- Private functions -----
 
 (defn- crud
   "Use SPARQL 1.1 Graph Store to manipulate graph named with @graph-uri
@@ -217,11 +218,9 @@
         metadata {"@context" (get-in sparql-endpoint [:config :context]) 
                   "@id" graph-uri
                   "@type" "sd:Graph"
-                  "dcterms:created" date-time-now}
-        metadata-jsonld (json/generate-string metadata {:escape-non-ascii true})
-        metadata-turtle (rdf/convert-syntax metadata-jsonld :input-syntax "JSON-LD")]
+                  "dcterms:created" date-time-now}]
     (post-graph sparql-endpoint
-                metadata-turtle
+                (rdf/map->turtle metadata)
                 (:metadata-graph sparql-endpoint))))
 
 (defn select-1-variable
@@ -317,3 +316,10 @@
                              (sparql-endpoint-alive? endpoint)
                              (assoc endpoint :counts counts)))
   (stop [sparql-endpoint] sparql-endpoint))
+
+(defn load-endpoint
+  "SPARQL endpoint constructor"
+  []
+  (component/start
+    (component/system-map :config (->Config (:matchmaker-config env))
+                          :sparql-endpoint (component/using (->SparqlEndpoint) [:config]))))

@@ -2,7 +2,8 @@
   (:require [taoensso.timbre :as timbre]
             [clojure.java.io :as io]
             [matchmaker.lib.template :refer [render-template]]
-            [matchmaker.lib.jena-rdf-to-jsonld :refer [jena-rdf-to-jsonld]])
+            [matchmaker.lib.jena-rdf-to-jsonld :refer [jena-rdf-to-jsonld]]
+            [cheshire.core :as json])
   (:import [com.hp.hpl.jena.rdf.model ModelFactory]
            [com.hp.hpl.jena.rdf.model.impl ModelCom]
            [com.github.jsonldjava.core JsonLdOptions JsonLdProcessor]
@@ -116,6 +117,12 @@
         output (java.io.ByteArrayOutputStream.)
         _ (.write graph output canonical-rdf-syntax-name)]
     (str output)))
+
+(defn map->turtle
+  "Converts a Clojure map @m (JSON-LD) to Turtle."
+  [m]
+  (convert-syntax (json/generate-string m {:escape-non-ascii true})
+                  :input-syntax "JSON-LD"))
 
 (defn model->dataset-graph
   "Converts ModelCom to DatasetGraph"

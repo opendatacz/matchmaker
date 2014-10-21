@@ -1,0 +1,37 @@
+{{!
+@param IRI source-graph
+@param int limit
+@param int offset
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?cpv ?weightedFrequency
+WHERE {
+  {
+    SELECT ?cpv (SUM(?weight) AS ?weightedFrequency)
+    WHERE {
+      {
+        SELECT DISTINCT ?contract ?cpv ((?propertyWeight * ?contractWeight) AS ?weight)
+        WHERE {
+          GRAPH <{{source-graph}}> {
+            VALUES (?objectProperty ?propertyWeight) {
+                  (pc:mainObject 1)
+                  (pc:additionalObject 0.5)
+            }
+            ?contract a pc:Contract ;
+              ?objectProperty ?cpv .
+            OPTIONAL {
+              ?parentContract pc:lot ?contract .
+            }
+            BIND (IF(BOUND(?parentContract), 0.5, 1) AS ?contractWeight)
+          }
+        }
+      }
+    }
+    GROUP BY ?cpv
+    ORDER BY DESC(?weightedFrequency)
+  }
+}
+LIMIT {{limit}}
+OFFSET {{offset}}
