@@ -7,6 +7,7 @@
              :max-number-of-results 100 ; Set maximum number of results taken into account by the benchmark.
              :sample {:min-main-object-count 0
                       :min-additional-object-count 0
+                      :min-zindex false ; Minimum zIndex of authorities of contracts included in the sample.
                       :size 100}
              :sleep 1}
  :cron {:delete-old-graphs {:max-age-minutes 30}}
