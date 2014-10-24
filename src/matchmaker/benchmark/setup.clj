@@ -1,7 +1,7 @@
 (ns matchmaker.benchmark.setup
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.sparql :refer [select-1-variable select-query
-                                           sparql-assert sparql-update]]))
+                                           select-query-unlimited sparql-assert sparql-update]]))
 
 ; ----- Private functions -----
 
@@ -32,20 +32,26 @@
                  ["benchmark" "setup" "delete_awarded_tenders"]))
 
 (defn load-contracts
-  "Request to input pc:Contracts into test (target) graph"
+  "Request to input pc:Contracts into test (target) graph.
+  The default number of contracts is 20 % of all those matching the sample criteria."
   [sparql-endpoint]
   (let [sample (select-keys (get-in sparql-endpoint [:config :benchmark :sample])
                             [:min-additional-object-count :min-main-object-count :size])
         contract-count (count-contracts sparql-endpoint (dissoc sample :size))
-        offset (rand-int (- contract-count (:size sample)))]
+        contracts-20-percent (-> contract-count (/ 5) Math/floor int)
+        sample-size (or (:size sample) contracts-20-percent)
+        offset (rand-int (- contract-count sample-size))]
     (sparql-update sparql-endpoint
                    ["benchmark" "setup" "load_contracts"]
-                   :data (assoc sample :offset offset))))
+                   :data (assoc sample :offset offset :size sample-size))))
 
 (defn load-correct-matches
   "Load correct contract-supplier pairs into a map"
   [sparql-endpoint]
-  (select-query sparql-endpoint ["benchmark" "setup" "load_correct_matches"]))
+  (doall (apply concat
+                (select-query-unlimited sparql-endpoint
+                                        ["benchmark" "setup" "load_correct_matches"]
+                                        :limit 5000))))
 
 (defn sufficient-data?
   "Raises an exception if SPARQL endpoint described in @config provides insufficient data for matchmaking."

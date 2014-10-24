@@ -1,12 +1,22 @@
 {{!
 @param IRI sample-graph
+@param int limit
+@param int offset
 }}
 
 {{> templates/prefixes.mustache}}
 
 SELECT ?resource ?match
 WHERE {
-  GRAPH <{{sample-graph}}> {
-    ?resource pc:awardedTender/pc:bidder ?match .
+  {
+    SELECT ?resource ?match
+    WHERE {
+      GRAPH <{{sample-graph}}> {
+        ?resource pc:awardedTender/pc:bidder ?match .
+      }
+    }
+    ORDER BY ASC(?resource)
   }
 }
+LIMIT {{limit}}
+OFFSET {{offset}}
