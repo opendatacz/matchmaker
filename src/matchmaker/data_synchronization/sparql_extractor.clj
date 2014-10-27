@@ -55,8 +55,8 @@
   
 ; ----- Public functions -----
 
-(defn contract-chunks
-  "Retrieve lazy sequence of chunks of contracts."
+(defn load-contracts
+  "Retrieve lazy sequence of contracts."
   [sparql-extractor]
   (sparql/select-query-unlimited (:sparql-endpoint sparql-extractor)
                                  ["data_synchronization" "get_contract_uris"])) 
@@ -74,8 +74,8 @@
   The downloaded files are saved to @dir-path."
   [sparql-extractor dir-path]
   {:pre [(.exists (clojure.java.io/as-file dir-path))]}
-  (dorun (for [contract-chunk (contract-chunks sparql-extractor)]
-           (dorun (map (partial etl-contract sparql-extractor dir-path) contract-chunk)))))
+  (dorun (map (partial etl-contract sparql-extractor dir-path)
+              (load-contracts sparql-extractor))))
 
 (defn -main
   [& args]

@@ -105,6 +105,13 @@
   [& args]
   (clojure.string/join java.io.File/separator args))
 
+(defn lazy-cat'
+  "Lazily concatenates lazy sequence of sequences @colls."
+  [colls]
+  (lazy-seq
+    (if (seq colls)
+      (concat (first colls) (lazy-cat' (next colls))))))
+
 (defn load-jsonld-context
   "Loads JSON-LD context from @filename."
   [filename]

@@ -15,10 +15,9 @@
                            weighted-frequency :weightedFrequency}]
                        [cpv (Float/parseFloat weighted-frequency)])] ; Does it make sense to add Math/log10? 
     (doall (map transform-fn
-                (apply concat
-                       (select-query-unlimited sparql-endpoint
-                                               ["data_preparation" "weighted_cpv_frequencies"]
-                                               :limit 2000))))))
+                (select-query-unlimited sparql-endpoint
+                                        ["data_preparation" "weighted_cpv_frequencies"]
+                                        :limit 2000)))))
 
 (defn- normalize-cpv-frequencies
   "Divide each CPV code's IDF score by the maximum IDF score
