@@ -39,8 +39,11 @@
 (defn avg
   "Compute average of collection @coll of numbers."
   [coll]
-  (/ (apply + coll)
-     (count coll)))
+  (if (seq coll)
+    (/ (apply + coll)
+       (count coll))
+    0 ; Average of empty collection is 0.
+    ))
 
 (defn date-now
   "Returns xsd:date for the current time."
