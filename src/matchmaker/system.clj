@@ -34,6 +34,7 @@
   "Destroy the matchmaker system."
   []
   (component/stop system)
+  (shutdown-agents)
   (timbre/debug "System stopped."))
 
 (defn init
