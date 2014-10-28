@@ -5,7 +5,7 @@
 @param int   min-main-object-count
 @param int   min-additional-object-count
 @param float min-zindex
-@param int   size
+@param int   limit
 @param int   offset
 }}
 
@@ -52,6 +52,6 @@ WHERE {
             (COUNT(DISTINCT ?additionalObject) >= {{min-additional-object-count}})
           )
     OFFSET {{offset}}
-    LIMIT {{size}}
+    LIMIT {{limit}}
   }
 }
