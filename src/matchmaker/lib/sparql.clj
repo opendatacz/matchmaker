@@ -251,7 +251,7 @@
                                             :data (merge {:limit limit
                                                           :offset offset}
                                                          data)))]
-    (util/lazy-seq' (take-while seq (map select-fn (iterate (partial + limit) 0))))))
+    (util/lazy-cat' (take-while seq (map select-fn (iterate (partial + limit) 0))))))
 
 (defn sparql-ask
   "Render @template-path using @data and execute the resulting SPARQL ASK query."
@@ -308,11 +308,11 @@
                                                  {:authentication authentication
                                                   :authentication? authentication?
                                                   :endpoints endpoints})
+                                 _ (sparql-endpoint-alive? endpoint)
                                  counts {:business-entities (get-count endpoint ["count_business_entities"])
                                          :contracts (get-count endpoint ["count_contracts"])}]
                              (when (:dev env)
                                (set-cache (clojure.core.cache/ttl-cache-factory {} :ttl 0)))
-                             (sparql-endpoint-alive? endpoint)
                              (assoc endpoint :counts counts)))
   (stop [sparql-endpoint] sparql-endpoint))
 
