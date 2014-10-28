@@ -51,7 +51,7 @@
                                              :graph
                                              ["cron" "get_all_graphs"]
                                              :data {:metadata-graph (:metadata-graph sparql-endpoint)})]
-    (doall (map (partial sparql/delete-graph sparql-endpoint) all-graphs))))
+    (dorun (map (partial sparql/delete-graph sparql-endpoint) all-graphs))))
 
 (defn delete-old-graphs
   "Delete named graphs older than @max-age-minutes provided in @opts."
@@ -68,7 +68,7 @@
                                                     :metadata-graph metadata-graph})]
     (when (seq old-graphs)
       (timbre/debug (format "Deleting %d old graph(s)." (count old-graphs))) 
-      (doall (map (partial sparql/delete-graph sparql-endpoint) old-graphs))
+      (dorun (map (partial sparql/delete-graph sparql-endpoint) old-graphs))
       (sparql/sparql-update sparql-endpoint
                             ["cron" "delete_records_of_old_graphs"]
                             :data {:metadata-graph metadata-graph
