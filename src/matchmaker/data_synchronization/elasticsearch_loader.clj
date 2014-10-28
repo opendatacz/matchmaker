@@ -3,7 +3,7 @@
   (:require [clojure.java.io :as io]
             [cheshire.core :as json]
             [matchmaker.lib.elasticsearch :as es]
-            [matchmaker.data-synchronization.sparql-extractor :refer [contract-chunks]]))
+            [matchmaker.data-synchronization.sparql-extractor :refer [load-contracts]]))
 
 ; ----- Private functions -----
 
@@ -25,8 +25,8 @@
   "Returns contract URIs that are present in SPARQL endpoint,
   but missing in Elasticsearch."
   [sparql-extractor es]
-  (let [uri-chunks (contract-chunks sparql-extractor)]
-    (mapcat (partial es/get-missing-ids es) uri-chunks)))
+  (let [contracts (load-contracts sparql-extractor)]
+    (mapcat (partial es/get-missing-ids es) (partition-all 500 contracts))))
 
 (defn load-dir
   "Load JSON-LD files from directory on @dirpath into Elasticsearch."
