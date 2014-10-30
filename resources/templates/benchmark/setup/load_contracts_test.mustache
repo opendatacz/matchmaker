@@ -1,0 +1,19 @@
+{{!
+@param IRI   sample-graph
+@param int   contract-count
+}}
+
+{{> templates/prefixes.mustache}}
+
+ASK
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?contract) AS ?contractCount)
+    WHERE {
+      GRAPH <{{sample-graph}}> {
+        ?contract a pc:Contract .
+      }
+    }
+  }
+  FILTER (?contractCount = {{contract-count}})
+}
