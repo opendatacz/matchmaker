@@ -153,7 +153,8 @@
   ; TODO: Is adding "UTF-8" to .getBytes needed?
   (let [canonical-rdf-syntax-name (canonicalize-rdf-syntax-name rdf-syntax)
         input-stream (java.io.ByteArrayInputStream. (.getBytes string))]
-    (.read (ModelFactory/createDefaultModel) input-stream nil canonical-rdf-syntax-name)))
+    ; FIXME: Using empty string for base rather than nil, as the nil may cause null pointer exception.
+    (.read (ModelFactory/createDefaultModel) input-stream "" canonical-rdf-syntax-name)))
 
 (defn valid-property-path?
   "Tests if SPARQL 1.1 property path is valid,
