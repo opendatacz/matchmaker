@@ -24,8 +24,10 @@ WHERE {
     WHERE {
       GRAPH <{{source-graph}}> {
         ?contract a pc:Contract ;
-          pc:contractingAuthority ?contractingAuthority ;
           pc:awardedTender ?awardedTender .
+        FILTER NOT EXISTS {
+          [] pc:lot ?contract .
+        }
         ?awardedTender pc:bidder ?bidder .
         OPTIONAL {
           ?contract pc:mainObject ?mainObject .
@@ -33,6 +35,9 @@ WHERE {
         OPTIONAL {
           ?contract pc:additionalObject ?additionalObject .
         }
+        {{#min-zindex}}
+        ?contract pc:contractingAuthority ?contractingAuthority .
+        {{/min-zindex}}
       }
       {{#min-zindex}}
       GRAPH <{{source-graph}}> {

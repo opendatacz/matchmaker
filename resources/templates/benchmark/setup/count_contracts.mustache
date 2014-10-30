@@ -12,8 +12,11 @@ WHERE {
     SELECT ?contract 
     WHERE {
       GRAPH <{{source-graph}}> {
-        ?contract a pc:Contract ;
-          pc:awardedTender/pc:bidder [] .
+        ?contract a pc:Contract .
+        FILTER NOT EXISTS {
+          [] pc:lot ?contract .
+        }
+        ?contract pc:awardedTender/pc:bidder [] .
         OPTIONAL {
           ?contract pc:mainObject ?mainObject .
         }
