@@ -2,31 +2,14 @@
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.util :refer [avg time-difference]]
             [matchmaker.lib.sparql :as sparql]
+            [matchmaker.lib.util :as util]
             [clj-http.client :as client]
-            [incanter.core :as incanter]
             [clojure.edn :as edn]
             [incanter.charts :as charts]
             [slingshot.slingshot :refer [try+]]))
 
-(declare avg-rank avg-response-time found? get-matches matches-found mean-reciprocal-rank rank)
-
-; ----- Macros -----
-
-(defmacro retry-get-with-sleep
-  "Evaluates expr up to cnt + 1 times, retrying if an exception
-  is thrown. If an exception is thrown on the final attempt, it
-  is allowed to bubble up.
-  Adopted from <http://stackoverflow.com/a/12068866/385505>.
-  Sleep will start at (/ 10 cnt) and go up to 10 seconds."
-  [cnt expr]
-  (letfn [(go [cnt]
-            (if (zero? cnt)
-              expr
-              `(try+ ~expr
-                     (catch [:status 404] e#
-                       (Thread/sleep (* (/ 1 ~cnt) 10000))
-                       (retry-get-with-sleep ~(dec cnt) ~expr)))))]
-    (go cnt)))
+(declare avg-rank avg-response-time found? get-matches matches-found matches-found-in-top-10
+         mean-reciprocal-rank rank)
 
 ; ----- Private vars -----
 
@@ -36,6 +19,7 @@
   {:avg-rank #'avg-rank
    :avg-response-time #'avg-response-time
    :matches-found #'matches-found
+   :matches-found-in-top-10 #'matches-found-in-top-10
    :mean-reciprocal-rank #'mean-reciprocal-rank})
 
 ; ----- Private functions -----
@@ -63,49 +47,35 @@
       Integer.))
 
 (defn- evaluate-correct-matches
-  "Evaluate pairs from @correct-matches using @matchmaking-endpoint."
-  [matchmaking-endpoint correct-matches & {:keys [limit matchmaker]}]
-  (let [correct-matches-count (count correct-matches)]
-    (doall (filter (complement nil?)
-                   (for [[correct-match n] (map vector correct-matches (iterate inc 1))
-                         :let [_ (timbre/debug (format "Evaluating contract %d from %d."
-                                                       n correct-matches-count))
-                               start-time (System/nanoTime)
-                               {:keys [resource match]} correct-match
-                               matches (try+ {:matches (get-matches matchmaking-endpoint
-                                                                    resource
-                                                                    :limit limit
-                                                                    :matchmaker matchmaker)
-                                              :failed? false}
-                                             (catch [:status 500] _
-                                               (timbre/debug (format "Matchmaking <%s> failed." resource))
-                                               {:failed? true}))]]
-                     (when-not (:failed? matches) 
-                       {:rank (rank (:matches matches) match)
-                        :time (time-difference start-time)}))))))
-
-(defn- evaluate-correct-matches-parallel
-  [matchmaking-endpoint correct-matches & {:keys [limit matchmaker]}]
-  (let [eval-fn (fn [{:keys [resource match]}]
+  "Evaluate pairs from @correct-matches using @matchmaking-endpoint.
+  The :parallel? keyword takes boolean flag indicating if evaluation should run
+  in parallel (defaults to true)."
+  [matchmaking-endpoint correct-matches & {:keys [limit matchmaker max-retries parallel?]
+                                           :or {max-retries 5
+                                                parallel? true}}]
+  (let [map-fn (if parallel? pmap map)
+        get-matches-fn (fn [resource]
+                         (try {:matches (util/try-times 5
+                                                         (get-matches matchmaking-endpoint
+                                                                      resource
+                                                                      :limit limit
+                                                                      :matchmaker matchmaker))
+                                :failed? false}
+                               (catch Exception _
+                                 (timbre/debug (format "Matchmaking <%s> failed." resource))
+                                 {:failed? true})))
+        eval-fn (fn [{:keys [resource match]}]
                   (let [start-time (System/nanoTime)
-                        matches (try+ {:matches (get-matches matchmaking-endpoint
-                                                             resource
-                                                             :limit limit
-                                                             :matchmaker matchmaker)
-                                       :failed? false}
-                                      (catch [:status 500] _
-                                        (timbre/debug (format "Matchmaking <%s> failed." resource))
-                                        {:failed? true}))]
+                        matches (get-matches-fn resource)]
                   (when-not (:failed? matches) 
                     {:rank (rank (:matches matches) match)
                      :time (time-difference start-time)})))]
-    (filter (complement nil?)
-            (pmap eval-fn correct-matches))))
+    (remove nil? (map-fn eval-fn correct-matches))))
 
 (defn- found?
-  "Predicate returning true for @evaluation-result that found correct match."
-  [evaluation-result]
-  (not= :infinity evaluation-result))
+  "Predicate returning true for @rank of found match."
+  [rank]
+  (not (Double/isInfinite rank)))
 
 (defn- get-matches
   "Get matches for @resource (URI) from @matchmaker-endpoint (URL).
@@ -124,6 +94,13 @@
     (/ (count (filter found? ranks))
        (count ranks))))
 
+(defn- matches-found-in-top-10
+  "Compute the ratio of correct matches found in top 10 results."
+  [evaluation-results]
+  (let [ranks (map :rank evaluation-results)]
+    (/ (count (filter (apply every-pred [found? (partial > 11)]) ranks))
+       (count ranks))))
+  
 (defn- mean-reciprocal-rank
   "Compute mean reciprocal rank <http://en.wikipedia.org/wiki/Mean_reciprocal_rank>
   of @evaluation-results."
@@ -137,7 +114,7 @@
   [matches correct-match]
   (let [index (.indexOf matches correct-match)]
     (if (= index -1)
-      :infinity      ; FIXME: How to represent not found?
+      Double/POSITIVE_INFINITY
       (inc index)))) ; 1-offsetted rank
 
 ; ----- Public functions -----
@@ -167,14 +144,14 @@
                 [metric ((metric metric-fns) results)])))
 
 (defn evaluate-rank
-  "Evaluate @matchmaker provided by @matchmaking-endpoint using @correct-matches."
-  [benchmark matchmaking-endpoint matchmaker]
-  (let [correct-matches (get-in benchmark [:benchmark :correct-matches])
-        limit (get-in benchmark [:config :benchmark :max-number-of-results])]
-    (evaluate-correct-matches-parallel matchmaking-endpoint
-                                       correct-matches
-                                       :limit limit
-                                       :matchmaker matchmaker)))
+  "Evaluate @matchmaker provided by @matchmaking-endpoint using correct matches for a @benchmark-run."
+  [benchmark-run matchmaking-endpoint matchmaker]
+  (let [correct-matches (:correct-matches benchmark-run)
+        limit (get-in benchmark-run [:benchmark :config :benchmark :max-number-of-results])]
+    (evaluate-correct-matches matchmaking-endpoint
+                              correct-matches
+                              :limit limit
+                              :matchmaker matchmaker)))
 
 (defn top-n-curve-data
   "Compute ratios of cases when match is found in top n positions."
