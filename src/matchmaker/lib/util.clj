@@ -42,7 +42,7 @@
   (if (seq coll)
     (/ (apply + coll)
        (count coll))
-    0 ; Average of empty collection is 0.
+    0 ; FIXME: Average of empty collection is 0.
     ))
 
 (defn date-now
@@ -106,7 +106,8 @@
   (clojure.string/join java.io.File/separator args))
 
 (defn lazy-cat'
-  "Lazily concatenates lazy sequence of sequences @colls."
+  "Lazily concatenates lazy sequence of sequences @colls.
+  Taken from <http://stackoverflow.com/a/26595111/385505>."
   [colls]
   (lazy-seq
     (if (seq colls)
@@ -147,6 +148,22 @@
   [start-time]
   (/ (- (System/nanoTime) start-time) 1e9))
 
+(defn try-times*
+  "Try @body for number of @times. If number of retries exceeds @times,
+  then exception is raised. Each unsuccessful try is followed by sleep,
+  which increase in length in subsequent tries."
+  [times body]
+  (loop [n times]
+    (if-let [result (try [(body)] 
+                         (catch Exception ex
+                           (if (zero? n)
+                             (throw ex)
+                             (Thread/sleep (-> (- times n)
+                                               (* 2000)
+                                               (+ 1000))))))]
+      (result 0)
+      (recur (dec n)))))
+
 (defn url?
   "Tests if @url is valid absolute URL."
   [url]
@@ -165,3 +182,12 @@
   "Generates a random UUID"
   []
   (str (java.util.UUID/randomUUID)))
+
+; ----- Macros -----
+
+(defmacro try-times
+  "Executes @body. If an exception is thrown, will retry. At most @times retries
+  are done. If still some exception is thrown it is bubbled upwards in the call chain.
+  Adapted from <http://stackoverflow.com/a/1879961/385505>."
+  [times & body]
+  `(try-times* ~times (fn [] ~@body)))
