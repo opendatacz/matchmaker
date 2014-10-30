@@ -246,12 +246,19 @@
   repeatedly with paging until empty results are returned." 
   [sparql-endpoint template-path & {:keys [data limit]
                                     :or {limit 500}}]
-  (letfn [(select-fn [offset] (select-query sparql-endpoint
+  (let [select-fn (fn [offset]
+                    {:offset offset
+                     :results (select-query sparql-endpoint
                                             template-path
                                             :data (merge {:limit limit
                                                           :offset offset}
-                                                         data)))]
-    (util/lazy-cat' (take-while seq (map select-fn (iterate (partial + limit) 0))))))
+                                                         data))})
+        continue? (fn [{:keys [results]}] (seq results))]
+    (->> (iterate (partial + limit) 0)
+         (map select-fn)
+         (take-while continue?)
+         (map :results)
+         util/lazy-cat')))
 
 (defn sparql-ask
   "Render @template-path using @data and execute the resulting SPARQL ASK query."
