@@ -2,7 +2,8 @@
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.util :as util]
             [matchmaker.web.views :as views]
-            [matchmaker.core.sparql :as sparql-match]))
+            [matchmaker.core.sparql :as sparql-match]
+            [slingshot.slingshot :refer [try+]]))
 
 ; Private functions
 
@@ -35,24 +36,28 @@
   (let [{:keys [graph_uri limit offset uri]} (get-in params [:request :params])
         request-url (:request-url params)
         sparql-endpoint (get-in params [:server :sparql-endpoint])
-        matchmaker-results (sparql-match/match-resource
-                              sparql-endpoint 
-                              template 
-                              :data {:limit limit
-                                     :matched-resource-graph graph_uri 
-                                     :offset offset
-                                     resource-key uri})
-        results-size (count matchmaker-results)
-        base-url (get-in params [:request :base-url])
-        paging (get-paging request-url
-                           :results-size results-size
-                           :limit limit
-                           :offset offset)]
-    (view-fn uri
-             matchmaker-results
-             :base-url base-url
-             :paging paging
-             :limit limit)))
+        matchmaker-results (try+ (sparql-match/match-resource
+                                   sparql-endpoint 
+                                   template 
+                                   :data {:limit limit
+                                          :matched-resource-graph graph_uri 
+                                          :offset offset
+                                          resource-key uri})
+                                 (catch [:status 404] _ false))]
+    (if matchmaker-results
+      (let [results-size (count matchmaker-results)
+            base-url (get-in params [:request :base-url])
+            paging (get-paging request-url
+                               :results-size results-size
+                               :limit limit
+                               :offset offset)]
+        (view-fn uri
+                 matchmaker-results
+                 :base-url base-url
+                 :paging paging
+                 :limit limit))
+      (views/error {:status 503
+                    :error-msg "SPARQL endpoint is hiding"}))))
 
 ; Public functions
 
