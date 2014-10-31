@@ -1,0 +1,23 @@
+{{!
+@param IRI   source-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+ASK
+WHERE {
+  {
+    SELECT ?contract 
+    WHERE {
+      GRAPH <{{source-graph}}> {
+        ?contract a pc:Contract ;
+          pc:awardedTender/pc:bidder ?winner .
+        FILTER NOT EXISTS {
+          [] pc:lot ?contract .
+        }
+      }
+    }
+    GROUP BY ?contract
+    HAVING (COUNT(DISTINCT ?winner) > 1)
+  }
+}
