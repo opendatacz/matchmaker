@@ -2,66 +2,141 @@
   (:require [taoensso.timbre :as timbre]
             [environ.core :refer [env]]
             [matchmaker.common.config :refer [->Config]]
-            [matchmaker.lib.util :refer [format-numbers]]
-            [matchmaker.lib.sparql :refer [->SparqlEndpoint]]
+            [matchmaker.lib.sparql :refer [select-1-variable ->SparqlEndpoint]]
             [matchmaker.benchmark.setup :as setup]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.teardown :as teardown]
-            [com.stuartsierra.component :as component]
-            [incanter.core :refer [save view]]))
+            [com.stuartsierra.component :as component]))
 
-(declare ->Benchmark)
+(declare ->Benchmark ->BenchmarkRun)
+
+; ----- Multimethods -----
+
+(defmulti get-limits-and-offsets
+  "Returns a sequence of limits and offset for given sampling @process."
+  (fn [process & _] process))
+
+(defmethod get-limits-and-offsets :n-fold-cross-validation
+  [_ & {:keys [contract-count number-of-runs]}]
+  (let [; int rounds down sample sizes (limits)
+        basic-limits (repeat number-of-runs (int (/ contract-count number-of-runs)))
+        ; First samples will be incremented by 1 to cover the complete dataset.
+        incremented-samples (mod contract-count number-of-runs) 
+        sample-limits (concat (map inc (take incremented-samples basic-limits))
+                              (take-last (- number-of-runs incremented-samples) basic-limits))]
+    (map (fn [limit offset] {:limit limit :offset offset})
+         sample-limits
+         (conj (butlast (reductions + sample-limits)) 0))))
+
+(defmethod get-limits-and-offsets :repeated-random-sampling
+  [_ & {:keys [contract-count number-of-runs sample-size]}]
+  (take number-of-runs (map (fn [limit offset] {:limit limit :offset offset})
+                         (repeat sample-size)
+                         (repeatedly #(inc (rand-int (- contract-count sample-size)))))))
 
 ; ----- Private functions -----
 
+(defn- count-contracts
+  "Get count of relevant contracts"
+  [sparql-endpoint sample-criteria]
+  {:pre [(map? sample-criteria)
+         (:min-additional-object-count sample-criteria)
+         (:min-main-object-count sample-criteria)]
+   :post [(pos? %)]}
+  (-> (select-1-variable sparql-endpoint
+                         :count
+                         ["benchmark" "setup" "count_contracts"]
+                         :data sample-criteria)
+      first
+      Integer.))
+
 (defn- load-benchmark
-  "Setup benchmark system with its dependencies"
-  []
+  "Setup benchmark system with its dependencies."
+  [number-of-runs]
   (let [config-file-path (:matchmaker-config env)
         benchmark-system (component/system-map
                            :config (->Config config-file-path)
                            :sparql-endpoint (component/using (->SparqlEndpoint) [:config])
-                           :benchmark (component/using (->Benchmark) [:config :sparql-endpoint]))]
+                           :benchmark (component/using (->Benchmark number-of-runs)
+                                                       [:config :sparql-endpoint]))]
     (component/start benchmark-system)))
 
-; Records
+(defn- load-benchmark-run
+  "Setup single benchmark run with its dependencies."
+  [benchmark & {:keys [limit offset]}]
+  (component/start (component/system-map :benchmark benchmark
+                                         :benchmark-run (component/using (->BenchmarkRun limit offset)
+                                                                         [:benchmark]))))
 
-(defrecord Benchmark []
+; ----- Records -----
+
+(defrecord Benchmark [number-of-runs]
   component/Lifecycle
-  (start [{:keys [sparql-endpoint]
+  (start [{{{:keys [process sample]} :benchmark} :config
+           :keys [sparql-endpoint]
            :as benchmark}]
-    (timbre/debug "Starting benchmark...")
+    (timbre/debug (format "Starting benchmark using %s with %d runs."
+                          (name process)
+                          number-of-runs))
     (setup/sufficient-data? sparql-endpoint)
-    (setup/load-contracts sparql-endpoint)
-    (setup/delete-awarded-tenders sparql-endpoint)
-    (assoc benchmark :correct-matches (setup/load-correct-matches sparql-endpoint)))
-  (stop [{:keys [sparql-endpoint]
-          :as benchmark}]
+    (setup/single-winner? sparql-endpoint)
+    (assoc benchmark
+           :limits-and-offsets (get-limits-and-offsets process
+                                                       :contract-count (count-contracts sparql-endpoint sample)
+                                                       :number-of-runs number-of-runs
+                                                       :sample-size (:size sample))))
+  (stop [benchmark]
     (timbre/debug "Stopping benchmark...")
-    (teardown/return-awarded-tenders sparql-endpoint)
-    (teardown/clear-graph sparql-endpoint)
     benchmark))
 
-; Public functions
+(defrecord BenchmarkRun [limit offset]
+  component/Lifecycle
+  (start [{{:keys [sparql-endpoint]} :benchmark
+           :as benchmark-run}]
+    (timbre/debug "Starting benchmark's run...")
+    (try (setup/load-contracts sparql-endpoint
+                               :limit limit
+                               :offset offset)
+         (setup/delete-awarded-tenders sparql-endpoint)
+         (assoc benchmark-run :correct-matches (setup/load-correct-matches sparql-endpoint))
+         ; Stop the benchmark's run in case an exception is thrown.
+         ; This returns the withheld data and clears the benchmark graph.
+         (catch Exception ex
+           (component/stop benchmark-run)
+           (throw ex))))
+  (stop [{{:keys [sparql-endpoint]} :benchmark
+          :as benchmark-run}]
+    (timbre/debug "Stopping benchmark's run...")
+    (teardown/return-awarded-tenders sparql-endpoint)
+    (teardown/clear-graph sparql-endpoint)
+    benchmark-run))
 
-(defn format-results
-  "Aggregate and format @benchmark-results."
-  [benchmark-results]
-  (format-numbers (evaluate/avg-metrics benchmark-results)))
+; ----- Public functions -----
 
-(defn compute-benchmark
-  "Constructs benchmark of @matchmaker (String) on @matchmaking-endpoint (URL), 
-  setting up and tearing down whole benchmark.
-  May run multiple times, if @number-of-times is provided."
-  ([matchmaking-endpoint matchmaker]
-    (let [benchmark (load-benchmark)]
-      (try
-        (evaluate/evaluate-rank benchmark
-                                matchmaking-endpoint
-                                matchmaker)
-        (finally (component/stop benchmark)))))
-  ([matchmaking-endpoint
-    matchmaker
-    ^Integer number-of-runs]
-    (flatten (doall (repeatedly number-of-runs
-                                #(compute-benchmark matchmaking-endpoint matchmaker))))))
+(defn do-single-run
+  "Run benchmark once for @matchmaker using @matchmaking-endpoint."
+  [benchmark matchmaking-endpoint matchmaker & {:keys [limit offset]}]
+  (let [benchmark-run (component/start (assoc (->BenchmarkRun limit offset)
+                                              :benchmark benchmark))] 
+    (try (doall (evaluate/evaluate-rank benchmark-run
+                                        matchmaking-endpoint
+                                        matchmaker))
+         (finally (component/stop benchmark-run)))))
+
+(defn run-benchmark
+  "Run benchmark of @matchmaker on @matchmaking-endpoint for @number-of-runs."
+  [matchmaking-endpoint matchmaker number-of-runs]
+  {:pre [(string? matchmaking-endpoint)
+         (string? matchmaker)
+         (number? number-of-runs)]}
+  (let [benchmark (load-benchmark number-of-runs)
+        single-run-fn (fn [{:keys [limit offset]}]
+                       (do-single-run benchmark
+                                      matchmaking-endpoint
+                                      matchmaker
+                                      :limit limit
+                                      :offset offset))]
+    (try (->> (get-in benchmark [:benchmark :limits-and-offsets])
+              (map single-run-fn)
+              (doall))
+         (finally (component/stop benchmark)))))

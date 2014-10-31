@@ -137,11 +137,13 @@
 
 (defn compute-metrics
   "Compute @metrics ([:metric-name]) looked up from metric-fns
-   for given evaluation @results ({:rank rank :time time})."
-  [results metrics]
+   for a sequence of given evaluation @results [({:rank rank :time time})]."
+  [metrics results]
   {:pre [vector? metrics]}
-  (into {} (for [metric metrics]
-                [metric ((metric metric-fns) results)])))
+  (letfn [(compute-run [run-results]
+            (into {} (for [metric metrics]
+                       [metric ((metric metric-fns) run-results)])))]
+    (avg-metrics (map compute-run results))))
 
 (defn evaluate-rank
   "Evaluate @matchmaker provided by @matchmaking-endpoint using correct matches for a @benchmark-run."

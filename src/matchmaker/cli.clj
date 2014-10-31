@@ -6,7 +6,7 @@
             [matchmaker.common.config :refer [->Config]]
             [environ.core :refer [env]]
             [matchmaker.benchmark.evaluate :as evaluate]
-            [matchmaker.benchmark.core :refer [compute-benchmark]]
+            [matchmaker.benchmark.core :refer [run-benchmark]]
             [matchmaker.core.common :refer [matchmakers]]
             [incanter.core :refer [save]]
             [schema.core :as s]
@@ -23,7 +23,7 @@
                                 (s/validate sc/URI endpoint)
                                 (catch Exception e false)))]]
    ["-n" "--number-of-runs RUNS" "Number of benchmark's runs"
-    :default 10
+    :default 5
     :parse-fn #(Integer/parseInt %)
     :validate [pos?]]
    ["-d" "--diagram-path DIAGRAM" "Path to output diagram"
@@ -45,8 +45,8 @@
                 metadata {:config config
                           :matchmaker matchmaker
                           :number-of-runs number-of-runs}
-                results (compute-benchmark endpoint matchmaker number-of-runs)
-                metrics (evaluate/compute-metrics results evaluation-metrics)
+                results (run-benchmark endpoint matchmaker number-of-runs)
+                metrics (evaluate/compute-metrics evaluation-metrics results)
                 output-name (str (util/date-now)
                                  "-"
                                  matchmaker
@@ -59,7 +59,7 @@
             (spit data-file (pr-str {:metadata metadata
                                      :metrics metrics
                                      :results results}))
-            (save (evaluate/top-n-curve-chart results)
+            (save (evaluate/top-n-curve-chart (apply concat results))
                   diagram-file
                   :width 1000
                   :height 800)
