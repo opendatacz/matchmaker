@@ -3,8 +3,10 @@
  :benchmark {:evaluation-metrics [:avg-rank
                                   :avg-response-time
                                   :matches-found
+                                  :matches-found-in-top-10
                                   :mean-reciprocal-rank]
              :max-number-of-results 100 ; Set maximum number of results taken into account by the benchmark.
+             :process :n-fold-cross-validation ; :repeated-random-sampling or :n-fold-cross-validation
              :sample {:min-main-object-count 0
                       :min-additional-object-count 0
                       :min-zindex false ; Minimum zIndex of authorities of contracts included in the sample.
