@@ -1,0 +1,24 @@
+{{!
+@param IRI   sample-graph
+@param int   contract-count
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?message
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?contract) AS ?contractCount)
+    WHERE {
+      GRAPH <{{sample-graph}}> {
+        ?contract a pc:Contract .
+      }
+    }
+  }
+  FILTER (?contractCount != {{contract-count}})
+  BIND (CONCAT(
+    "Expected to find {{contract-count}} contracts, but ",
+    STR(?contractCount),
+    " were found."
+  ) AS ?message)
+}
