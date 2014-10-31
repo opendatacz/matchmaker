@@ -275,6 +275,14 @@
   (let [ask-result (sparql-ask sparql-endpoint template-path :data data)]
     (or (assert-fn ask-result) (throw (Exception. error-message)))))
 
+(defn sparql-assert-select
+  "Render @template-path using @data and execute the resulting SPARQL SELECT query.
+  If the resulting bindings for the variable ?message are not empty, raise an exception
+  with the value of ?message."
+  [sparql-endpoint template-path & {:keys [data]}]
+  (let [assert-result (select-1-variable sparql-endpoint :message template-path :data data)]
+    (or (empty? assert-result) (throw (Exception. (first assert-result))))))
+
 (defn sparql-query
   "Render @template using @data and execute the resulting SPARQL query." 
   [sparql-endpoint template-path & {:keys [accept data endpoint method]
