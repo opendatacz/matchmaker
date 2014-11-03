@@ -69,13 +69,14 @@
                         matches (get-matches-fn resource)]
                   (when-not (:failed? matches) 
                     {:rank (rank (:matches matches) match)
+                     :resource resource
                      :time (time-difference start-time)})))]
     (remove nil? (map-fn eval-fn correct-matches))))
 
 (defn- found?
   "Predicate returning true for @rank of found match."
   [rank]
-  (not (Double/isInfinite rank)))
+  (not= :infinity rank))
 
 (defn- get-matches
   "Get matches for @resource (URI) from @matchmaker-endpoint (URL).
@@ -114,7 +115,7 @@
   [matches correct-match]
   (let [index (.indexOf matches correct-match)]
     (if (= index -1)
-      Double/POSITIVE_INFINITY
+      :infinity
       (inc index)))) ; 1-offsetted rank
 
 ; ----- Public functions -----
