@@ -22,41 +22,57 @@ WHERE {
   {
     SELECT ?contract ?awardedTender ?bidder
     WHERE {
+      {
+        SELECT ?contract
+        WHERE {
+          {
+            SELECT ?contract 
+            WHERE {
+              GRAPH <{{source-graph}}> {
+                ?contract a pc:Contract ;
+                  pc:awardedTender ?awardedTender .
+                FILTER NOT EXISTS {
+                  [] pc:lot ?contract .
+                }
+                ?awardedTender pc:bidder [] .
+                OPTIONAL {
+                  ?contract pc:mainObject ?mainObject .
+                }
+                OPTIONAL {
+                  ?contract pc:additionalObject ?additionalObject .
+                }
+                {{#min-zindex}}
+                ?contract pc:contractingAuthority ?contractingAuthority .
+                {{/min-zindex}}
+              }
+              {{#min-zindex}}
+              GRAPH <{{source-graph}}> {
+                ?contractingAuthority adms:identifier/skos:notation ?identifier .
+              }
+              GRAPH <{{zindex-graph}}> {
+                [] pccz:zindex ?zindex ;
+                  rov:registration/skos:notation ?identifier .
+                FILTER (?zindex >= {{min-zindex}})
+              }
+              {{/min-zindex}}
+            }
+            GROUP BY ?contract 
+            HAVING (
+                    (COUNT(DISTINCT ?mainObject) >= {{min-main-object-count}})
+                    &&
+                    (COUNT(DISTINCT ?additionalObject) >= {{min-additional-object-count}})
+                  )
+            ORDER BY ASC(?contract)
+          }
+        }
+        OFFSET {{offset}}
+        LIMIT {{limit}}
+      }
       GRAPH <{{source-graph}}> {
         ?contract a pc:Contract ;
           pc:awardedTender ?awardedTender .
-        FILTER NOT EXISTS {
-          [] pc:lot ?contract .
-        }
         ?awardedTender pc:bidder ?bidder .
-        OPTIONAL {
-          ?contract pc:mainObject ?mainObject .
-        }
-        OPTIONAL {
-          ?contract pc:additionalObject ?additionalObject .
-        }
-        {{#min-zindex}}
-        ?contract pc:contractingAuthority ?contractingAuthority .
-        {{/min-zindex}}
       }
-      {{#min-zindex}}
-      GRAPH <{{source-graph}}> {
-        ?contractingAuthority adms:identifier/skos:notation ?identifier .
-      }
-      GRAPH <{{zindex-graph}}> {
-        [] pccz:zindex ?zindex ;
-          rov:registration/skos:notation ?identifier .
-        FILTER (?zindex >= {{min-zindex}})
-      }
-      {{/min-zindex}}
     }
-    GROUP BY ?contract ?awardedTender ?bidder
-    HAVING (
-            (COUNT(DISTINCT ?mainObject) >= {{min-main-object-count}})
-            &&
-            (COUNT(DISTINCT ?additionalObject) >= {{min-additional-object-count}})
-          )
-    OFFSET {{offset}}
-    LIMIT {{limit}}
   }
 }
