@@ -1,0 +1,48 @@
+PREFIX pc:      <http://purl.org/procurement/public-contracts#>
+PREFIX xsd:     <http://www.w3.org/2001/XMLSchema#>
+
+SELECT (?findableContracts / xsd:double(?totalContracts) AS ?findableContractsRatio)
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?contract) AS ?totalContracts)
+    WHERE {
+      GRAPH <http://linked.opendata.cz/resource/dataset/vestnikverejnychzakazek.cz/2014-08-25> {
+        ?contract a pc:Contract .
+        FILTER NOT EXISTS {
+          [] pc:lot ?contract .
+        }
+        ?contract pc:awardedTender/pc:bidder [] .
+      }
+    }
+  }
+  {
+    SELECT (COUNT(DISTINCT ?contract) AS ?findableContracts)
+    WHERE {
+      {
+        SELECT ?bidder
+        WHERE {
+          GRAPH <http://linked.opendata.cz/resource/dataset/vestnikverejnychzakazek.cz/2014-08-25> {
+            ?contract a pc:Contract ;
+              pc:awardedTender/pc:bidder ?bidder .
+            FILTER NOT EXISTS {
+              [] pc:lot ?contract .
+            }
+          }
+        }
+        GROUP BY ?bidder
+        HAVING (COUNT(DISTINCT ?contract) > 1)
+      }
+      GRAPH <http://linked.opendata.cz/resource/dataset/vestnikverejnychzakazek.cz/2014-08-25> {
+        ?contract pc:awardedTender/pc:bidder ?bidder .
+        FILTER NOT EXISTS {
+          [] pc:lot ?contract .
+        }
+        {
+          ?contract pc:additionalObject [] .
+        } UNION {
+          ?contract pc:mainObject [] .
+        } 
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+CONSTRUCT {
+  ?pivot owl:sameAs ?member . 
+}
+WHERE {
+  {
+    SELECT DISTINCT (SAMPLE(?member) AS ?pivot) 
+    WHERE {
+      ?member (owl:sameAs|^owl:sameAs)* ?cluster .
+    }
+    GROUP BY ?cluster
+  }
+  ?pivot (owl:sameAs|^owl:sameAs)* ?member .
+  FILTER (!sameTerm(?pivot, ?member))
+}

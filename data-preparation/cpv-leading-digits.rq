@@ -1,0 +1,15 @@
+# CPV codes always have the same 2 leading digits as the top concept of the branch,
+# in which they belong.
+
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+ASK
+WHERE {
+  GRAPH <http://linked.opendata.cz/resource/dataset/cpv-2008> {
+    ?concept a skos:Concept ;
+      skos:inScheme <http://linked.opendata.cz/resource/concept-scheme/cpv-2008> ;
+      skos:broaderTransitive+ ?topConcept .
+    ?topConcept skos:topConceptOf <http://linked.opendata.cz/resource/concept-scheme/cpv-2008> .
+    FILTER (REPLACE(STR(?concept), "^.*\\/(\\d{2})\\d+$", "$1") != REPLACE(STR(?topConcept), "^.*\\/(\\d{2})\\d+$", "$1"))
+  }
+}
