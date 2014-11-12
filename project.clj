@@ -17,6 +17,7 @@
                  [clj-time "0.7.0"]
                  [com.stuartsierra/component "0.2.2"]
                  [stencil "0.3.3"]
+                 [cheshire "5.3.1"]
                  [incanter/incanter-core "1.5.5"]
                  [incanter/incanter-charts "1.5.5"]
                  [org.apache.jena/jena-core "2.11.2"]
@@ -30,7 +31,9 @@
                  [im.chit/cronj "1.0.1"]
                  [prismatic/schema "0.2.4"]
                  [schema-contrib "0.1.3"]
-                 [clojurewerkz/elastisch "2.0.0"]]
+                 [clojurewerkz/elastisch "2.0.0"]
+                 [clj-fuzzy "0.1.8"]
+                 [org.clojure/data.csv "0.1.2"]]
   :main matchmaker.cli
   :aliases {"harvest-json-ld" ["run" "-m" "matchmaker.data-synchronization.sparql-extractor"]
             "index-json-ld" ["run" "-m" "matchmaker.data-synchronization.elasticsearch-loader"]}
@@ -50,4 +53,4 @@
                    :integration :integration
                    :slow :slow
                    :all (constantly true)}
-  :jvm-opts ["-Xss1m"])
+  :jvm-opts ["-Xss1m" "-Xmx4g"])
