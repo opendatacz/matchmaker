@@ -4,9 +4,21 @@
 
 {{> templates/prefixes.mustache}}
 
-SELECT (COUNT(DISTINCT ?businessEntity) AS ?count)
+SELECT (COUNT(?bidder) AS ?count)
 WHERE {
-  GRAPH <{{source-graph}}> {
-    [] pc:bidder ?businessEntity .
+  {
+    SELECT ?bidder
+    WHERE {
+      GRAPH <{{source-graph}}> {
+        ?contract a pc:Contract ;
+          pc:awardedTender/pc:bidder ?bidder ;
+          (pc:mainObject|pc:additionalObject) [] .
+        FILTER NOT EXISTS {
+          [] pc:lot ?contract .
+        }
+      }
+    }
+    GROUP BY ?bidder
+    HAVING (COUNT(DISTINCT ?contract) > 1)
   }
 }
