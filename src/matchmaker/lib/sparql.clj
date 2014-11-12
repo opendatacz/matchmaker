@@ -40,15 +40,6 @@
                           crud-url))
     (method-fn crud-url (merge base-params params))))
 
-(defn- get-count
-  "Return an integer count based on query from @template-path projecting variable ?count."
-  [sparql-endpoint template-path]
-  (-> (select-1-variable sparql-endpoint
-                         :count
-                         template-path)
-      first
-      Integer.))
-
 (defn- get-random-resources
   "Get a list of @number of @resource-type using SPARQL @template-path"
   [sparql-endpoint template-path & {:keys [number resource-type]}]
@@ -135,6 +126,15 @@
   [sparql-endpoint data]
   (util/append-to-uri (:source-graph sparql-endpoint)
                       (util/sha1 data)))
+
+(defn get-count
+  "Return an integer count based on query from @template-path projecting variable ?count."
+  [sparql-endpoint template-path]
+  (-> (select-1-variable sparql-endpoint
+                         :count
+                         template-path)
+      first
+      Integer.))
 
 (defn get-matched-resource
   "Returns a single instance of given @class from @graph-uri."
