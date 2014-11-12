@@ -31,8 +31,7 @@
     :validate [(fn [path] (.exists (clojure.java.io/file path)))]]
    ["-m" "--matchmaker MATCHMAKER" "Matchmaker to benchmark"
     :default "exact-cpv"
-    :validate [(partial contains? matchmakers)]
-   ]
+    :validate [(partial contains? matchmakers)]]
    ["-h" "--help"]])
 
 ; ----- Private functions -----
