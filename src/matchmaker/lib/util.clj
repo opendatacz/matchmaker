@@ -19,10 +19,10 @@
 
 (defn- format-number
   "Returns @number formatted as float-like string
-  trimmed to 2 decimal places."
+  trimmed to 5 decimal places."
   [number]
   (if (number? number)
-      (format "%.2f" (double number))
+      (format "%.5f" (double number))
       number))
 
 ; ----- Public functions -----
