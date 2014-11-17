@@ -1,0 +1,21 @@
+PREFIX adms:    <http://www.w3.org/ns/adms#>
+PREFIX gr:      <http://purl.org/goodrelations/v1#>
+PREFIX pc:      <http://purl.org/procurement/public-contracts#>
+PREFIX schema:  <http://schema.org/>
+PREFIX skos:    <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT ?businessEntity ?legalName ?ico ?addressLocality ?postalCode ?streetAddress
+WHERE {
+  GRAPH <http://linked.opendata.cz/resource/dataset/vestnikverejnychzakazek.cz/2014-08-25> {
+    [] pc:awardedTender/pc:bidder ?businessEntity .
+
+    ?businessEntity a gr:BusinessEntity ;
+      gr:legalName ?legalName ;
+      adms:identifier/skos:notation ?ico ;
+      schema:address ?address .
+
+    ?address schema:addressLocality ?addressLocality ;
+      schema:postalCode ?postalCode ;
+      schema:streetAddress ?streetAddress .
+  }
+}
