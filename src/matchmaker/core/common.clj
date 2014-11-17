@@ -5,6 +5,7 @@
 ; Registry of available matchmakers
 (def matchmakers
   #{"exact-cpv"
+    "exact-cpv-with-idf"
     "exact-cpv-zindex"
     "expand-to-broader-cpv"
     "expand-to-narrower-cpv"
