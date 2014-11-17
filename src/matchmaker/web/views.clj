@@ -1,5 +1,6 @@
 (ns matchmaker.web.views
   (:require [taoensso.timbre :as timbre]
+            [matchmaker.core.common :refer [matchmakers]]
             [matchmaker.lib.template :refer [render-template]]
             [matchmaker.lib.sparql :as sparql]
             [matchmaker.lib.rdf :as rdf]
@@ -429,8 +430,7 @@
          {"@id" (prefix-vocabulary-term ctx "matchmaker-mapping")
           "rdfs:comment" "Identifier of matchmaker to be used"
           "variable" "matchmaker"
-          "property" {"rdfs:range" {"owl:oneOf" ["exact-cpv"
-                                                 "expand-to-narrower-cpv"]}}
+          "property" {"rdfs:range" {"owl:oneOf" matchmakers}}
           "required" false
           "qudt:default" "exact-cpv"}))
 
