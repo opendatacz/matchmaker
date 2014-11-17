@@ -31,9 +31,7 @@
                  [im.chit/cronj "1.0.1"]
                  [prismatic/schema "0.2.4"]
                  [schema-contrib "0.1.3"]
-                 [clojurewerkz/elastisch "2.0.0"]
-                 [clj-fuzzy "0.1.8"]
-                 [org.clojure/data.csv "0.1.2"]]
+                 [clojurewerkz/elastisch "2.0.0"]]
   :main matchmaker.cli
   :aliases {"harvest-json-ld" ["run" "-m" "matchmaker.data-synchronization.sparql-extractor"]
             "index-json-ld" ["run" "-m" "matchmaker.data-synchronization.elasticsearch-loader"]}

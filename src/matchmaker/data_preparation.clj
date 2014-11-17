@@ -1,7 +1,7 @@
 (ns matchmaker.data-preparation
   (:require [taoensso.timbre :as timbre] 
             [matchmaker.lib.util :refer [rescale]]
-            [matchmaker.lib.sparql :refer [graph-exists? load-endpoint put-graph select-query-unlimited]]
+            [matchmaker.lib.sparql :refer [graph-exists? put-graph select-query-unlimited]]
             [matchmaker.lib.rdf :refer [map->turtle]]))
 
 ; ===== CPV IDF =====
@@ -61,8 +61,3 @@
         (put-graph sparql-endpoint
                    cpv-frequencies-turtle
                    cpv-frequencies-graph)))))
-  
-(comment
-  (def sparql-endpoint (:sparql-endpoint (load-endpoint)))
-  (load-cpv-frequencies sparql-endpoint)
-  )

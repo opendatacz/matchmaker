@@ -1,6 +1,6 @@
 (ns matchmaker.integration.resources-test
   (:require [clojure.test :refer :all]
-            [ring.mock.request :refer [request]]
+            [ring.mock.request :refer :all]
             [matchmaker.helpers :refer [matchmaker-fixture
                                         sparql-endpoint
                                         sparql-endpoint-fixture]]
