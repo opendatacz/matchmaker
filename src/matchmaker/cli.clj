@@ -7,7 +7,7 @@
             [environ.core :refer [env]]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.core :refer [run-benchmark]]
-            [matchmaker.core.common :refer [matchmakers]]
+            [matchmaker.core.common :refer [extended-matchmakers]]
             [incanter.core :refer [save]]
             [schema.core :as s]
             [schema-contrib.core :as sc]
@@ -31,7 +31,7 @@
     :validate [(fn [path] (.exists (clojure.java.io/file path)))]]
    ["-m" "--matchmaker MATCHMAKER" "Matchmaker to benchmark"
     :default "exact-cpv"
-    :validate [(partial contains? matchmakers)]]
+    :validate [(partial contains? extended-matchmakers)]]
    ["-h" "--help"]])
 
 ; ----- Private functions -----

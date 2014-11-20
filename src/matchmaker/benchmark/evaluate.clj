@@ -9,8 +9,9 @@
             [incanter.stats :as stats]
             [slingshot.slingshot :refer [try+]]))
 
-(declare avg-rank avg-response-time count-business-entities found? get-matches matches-found
-         matches-found-in-top-10 mean-reciprocal-rank multiplicative-inverse rank)
+(declare avg-rank avg-response-time count-business-entities evaluate-top-100-winning-bidders found?
+         get-matches matches-found matches-found-in-top-10 mean-reciprocal-rank multiplicative-inverse
+         rank)
 
 ; ----- Private vars -----
 
@@ -70,10 +71,10 @@
                                                                      resource
                                                                      :limit limit
                                                                      :matchmaker matchmaker))
-                                :failed? false}
-                               (catch Exception _
-                                 (timbre/debug (format "Matchmaking <%s> failed." resource))
-                                 {:failed? true})))
+                               :failed? false}
+                              (catch Exception _
+                                (timbre/debug (format "Matchmaking <%s> failed." resource))
+                                {:failed? true})))
         eval-fn (fn [{:keys [resource match]}]
                   (let [start-time (System/nanoTime)
                         matches (get-matches-fn resource)]
@@ -82,6 +83,23 @@
                      :resource resource
                      :time (time-difference start-time)})))]
     (remove nil? (map-fn eval-fn correct-matches))))
+
+(defn- evaluate-top-100-winning-bidders
+  "Evaluate ranks of @correct-matches using a baseline of the top 100
+  most frequently winning bidders."
+  [sparql-endpoint correct-matches]
+  (let [top-100-winning-bidders (map :match
+                                     (sparql/select-query sparql-endpoint
+                                                          ["matchmaker" "sparql" "contract"
+                                                           "to" "business_entity"
+                                                           "top_100_winning_bidders"]))
+        eval-fn (fn [{:keys [match]}]
+                  {:rank (let [index (.indexOf top-100-winning-bidders match)]
+                           (if (= index -1)
+                             :infinity
+                             (inc index)))
+                   :time 0})]
+    (map eval-fn correct-matches)))
 
 (defn- found?
   "Predicate returning true for @rank of found match."
@@ -201,12 +219,16 @@
 (defn evaluate-rank
   "Evaluate @matchmaker provided by @matchmaking-endpoint using correct matches for a @benchmark-run."
   [benchmark-run matchmaking-endpoint matchmaker]
-  (let [correct-matches (:correct-matches benchmark-run)
+  (let [sparql-endpoint (get-in benchmark-run [:benchmark :sparql-endpoint])
+        correct-matches (:correct-matches benchmark-run)
         limit (get-in benchmark-run [:benchmark :config :benchmark :max-number-of-results])]
-    (evaluate-correct-matches matchmaking-endpoint
-                              correct-matches
-                              :limit limit
-                              :matchmaker matchmaker)))
+    (case matchmaker
+      "top-100-winning-bidders" (evaluate-top-100-winning-bidders sparql-endpoint
+                                                                  correct-matches)
+      :else (evaluate-correct-matches matchmaking-endpoint
+                                      correct-matches
+                                      :limit limit
+                                      :matchmaker matchmaker))))
 
 (defn get-metrics-p-values
   "Compare metrics of evaluation results @a and @b.

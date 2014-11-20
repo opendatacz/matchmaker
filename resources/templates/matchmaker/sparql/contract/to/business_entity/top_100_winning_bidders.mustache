@@ -1,0 +1,16 @@
+{{!
+@param IRI source-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?match 
+WHERE {
+  GRAPH <{{source-graph}}> {
+    ?contract a pc:Contract ;
+    pc:awardedTender/pc:bidder ?match .
+  }
+}
+GROUP BY ?match
+ORDER BY DESC(COUNT(DISTINCT ?contract))
+LIMIT 100
