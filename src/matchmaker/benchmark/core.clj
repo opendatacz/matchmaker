@@ -138,5 +138,5 @@
                                       :offset offset))]
     (try (->> (get-in benchmark [:benchmark :limits-and-offsets])
               (map single-run-fn)
-              (doall))
+              doall)
          (finally (component/stop benchmark)))))
