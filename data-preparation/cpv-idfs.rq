@@ -1,0 +1,17 @@
+PREFIX ex: <http://example.com/>
+
+SELECT ?notation (STR(?_label) AS ?label) ?explicitIdf ?inferredIdf
+WHERE {
+  GRAPH <http://linked.opendata.cz/resource/dataset/vestnikverejnychzakazek.cz/2014-08-25/explicit-cpv-idfs> {
+    ?cpv ex:idf ?explicitIdf .
+  }
+  GRAPH <http://linked.opendata.cz/resource/dataset/vestnikverejnychzakazek.cz/2014-08-25/inferred-cpv-idfs> {
+    ?cpv ex:idf ?inferredIdf .
+  }
+  GRAPH <http://linked.opendata.cz/resource/dataset/cpv-2008> {
+    ?cpv skos:prefLabel ?_label ;
+      skos:notation ?notation .
+    FILTER (langMatches(lang(?_label), "en"))
+  }
+}
+ORDER BY ASC(?explicitIdf)
