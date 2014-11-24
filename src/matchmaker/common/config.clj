@@ -14,10 +14,13 @@
                    config-file-path]
         data (reduce util/deep-merge (map (comp edn/read-string slurp) filenames))
         source-graph (get-in data [:data :source-graph])
-        [sample-graph metadata-graph cpv-frequencies] (map (partial util/append-to-uri source-graph)
-                                                           ["benchmark" "metadata" "cpv-frequencies"])]
+        [sample-graph metadata-graph
+         explicit-cpv-idfs inferred-cpv-idfs] (map (partial util/append-to-uri source-graph)
+                                                   ["benchmark" "metadata"
+                                                    "explicit-cpv-idfs" "inferred-cpv-idfs"])]
     (util/deep-merge data {:benchmark {:sample {:graph sample-graph}}
-                           :data {:cpv-frequencies-graph cpv-frequencies
+                           :data {:explicit-cpv-idfs-graph explicit-cpv-idfs
+                                  :inferred-cpv-idfs-graph inferred-cpv-idfs
                                   :metadata-graph metadata-graph}})))
 
 ;; ----- Components -----

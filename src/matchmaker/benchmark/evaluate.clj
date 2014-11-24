@@ -225,10 +225,10 @@
     (case matchmaker
       "top-100-winning-bidders" (evaluate-top-100-winning-bidders sparql-endpoint
                                                                   correct-matches)
-      :else (evaluate-correct-matches matchmaking-endpoint
-                                      correct-matches
-                                      :limit limit
-                                      :matchmaker matchmaker))))
+      (evaluate-correct-matches matchmaking-endpoint
+                                correct-matches
+                                :limit limit
+                                :matchmaker matchmaker))))
 
 (defn get-metrics-p-values
   "Compare metrics of evaluation results @a and @b.

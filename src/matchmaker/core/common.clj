@@ -8,6 +8,7 @@
     "exact-cpv-with-idf"
     "exact-cpv-zindex"
     "expand-to-broader-cpv"
+    "expand-to-broader-cpv-with-idf"
     "expand-to-narrower-cpv"
     "expand-to-narrower-cpv-with-idf"})
 

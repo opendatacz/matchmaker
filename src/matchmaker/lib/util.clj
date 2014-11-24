@@ -131,7 +131,8 @@
 
 (defn rescale
   "Rescale number @n from internal <@min1, @max1>
-  to the interval <@min2, @max2>."
+  to the interval <@min2, @max2>.
+  Also known as maprange."
   [n [min1 max1] [min2 max2]]
   (+ min2 (/ (* (- n min1) (- max2 min2))
              (- max1 min1))))

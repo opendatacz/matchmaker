@@ -24,6 +24,10 @@
                    :username  ""
                    :password  ""}
  :matchmaker {:sparql {; Use to set penalty for pc:additionalObject compared to pc:mainObject.
-                       :additional-object-inhibition 0.8
+                       :additional-object-inhibition 0.2
                        :cpv-graph ""
+                       :inferred-object-inhibition 0.5
+                       ; Settings for matchmaking using expansion of CPV concepts
+                       :query-expansion {:hops-to-broader 0
+                                         :hops-to-narrower 0}
                        :zindex-graph ""}}}

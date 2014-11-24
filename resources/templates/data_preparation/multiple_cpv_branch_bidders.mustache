@@ -1,0 +1,30 @@
+{{!
+@param IRI source-graph
+@param IRI cpv-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?branchCount (COUNT(DISTINCT ?bidder) AS ?bidderCount)
+WHERE {
+  {
+    SELECT ?bidder (COUNT(DISTINCT ?branch) AS ?branchCount)
+    WHERE {
+      GRAPH <{{source-graph}}> {
+        VALUES ?objectProperty {
+          pc:mainObject
+          pc:additionalObject
+        }
+        [] a pc:Contract ;
+          ?objectProperty ?cpv ;
+          pc:awardedTender/pc:bidder ?bidder .
+      }
+      GRAPH <{{cpv-graph}}> {
+        ?cpv skos:notation ?notation .
+        BIND (SUBSTR(?notation, 1, 3) AS ?branch)
+      }
+    }
+    GROUP BY ?bidder
+  }
+}
+GROUP BY ?branchCount

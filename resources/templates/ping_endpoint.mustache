@@ -1,3 +1,10 @@
-ASK {
-  [] ?p [] .
+{{!
+@param IRI source-graph
+}}
+
+ASK 
+WHERE {
+  GRAPH <{{source-graph}}> {
+    [] ?p [] .
+  }
 }

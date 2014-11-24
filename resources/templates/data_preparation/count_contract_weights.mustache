@@ -1,0 +1,26 @@
+{{!
+@param IRI source-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT (SUM(?contractWeight) AS ?count) 
+WHERE {
+  {
+    SELECT DISTINCT ?contract ?contractWeight
+    WHERE {
+      GRAPH <{{source-graph}}> {
+        VALUES ?objectProperty {
+          pc:mainObject
+          pc:additionalObject
+        }
+        ?contract a pc:Contract ;
+          ?objectProperty [] .
+        OPTIONAL {
+          ?parentContract pc:lot ?contract .
+        }
+        BIND (IF(BOUND(?parentContract), 0.5, 1) AS ?contractWeight)
+      }
+    }
+  }
+}
