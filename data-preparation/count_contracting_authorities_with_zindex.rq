@@ -1,0 +1,18 @@
+PREFIX adms: <http://www.w3.org/ns/adms#>
+PREFIX pc: <http://purl.org/procurement/public-contracts#>
+PREFIX pccz: <http://purl.org/procurement/public-contracts-czech#>
+PREFIX rov: <http://www.w3.org/ns/regorg#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT (COUNT(DISTINCT ?ca) AS ?count)
+WHERE {
+  GRAPH <http://linked.opendata.cz/resource/dataset/vestnikverejnychzakazek.cz/2014-08-25> {
+    [] a pc:Contract ;
+      pc:contractingAuthority ?ca .
+    ?ca adms:identifier/skos:notation ?identifier .
+  }
+  GRAPH <http://linked.opendata.cz/resource/zindex/2014-10-16> {
+    [] pccz:zindex ?_zindex ;
+      rov:registration/skos:notation ?identifier .
+  }
+}
