@@ -15,4 +15,5 @@
 (def extended-matchmakers
   "Registry of matchmakers including the private ones"
   (clojure.set/union matchmakers
-                     #{"top-100-winning-bidders"}))
+                     #{"top-100-winning-bidders"
+                       "top-100-page-rank-bidders"}))

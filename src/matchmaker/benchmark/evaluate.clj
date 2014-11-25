@@ -9,9 +9,9 @@
             [incanter.stats :as stats]
             [slingshot.slingshot :refer [try+]]))
 
-(declare avg-rank avg-response-time count-business-entities evaluate-top-100-winning-bidders found?
-         get-matches matches-found matches-found-in-top-10 mean-reciprocal-rank multiplicative-inverse
-         rank)
+(declare avg-rank avg-response-time count-business-entities evaluate-top-100-winning-bidders
+         evaluate-top-100-page-rank-bidders found? get-matches matches-found
+         matches-found-in-top-10 mean-reciprocal-rank multiplicative-inverse rank)
 
 ; ----- Private vars -----
 
@@ -84,22 +84,37 @@
                      :time (time-difference start-time)})))]
     (remove nil? (map-fn eval-fn correct-matches))))
 
-(defn- evaluate-top-100-winning-bidders
-  "Evaluate ranks of @correct-matches using a baseline of the top 100
-  most frequently winning bidders."
-  [sparql-endpoint correct-matches]
-  (let [top-100-winning-bidders (map :match
-                                     (sparql/select-query sparql-endpoint
-                                                          ["matchmaker" "sparql" "contract"
-                                                           "to" "business_entity"
-                                                           "top_100_winning_bidders"]))
+(defn- evaluate-top-100-bidders
+  "Evaluate top 100 matches from @template-path SPARQL query using @correct-matches."
+  [sparql-endpoint template-path correct-matches]
+  (let [top-100-bidders (map :match (sparql/select-query sparql-endpoint template-path))
         eval-fn (fn [{:keys [match]}]
-                  {:rank (let [index (.indexOf top-100-winning-bidders match)]
+                  {:rank (let [index (.indexOf top-100-bidders match)]
                            (if (= index -1)
                              :infinity
                              (inc index)))
                    :time 0})]
     (map eval-fn correct-matches)))
+
+(defn- evaluate-top-100-page-rank-bidders
+  "Evaluate ranks of @correct-matches using a baseline of the top 100
+  bidders with highest Virtuoso's Entity Rank."
+  [sparql-endpoint correct-matches]
+  (evaluate-top-100-bidders sparql-endpoint
+                            ["matchmaker" "sparql" "contract"
+                             "to" "business_entity"
+                             "top_100_page_rank_bidders"]
+                            correct-matches))
+
+(defn- evaluate-top-100-winning-bidders
+  "Evaluate ranks of @correct-matches using a baseline of the top 100
+  most frequently winning bidders."
+  [sparql-endpoint correct-matches]
+  (evaluate-top-100-bidders sparql-endpoint
+                            ["matchmaker" "sparql" "contract"
+                             "to" "business_entity"
+                             "top_100_winning_bidders"]
+                            correct-matches))
 
 (defn- found?
   "Predicate returning true for @rank of found match."
@@ -225,6 +240,8 @@
     (case matchmaker
       "top-100-winning-bidders" (evaluate-top-100-winning-bidders sparql-endpoint
                                                                   correct-matches)
+      "top-100-page-rank-bidders" (evaluate-top-100-page-rank-bidders sparql-endpoint
+                                                                      correct-matches)
       (evaluate-correct-matches matchmaking-endpoint
                                 correct-matches
                                 :limit limit
