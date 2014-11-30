@@ -72,21 +72,36 @@
 
 (defrecord Benchmark [number-of-runs]
   component/Lifecycle
-  (start [{{{:keys [process sample]} :benchmark} :config
+  (start [{{{:keys [data-reduction process sample]} :benchmark} :config
            :keys [sparql-endpoint]
            :as benchmark}]
-    (timbre/debug (format "Starting benchmark using %s with %d runs."
-                          (name process)
-                          number-of-runs))
-    (setup/sufficient-data? sparql-endpoint)
-    (setup/single-winner? sparql-endpoint)
-    (assoc benchmark
-           :limits-and-offsets (get-limits-and-offsets process
-                                                       :contract-count (count-contracts sparql-endpoint sample)
-                                                       :number-of-runs number-of-runs
-                                                       :sample-size (:size sample))))
-  (stop [benchmark]
+    (let [contract-count (count-contracts sparql-endpoint sample)
+          data-reduced? (< data-reduction 1)]
+      (timbre/debug (format "Starting benchmark using %s with %d runs."
+                            (name process)
+                            number-of-runs))
+      (setup/sufficient-data? sparql-endpoint)
+      (setup/single-winner? sparql-endpoint)
+      (when data-reduced?
+        (timbre/debug (format "Reducing data to %s %%." (* data-reduction 100)))
+        (setup/reduce-data sparql-endpoint contract-count data-reduction))
+      (assoc benchmark
+             :limits-and-offsets (get-limits-and-offsets
+                                   process
+                                   :contract-count (if data-reduced?
+                                                     ; If data was reduced, we need to
+                                                     ; recompute the contract count.
+                                                     (count-contracts sparql-endpoint sample)
+                                                     contract-count)
+                                   :number-of-runs number-of-runs
+                                   :sample-size (:size sample)))))
+  (stop [{{{:keys [data-reduction]} :benchmark} :config
+          :keys [sparql-endpoint]
+          :as benchmark}]
     (timbre/debug "Stopping benchmark...")
+    (when (< data-reduction 1)
+      (timbre/debug "Returning back reduced data.") 
+      (teardown/return-reduced-data sparql-endpoint))
     benchmark))
 
 (defrecord BenchmarkRun [limit offset]

@@ -1,0 +1,22 @@
+{{!
+@param IRI source-graph
+@param IRI withheld-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+DELETE {
+  GRAPH <{{withheld-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+}
+INSERT {
+  GRAPH <{{source-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+}
+WHERE {
+  GRAPH <{{withheld-graph}}> {
+    ?contract pc:awardedTender ?awardedTender .
+  }
+}

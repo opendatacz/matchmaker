@@ -34,6 +34,25 @@
                                         ["benchmark" "setup" "load_correct_matches"]
                                         :limit 5000)))
 
+(defn reduce-data
+  "Reduce the amount of available contracts (@contract-count)
+  by @reduction-ratio from (0, 1]."
+  [sparql-endpoint contract-count reduction-ratio]
+  {:pre [(integer? contract-count)
+        (pos? contract-count)
+        (number? reduction-ratio)
+        (and (> reduction-ratio 0) (<= reduction-ratio 1))]}
+  (let [contracts-to-withhold (int (* contract-count (- 1 reduction-ratio)))
+        offset (rand-int (inc (- contract-count contracts-to-withhold)))
+        withheld-graph (get-in sparql-endpoint [:config :data :withheld-graph])
+        sample-selection-criteria (get-in sparql-endpoint [:config :benchmark :sample])]
+    (sparql/sparql-update sparql-endpoint
+                          ["benchmark" "setup" "reduce_contracts"]
+                          :data (assoc sample-selection-criteria
+                                       :limit contracts-to-withhold
+                                       :offset offset
+                                       :withheld-graph withheld-graph))))
+
 (defn single-winner?
   "Raises an exception if @sparql-endpoint contains contracts with more than 1 winner."
   [sparql-endpoint]
