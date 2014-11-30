@@ -5,7 +5,7 @@
 @param IRI   cpv-graph
 @param IRI   explicit-cpv-idfs-graph
 @param IRI   inferred-cpv-idfs-graph
-@param float additional-object-inhibition
+@param map   additional-object-inhibition
 @param float inferred-object-inhibition
 @param map   query-expansion
 }}
@@ -31,7 +31,7 @@ WHERE {
                   }
                 }
               } UNION {
-                SELECT ?cpv ({{additional-object-inhibition}} * ?idf AS ?inScoreModifier)
+                SELECT ?cpv ({{additional-object-inhibition.in}} * ?idf AS ?inScoreModifier)
                 WHERE {
                   GRAPH <{{matched-resource-graph}}> {
                     <{{contract}}> pc:additionalObject ?cpv .
