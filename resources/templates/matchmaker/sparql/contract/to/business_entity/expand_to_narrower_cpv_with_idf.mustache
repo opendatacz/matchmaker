@@ -4,9 +4,10 @@
 @param IRI   source-graph
 @param IRI   cpv-graph
 @param IRI   explicit-cpv-idfs-graph
-@param float additional-object-inhibition
-@param int   limit
-@param int   offset (optional)
+@param IRI   inferred-cpv-idfs-graph
+@param map   additional-object-inhibition
+@param float inferred-object-inhibition
+@param map   query-expansion
 }}
 
 {{> templates/prefixes.mustache}}
@@ -14,41 +15,56 @@
 SELECT ?match (SAMPLE(?_label) AS ?label) ?score
 WHERE {
   {
-    SELECT ?match (SUM(?inScoreModifier * ?idfModifier * ?outScoreModifier * ?contractCount) AS ?score) 
+    SELECT ?match (SUM(?inScoreModifier * ?outScoreModifier * ?contractCount) AS ?score) 
     WHERE {
       {
-        SELECT ?match ?inScoreModifier ?idfModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+        SELECT ?match ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
         WHERE {
           {
-            SELECT DISTINCT ?cpvObject ?inScoreModifier ?idfModifier
+            SELECT ?cpv ?inScoreModifier
             WHERE {
-              GRAPH <{{matched-resource-graph}}> {
-                {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
-                <{{contract}}> ?objectProperty ?sourceObject .
-              }
-              GRAPH <{{cpv-graph}}> {
-                ?sourceObject skos:narrowerTransitive* ?cpvObject .
-              }
-              GRAPH <{{cpv-frequencies-graph}}> {
-                ?cpvObject ex:frequency ?idfModifier .
+              {
+                SELECT ?cpv (1 AS ?inScoreModifier)
+                WHERE {
+                  GRAPH <{{matched-resource-graph}}> {
+                    <{{contract}}> pc:mainObject ?cpv .
+                  }
+                }
+              } UNION {
+                SELECT ?cpv ({{additional-object-inhibition.in}} * ?idf AS ?inScoreModifier)
+                WHERE {
+                  GRAPH <{{matched-resource-graph}}> {
+                    <{{contract}}> pc:additionalObject ?cpv .
+                  }
+                  GRAPH <{{explicit-cpv-idfs-graph}}> {
+                    ?cpv ex:idf ?idf .
+                  }
+                }
+              } UNION {
+                SELECT ?cpv ({{inferred-object-inhibition}} * ?idf AS ?inScoreModifier)
+                WHERE {
+                  GRAPH <{{matched-resource-graph}}> {
+                    <{{contract}}> pc:mainObject ?_cpv .
+                  }
+                  GRAPH <{{cpv-graph}}> {
+                    ?_cpv skos:narrowerTransitive{1,{{query-expansion.hops-to-narrower}}} ?cpv .
+                  }
+                  GRAPH <{{inferred-cpv-idfs-graph}}> {
+                    ?cpv ex:idf ?idf .
+                  }
+                }
               }
             }
           }
           GRAPH <{{source-graph}}> {
             {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
-            {
-              ?contract pc:awardedTender [
-                  pc:bidder ?match
-                ] ;
-                ?objectProperty ?cpvObject .
-            } UNION {
-              {{> templates/matchmaker/sparql/partials/business_entity_classes.mustache}}
-              ?match a ?businessEntityClass ;
-                ?objectProperty ?cpvObject .
-            }
+            ?contract pc:awardedTender [
+                pc:bidder ?match
+              ] ;
+              ?objectProperty ?cpv .
           }
         }
-        GROUP BY ?match ?inScoreModifier ?idfModifier ?outScoreModifier
+        GROUP BY ?match ?inScoreModifier ?outScoreModifier
       }
     }
     GROUP BY ?match
@@ -59,9 +75,8 @@ WHERE {
     {{/offset}}
   }
   GRAPH <{{source-graph}}> {
-    {{> templates/matchmaker/sparql/partials/business_entity_legal_names.mustache}}
     OPTIONAL {
-      ?match ?businessEntityLegalName ?_label .
+      ?match gr:legalName ?_label .
     }
   }
 }
