@@ -97,6 +97,16 @@
                              "to" "business_entity" "exact_cpv"]
                   :view-fn views/match-contract-to-business-entity))
 
+(defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv-max"
+                                   :source "contract"
+                                   :target "business-entity"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "exact_cpv_max"]
+                  :view-fn views/match-contract-to-business-entity))
+
 (defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv-with-idf"
                                    :source "contract"
                                    :target "business-entity"}
@@ -155,6 +165,26 @@
                   :resource-key :contract
                   :template ["matchmaker" "sparql" "contract"
                              "to" "business_entity" "expand_to_narrower_cpv_with_idf"]
+                  :view-fn views/match-contract-to-business-entity))
+
+(defmethod dispatch-to-matchmaker {:matchmaker "expand-to-bidi-cpv-with-idf"
+                                   :source "contract"
+                                   :target "business-entity"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "expand_to_bidi_cpv_with_idf"]
+                  :view-fn views/match-contract-to-business-entity))
+
+(defmethod dispatch-to-matchmaker {:matchmaker "expand-to-sibling-cpv-with-idf"
+                                   :source "contract"
+                                   :target "business-entity"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "expand_to_sibling_cpv_with_idf"]
                   :view-fn views/match-contract-to-business-entity))
 
 (defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv"
