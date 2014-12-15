@@ -48,6 +48,7 @@ WHERE {
                   }
                   GRAPH <{{cpv-graph}}> {
                     ?_cpv skos:broaderTransitive/skos:narrowerTransitive ?cpv .
+                    FILTER (!sameTerm(?cpv, ?_cpv))
                   }
                   GRAPH <{{inferred-cpv-idfs-graph}}> {
                     ?cpv ex:idf ?idf .
