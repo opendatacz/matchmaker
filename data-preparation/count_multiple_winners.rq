@@ -1,0 +1,20 @@
+PREFIX pc: <http://purl.org/procurement/public-contracts#>
+
+
+SELECT (COUNT(?contract) AS ?count)
+WHERE {
+  {
+    SELECT ?contract
+    WHERE {
+      GRAPH <http://linked.opendata.cz/resource/dataset/ted.europa.eu/be-fused/20140901> {
+        ?contract a pc:Contract ;
+          pc:awardedTender/pc:bidder ?winner .
+        FILTER NOT EXISTS {
+          [] pc:lot ?contract .
+        }
+      }
+    }
+    GROUP BY ?contract
+    HAVING (COUNT(DISTINCT ?winner) > 1)
+  }
+}
