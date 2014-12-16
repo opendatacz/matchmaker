@@ -153,5 +153,6 @@
                                       :offset offset))]
     (try (->> (get-in benchmark [:benchmark :limits-and-offsets])
               (map single-run-fn)
+              (evaluate/postprocess-results (:sparql-endpoint benchmark))
               doall)
          (finally (component/stop benchmark)))))

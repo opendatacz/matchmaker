@@ -44,17 +44,15 @@
                 metadata {:config config
                           :matchmaker matchmaker
                           :number-of-runs number-of-runs}
-                results (run-benchmark endpoint matchmaker number-of-runs)
-                metrics (evaluate/compute-metrics evaluation-metrics results)
-                output-name (str (util/date-now)
-                                 "-"
-                                 matchmaker
-                                 "-"
-                                 (util/uuid))
+                result (run-benchmark endpoint matchmaker number-of-runs)
+                results (:results result)
+                metrics (assoc (evaluate/compute-metrics evaluation-metrics results)
+                               :catalog-coverage (:catalog-coverage result))
+                output-name (str (util/date-now) "-" matchmaker "-" (util/uuid))
                 output-path (util/join-file-path diagram-path output-name)
                 data-file (str output-path ".edn")
                 diagram-file (str output-path ".png")]
-            (println (util/format-numbers metrics))
+            (println (util/format-numbers (update-in metrics [:catalog-coverage] util/format-numbers)))
             (spit data-file (pr-str {:metadata metadata
                                      :metrics metrics
                                      :results results}))

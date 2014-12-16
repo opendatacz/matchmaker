@@ -4,6 +4,7 @@
             [matchmaker.lib.sparql :as sparql]
             [matchmaker.lib.util :as util]
             [clj-http.client :as client]
+            [clojure.set :refer [union]]
             [clojure.edn :as edn]
             [incanter.charts :as charts]
             [incanter.stats :as stats]
@@ -25,6 +26,20 @@
    :mean-reciprocal-rank #'mean-reciprocal-rank})
 
 ; ----- Private functions -----
+
+(defn- aggregate-catalog-coverage
+  "Aggregate catalog coverage results from individual runs in @benchmark-results."
+  [sparql-endpoint benchmark-results]
+  (letfn [(bidders-ratio [n] (/ n (get-in sparql-endpoint [:counts :business-entities])))]
+    (into {}
+      (for [top-k (-> benchmark-results first :distinct-matches keys)
+            :let [get-top-k (fn [m] (get m top-k))]]
+        [top-k
+         (->> (map (comp get-top-k :distinct-matches)
+                   benchmark-results)
+              (apply union)
+              count
+              bidders-ratio)]))))
 
 (defn- avg-rank
   "Returns the average rank of correct matches in results."
@@ -64,7 +79,10 @@
   [matchmaking-endpoint correct-matches & {:keys [limit matchmaker max-retries parallel?]
                                            :or {max-retries 5
                                                 parallel? true}}]
-  (let [map-fn (if parallel? pmap map)
+  (let [distinct-matches (atom {10 #{}
+                                20 #{}
+                                50 #{}})
+        map-fn (if parallel? pmap map)
         get-matches-fn (fn [resource]
                          (try {:matches (util/try-times 5
                                                         (get-matches matchmaking-endpoint
@@ -78,11 +96,16 @@
         eval-fn (fn [{:keys [resource match]}]
                   (let [start-time (System/nanoTime)
                         matches (get-matches-fn resource)]
-                  (when-not (:failed? matches) 
+                  (when-not (:failed? matches)
+                    (swap! distinct-matches
+                           (fn [a] (into {} (for [[n acc] a]
+                                              [n (union acc (set (take n (:matches matches))))]))))
                     {:rank (rank (:matches matches) match)
                      :resource resource
-                     :time (time-difference start-time)})))]
-    (remove nil? (map-fn eval-fn correct-matches))))
+                     :time (time-difference start-time)})))
+        results (doall (remove nil? (map-fn eval-fn correct-matches)))]
+    {:results results 
+     :distinct-matches (deref distinct-matches)}))
 
 (defn- evaluate-top-100-bidders
   "Evaluate top 100 matches from @template-path SPARQL query using @correct-matches."
@@ -94,7 +117,8 @@
                              :infinity
                              (inc index)))
                    :time 0})]
-    (map eval-fn correct-matches)))
+    {:results (map eval-fn correct-matches)
+     :distinct-matches (into {} (map (juxt identity (comp set #(take % top-100-bidders))) [10 20 50]))}))
 
 (defn- evaluate-top-100-page-rank-bidders
   "Evaluate ranks of @correct-matches using a baseline of the top 100
@@ -275,6 +299,13 @@
                             :p-value (get-p-value ranks-a
                                                   ranks-b
                                                   :transform-fn multiplicative-inverse)}}))
+
+(defn postprocess-results
+  "Postprocess evaluation results.
+  So far computes only catalog coverage."
+  [sparql-endpoint benchmark-results]
+  {:catalog-coverage (aggregate-catalog-coverage sparql-endpoint benchmark-results)
+   :results (map :results benchmark-results)})
 
 (defn top-n-curve-chart
   "Create line chart for top N results in @benchmark-results."
