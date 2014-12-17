@@ -38,7 +38,7 @@
   :plugins [[lein-ring "0.8.13"]]
   :profiles {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                                   [ring-mock "0.1.5"]
-                                  [org.clojure/test.check "0.5.8"]]
+                                  [org.clojure/test.check "0.6.1"]]
                    :env {:dev true}
                    :resource-paths ["test/resources"]}
              :uberjar {:aot :all}}
