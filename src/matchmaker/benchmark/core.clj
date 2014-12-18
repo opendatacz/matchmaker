@@ -2,7 +2,7 @@
   (:require [taoensso.timbre :as timbre]
             [environ.core :refer [env]]
             [matchmaker.common.config :refer [->Config]]
-            [matchmaker.lib.sparql :refer [select-1-variable ->SparqlEndpoint]]
+            [matchmaker.lib.sparql :refer [get-count select-1-variable ->SparqlEndpoint]]
             [matchmaker.benchmark.setup :as setup]
             [matchmaker.benchmark.evaluate :as evaluate]
             [matchmaker.benchmark.teardown :as teardown]
@@ -86,6 +86,10 @@
         (timbre/debug (format "Reducing data to %s %%." (* data-reduction 100)))
         (setup/reduce-data sparql-endpoint contract-count data-reduction))
       (assoc benchmark
+             :bidders-count (if data-reduced?
+                              ; If data was reduced, we need to re-COUNT bidders.
+                              (get-count sparql-endpoint ["count_business_entities"])
+                              (get-in sparql-endpoint [:counts :business-entities]))
              :limits-and-offsets (get-limits-and-offsets
                                    process
                                    :contract-count (if data-reduced?
@@ -153,6 +157,6 @@
                                       :offset offset))]
     (try (->> (get-in benchmark [:benchmark :limits-and-offsets])
               (map single-run-fn)
-              (evaluate/postprocess-results (:sparql-endpoint benchmark))
+              (evaluate/postprocess-results (:benchmark benchmark))
               doall)
          (finally (component/stop benchmark)))))

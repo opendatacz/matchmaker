@@ -29,8 +29,8 @@
 
 (defn- aggregate-catalog-coverage
   "Aggregate catalog coverage results from individual runs in @benchmark-results."
-  [sparql-endpoint benchmark-results]
-  (letfn [(bidders-ratio [n] (/ n (get-in sparql-endpoint [:counts :business-entities])))]
+  [benchmark benchmark-results]
+  (letfn [(bidders-ratio [n] (/ n (:bidders-count benchmark)))]
     (into {}
       (for [top-k (-> benchmark-results first :distinct-matches keys)
             :let [get-top-k (fn [m] (get m top-k))]]
@@ -303,8 +303,8 @@
 (defn postprocess-results
   "Postprocess evaluation results.
   So far computes only catalog coverage."
-  [sparql-endpoint benchmark-results]
-  {:catalog-coverage (aggregate-catalog-coverage sparql-endpoint benchmark-results)
+  [benchmark benchmark-results]
+  {:catalog-coverage (aggregate-catalog-coverage benchmark benchmark-results)
    :results (map :results benchmark-results)})
 
 (defn top-n-curve-chart
