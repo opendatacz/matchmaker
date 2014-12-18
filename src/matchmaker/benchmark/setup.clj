@@ -61,7 +61,7 @@
   by @reduction-ratio from (0, 1].
   Randomize contract selection in number of @windows."
   [sparql-endpoint contract-count reduction-ratio & {:keys [windows]
-                                                     :or {windows 10}}]
+                                                     :or {windows 25}}]
   (let [splits (get-splits contract-count windows reduction-ratio)
         withheld-graph (get-in sparql-endpoint [:config :data :withheld-graph])
         sample-selection-criteria (get-in sparql-endpoint [:config :benchmark :sample])]
