@@ -87,8 +87,10 @@
   (let [{{:keys [help]
           :as options} :options
          :keys [errors summary]} (parse-opts args cli-options)
-        config (component/start (->Config (:matchmaker-config env)))]
-    (cond help (println summary)
-          errors (println (error-msg errors))
-          :else (benchmark config 
+        config-path (:matchmaker-config env)]
+    (cond help (util/exit 0 summary)
+          errors (util/exit 1 (error-msg errors))
+          (nil? config-path) (util/exit 1 (str "MATCHMAKER_CONFIG environment variable must "
+                                               "be set to the path to the configuration file."))
+          :else (benchmark (component/start (->Config config-path)) 
                            options))))

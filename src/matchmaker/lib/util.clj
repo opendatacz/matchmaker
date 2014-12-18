@@ -64,7 +64,8 @@
     (last maps)))
 
 (defn exit
-  "Exit with @status and message @msg"
+  "Exit with @status and message @msg.
+  @status 0 is OK, @status 1 indicates error."
   [^Integer status
    ^String msg]
   (println msg)
