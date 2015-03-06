@@ -6,5 +6,5 @@ WHERE {
     SELECT ?match (SUM(?inScoreModifier * ?outScoreModifier * ?contractCount) AS ?score) 
     WHERE {
       {
-        SELECT ?match ?inScoreModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+        SELECT ?match ?inScoreModifier ?outScoreModifier (COUNT(?contract) AS ?contractCount)
         WHERE {

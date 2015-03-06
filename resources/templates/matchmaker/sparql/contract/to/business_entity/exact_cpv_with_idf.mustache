@@ -16,7 +16,7 @@ WHERE {
     SELECT ?match (SUM(?inScoreModifier * ?idfModifier * ?outScoreModifier * ?contractCount) AS ?score) 
     WHERE {
       {
-        SELECT ?match ?inScoreModifier ?idfModifier ?outScoreModifier (COUNT(DISTINCT ?contract) AS ?contractCount)
+        SELECT ?match ?inScoreModifier ?idfModifier ?outScoreModifier (COUNT(?contract) AS ?contractCount)
         WHERE {
           {
             SELECT ?cpvObject ?inScoreModifier ?idfModifier
