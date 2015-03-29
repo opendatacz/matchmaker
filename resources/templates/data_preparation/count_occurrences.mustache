@@ -1,0 +1,48 @@
+{{!
+@param IRI source-graph
+@param int limit
+@param int offset
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?cpv ?idf
+WHERE {
+  {
+    SELECT ?cpv (?contractCount/?cpvCount + 1 AS ?idf)
+    WHERE {
+      {
+        SELECT (COUNT(DISTINCT ?contract) AS ?contractCount)
+        WHERE {
+          GRAPH <{{source-graph}}> {
+            VALUES ?objectProperty {
+              pc:mainObject
+              pc:additionalObject
+            }
+            ?contract a pc:Contract ;
+              pc:awardedTender/pc:bidder [] ;
+              ?objectProperty [] .
+          }
+        }
+      }
+      {
+        SELECT ?cpv (xsd:float(COUNT(DISTINCT ?contract)) AS ?cpvCount)
+        WHERE {
+          GRAPH <{{source-graph}}> {
+            VALUES ?objectProperty {
+              pc:mainObject
+              pc:additionalObject
+            }
+            ?contract a pc:Contract ;
+              pc:awardedTender/pc:bidder [] ;
+              ?objectProperty ?cpv .
+          }
+        }
+        GROUP BY ?cpv
+      }
+    }
+    ORDER BY DESC(?idf)
+  }
+}
+LIMIT {{limit}}
+OFFSET {{offset}}
