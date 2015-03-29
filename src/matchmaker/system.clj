@@ -40,9 +40,8 @@
 (defn init
   "Start of the matchmaker system."
   []
-  (let [config-file-path (:matchmaker-config env)]
-    (if-not (nil? config-file-path)
-            (do
-              (alter-var-root #'system (fn [_] (component/start (matchmaker-system config-file-path))))
-              (timbre/debug "System started."))
-            (throw (Exception. "Environment variable MATCHMAKER_CONFIG is not set.")))))
+  (if-let [config-file-path (:matchmaker-config env)]
+    (do
+      (alter-var-root #'system (fn [_] (component/start (matchmaker-system config-file-path))))
+      (timbre/debug "System started."))
+    (throw (Exception. "Environment variable MATCHMAKER_CONFIG is not set."))))
