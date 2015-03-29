@@ -1,0 +1,22 @@
+{{!
+@param IRI cpv-graph
+@param IRI cpv-idfs-graph
+}}
+
+{{> templates/prefixes.mustache}}
+
+INSERT {
+  GRAPH <{{cpv-idfs-graph}}> {
+    ?cpv ex:idf 1 .
+  }
+}
+WHERE {
+  GRAPH <{{cpv-graph}}> {
+    ?cpv a skos:Concept .
+  }
+  FILTER NOT EXISTS {
+    GRAPH <{{cpv-idfs-graph}}> {
+      ?cpv ex:idf [] .
+    }
+  }
+}

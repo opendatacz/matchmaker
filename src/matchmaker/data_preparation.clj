@@ -8,13 +8,30 @@
 
 ; ----- Private functions -----
 
+(defn- add-not-found-cpv-idfs
+  "Add default IDF for CPV concepts not found in the used dataset.
+  NOTE: This is necessary due to query expansion, which can infer concepts
+  that aren't used explicitly, there no IDF would be computed for them."
+  [sparql-endpoint]
+  (let [cpv-graph (get-in sparql-endpoint [:config :matchmaker :sparql :cpv-graph])
+        cpv-idfs-graph (get-in sparql-endpoint [:config :data :explicit-cpv-idfs-graph])]
+    (sparql/sparql-update sparql-endpoint
+                          ["data_preparation" "add_not_found_cpv_idfs"]
+                          :data {:cpv-graph cpv-graph 
+                                 :cpv-idfs-graph cpv-idfs-graph})))
+
 (defn- compute-explicit-cpv-idfs
   "Compute IDFs for CPV codes present in descriptions of public contracts."
-  [sparql-endpoint ->idf]
-  (doall (map ->idf
-              (sparql/select-query-unlimited sparql-endpoint
-                                             ["data_preparation" "weighted_explicit_cpv_frequencies"]
-                                             :limit 2000))))
+  [sparql-endpoint]
+  (let [results (sparql/select-query-unlimited sparql-endpoint
+                                               ["data_preparation" "count_occurrences"]
+                                               :limit 2000)
+        ; Apply logarithm to smooth the differences in IDFs
+        log-fn (fn [idf] (update-in idf [:idf] #(Math/log10 (Float/parseFloat %))))
+        idfs (doall (map log-fn results))
+        max-idf (apply max (map :idf idfs))]
+    ; Normalize by maximum
+    (map (fn [idf] (update-in idf [:idf] #(/ % max-idf))) idfs)))
 
 (defn- compute-inferred-cpv-idfs
   "Compute IDFs of CPV codes inferred using skos:broaderTransitive."
@@ -31,12 +48,12 @@
   (fn
     [{cpv :cpv
       cpv-frequency :weightedFrequency}]
-    [cpv (Math/log10 (/ contract-count (Float/parseFloat cpv-frequency)))]))
+    [cpv (/ contract-count (Float/parseFloat cpv-frequency))]))
 
 (defn- cpv-idfs->rdf
   "Convert @cpv-idfs to RDF/Turtle using the internal JSON-LD context."
   [sparql-endpoint cpv-idfs]
-  (let [transform-fn (fn [[cpv idf]]
+  (let [transform-fn (fn [{:keys [cpv idf]}]
                        {"@id" cpv
                         "ex:idf" idf})
         data {"@context" (get-in sparql-endpoint [:config :context])
@@ -60,7 +77,7 @@
 
 (defn- normalize-cpv-idfs
   "Divide each CPV code's IDF score by the maximum IDF score
-  to rescale it into the [0.1, 1] interval and invert it."
+  to rescale it into the [0, 1] interval and invert it."
   [cpv-idfs]
   (let [sorted-cpv-idfs (->> cpv-idfs
                              (map second)
@@ -68,11 +85,7 @@
         minimum-idf (first sorted-cpv-idfs)
         maximum-idf (last sorted-cpv-idfs)
         transform-fn (fn [[cpv idf]]
-                       [cpv (rescale idf
-                                     [minimum-idf maximum-idf]
-                                     ; Use 0.1 instead of 0 to avoid multiplication by 0 (effectively
-                                     ; zeroing score of a match).
-                                     [0.1 1])])]
+                       [cpv (- 1 (/ idf (+ maximum-idf 1)))])]
     (map transform-fn cpv-idfs)))
 
 ; ----- Public functions -----
@@ -88,10 +101,23 @@
         inferred-idfs (convert-fn (compute-inferred-cpv-idfs sparql-endpoint ->idf))
         {:keys [explicit-cpv-idfs-graph
                 inferred-cpv-idfs-graph]} (get-in sparql-endpoint [:config :data])]
-    (load-cpv-idfs sparql-endpoint explicit-idfs explicit-cpv-idfs-graph)
-    (load-cpv-idfs sparql-endpoint inferred-idfs inferred-cpv-idfs-graph)))
+    (println explicit-cpv-idfs-graph)
+    (println inferred-cpv-idfs-graph)
+    (spit "explicit_idfs.ttl" explicit-idfs)
+    (spit "inferred_idfs.ttl" inferred-idfs)
+    ;(load-cpv-idfs sparql-endpoint explicit-idfs explicit-cpv-idfs-graph)
+    ;(load-cpv-idfs sparql-endpoint inferred-idfs inferred-cpv-idfs-graph)
+    ))
 
 (comment
   (def sparql-endpoint (:sparql-endpoint (sparql/load-endpoint)))
-  (compute-cpv-idfs sparql-endpoint)
+  (def idfs (compute-explicit-cpv-idfs sparql-endpoint))
+  (sparql/delete-graph sparql-endpoint (get-in sparql-endpoint [:config :data :explicit-cpv-idfs-graph]))
+
+  (load-cpv-idfs sparql-endpoint
+                 (cpv-idfs->rdf sparql-endpoint idfs)
+                 (get-in sparql-endpoint [:config :data :explicit-cpv-idfs-graph]))
+  (add-not-found-cpv-idfs sparql-endpoint)
+
+  (spit "ted_idfs.ttl" (cpv-idfs->rdf sparql-endpoint idfs))
 )
