@@ -1,0 +1,57 @@
+{{!
+@param IRI contract
+@param IRI matched-resource-graph
+@param IRI source-graph
+@param int additional-object-inhibition
+@param int limit
+@param int offset (optional)
+}}
+
+{{> templates/prefixes.mustache}}
+
+SELECT ?match (SAMPLE(?_label) AS ?label) ?score
+WHERE {
+  {
+    SELECT ?match (SUM(?inScoreModifier * ?outScoreModifier * ?contractWeight * ?contractCount) AS ?score) 
+    WHERE {
+      {
+        SELECT ?match ?inScoreModifier ?outScoreModifier ?contractWeight
+               (COUNT(DISTINCT ?contract) AS ?contractCount)
+        WHERE {
+          {
+            SELECT ?cpvObject ?inScoreModifier 
+            WHERE {
+              GRAPH <{{matched-resource-graph}}> {
+                {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
+                <{{contract}}> ?objectProperty ?cpvObject .
+              }
+            }
+          }
+          GRAPH <{{source-graph}}> {
+            {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
+            ?contract pc:awardedTender/pc:bidder ?match ;
+              ?objectProperty ?cpvObject .
+            OPTIONAL {
+              ?parentContract pc:lot ?contract . 
+            }
+            BIND (IF(BOUND(?parentContract), 0.5, 1) AS ?contractWeight)
+          }
+        }
+        GROUP BY ?match ?inScoreModifier ?outScoreModifier ?contractWeight
+      }
+    }
+    GROUP BY ?match
+    ORDER BY DESC(?score)
+    LIMIT {{limit}}
+    {{#offset}}
+    OFFSET {{offset}}
+    {{/offset}}
+  }
+  GRAPH <{{source-graph}}> {
+    {{> templates/matchmaker/sparql/partials/business_entity_legal_names.mustache}}
+    OPTIONAL {
+      ?match ?businessEntityLegalName ?_label .
+    }
+  }
+}
+GROUP BY ?match ?score
