@@ -5,6 +5,7 @@
 @param IRI cpv-graph
 @param map additional-object-inhibition
 @param map main-object-inhibition
+@param map query-expansion
 @param int limit
 @param int offset (optional)
 }}
@@ -12,29 +13,35 @@
 {{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_head.mustache}}
 
 {
-  SELECT DISTINCT ?cpvObject ?inScoreModifier 
+  SELECT DISTINCT ?cpv ?inScoreModifier 
   WHERE {
-    GRAPH <{{matched-resource-graph}}> {
-      {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
-      <{{contract}}> ?objectProperty ?sourceObject .
-    }
-    GRAPH <{{cpv-graph}}> {
-      ?sourceObject skos:narrowerTransitive* ?cpvObject .
+    {
+      SELECT ?cpv ?inScoreModifier
+      WHERE {
+        GRAPH <{{matched-resource-graph}}> {
+          {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
+          <{{contract}}> ?objectProperty ?cpv .
+        }
+      }
+    } UNION {
+      SELECT ?cpv ({{inferred-object-inhibition}} AS ?inScoreModifier)
+      WHERE {
+        GRAPH <{{matched-resource-graph}}> {
+          <{{contract}}> pc:mainObject ?_cpv .
+        }
+        GRAPH <{{cpv-graph}}> {
+          ?_cpv skos:narrowerTransitive{1,{{query-expansion.hops-to-broader}}} ?cpv .
+        }
+      }
     }
   }
 }
 GRAPH <{{source-graph}}> {
   {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
-  {
-    ?contract pc:awardedTender [
-        pc:bidder ?match
-      ] ;
-      ?objectProperty ?cpvObject .
-  } UNION {
-    {{> templates/matchmaker/sparql/partials/business_entity_classes.mustache}}
-    ?match a ?businessEntityClass ;
-      ?objectProperty ?cpvObject .
-  }
+  ?contract pc:awardedTender [
+      pc:bidder ?match
+    ] ;
+    ?objectProperty ?cpvObject .
 }
       
 {{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_tail.mustache}}
