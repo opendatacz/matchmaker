@@ -4,38 +4,38 @@
 @param IRI source-graph
 @param map additional-object-inhibition
 @param map main-object-inhibition
-@param int limit
-@param int offset (optional)
 }}
 
 {{> templates/prefixes.mustache}}
 
-SELECT ?match (SAMPLE(?_label) AS ?label) ?contractScore
+SELECT ?match (SAMPLE(?_label) AS ?label) ?score
 WHERE {
   {
-    SELECT ?match ?contract (?inScoreModifier * ?outScoreModifier AS ?contractScore) 
+    SELECT ?match (GROUP_CONCAT(?contractScore; separator = "|") AS ?score) 
     WHERE {
       {
-        SELECT ?cpvObject ?inScoreModifier 
+        SELECT ?match (?inScoreModifier * ?outScoreModifier AS ?contractScore)
         WHERE {
-          GRAPH <{{matched-resource-graph}}> {
-            {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
-            <{{contract}}> ?objectProperty ?cpvObject .
+          {
+            SELECT ?cpvObject ?inScoreModifier 
+            WHERE {
+              GRAPH <{{matched-resource-graph}}> {
+                {{> templates/matchmaker/sparql/partials/object_property_inscore.mustache}}
+                <{{contract}}> ?objectProperty ?cpvObject .
+              }
+            }
+          }
+          GRAPH <{{source-graph}}> {
+            {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
+            ?contract pc:awardedTender [
+                pc:bidder ?match
+              ] ;
+              ?objectProperty ?cpvObject .
           }
         }
       }
-      GRAPH <{{source-graph}}> {
-        {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
-        ?contract pc:awardedTender [
-            pc:bidder ?match
-          ] ;
-          ?objectProperty ?cpvObject .
-      }
     }
-    LIMIT {{limit}}
-    {{#offset}}
-    OFFSET {{offset}}
-    {{/offset}}
+    GROUP BY ?match
   }
   GRAPH <{{source-graph}}> {
     {{> templates/matchmaker/sparql/partials/business_entity_legal_names.mustache}}
@@ -44,4 +44,4 @@ WHERE {
     }
   }
 }
-GROUP BY ?match ?contract ?contractScore
+GROUP BY ?match ?score
