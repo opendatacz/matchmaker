@@ -6,6 +6,7 @@
   "Registry of available matchmakers"
   #{"exact-cpv"
     "exact-cpv-goedel"
+    "exact-cpv-group-concat"
     "exact-cpv-lot"
     "exact-cpv-lukasiewicz"
     "exact-cpv-max"
