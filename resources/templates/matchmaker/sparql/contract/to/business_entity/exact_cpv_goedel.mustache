@@ -2,7 +2,6 @@
 @param IRI contract
 @param IRI matched-resource-graph
 @param IRI source-graph
-@param IRI zindex-graph
 @param map additional-object-inhibition
 @param map main-object-inhibition
 @param int limit
@@ -14,12 +13,11 @@
 SELECT ?match (SAMPLE(?_label) AS ?label) ?score
 WHERE {
   {
-    SELECT ?match (SUM(?inScoreModifier * ?outScoreModifier * ?zindex * ?contractCount) AS ?score) 
+    SELECT ?match (MAX(?contractScore) AS ?score) 
     WHERE {
       {
-        SELECT ?match ?inScoreModifier ?outScoreModifier
-               (COUNT(?contract) AS ?contractCount)
-               (SAMPLE(?__zindex) AS ?zindex)
+        SELECT ?match
+               (IF(?inScoreModifier < ?outScoreModifier, ?inScoreModifier, ?outScoreModifier) AS ?contractScore)
         WHERE {
           {
             SELECT ?cpvObject ?inScoreModifier 
@@ -32,19 +30,10 @@ WHERE {
           }
           GRAPH <{{source-graph}}> {
             {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
-            ?contract pc:awardedTender/pc:bidder ?match ;
-              pc:contractingAuthority ?contractingAuthority ;
+            ?contract pc:awardedTender [
+                pc:bidder ?match
+              ] ;
               ?objectProperty ?cpvObject .
           }
-          OPTIONAL {
-            GRAPH <{{source-graph}}> {
-              ?contractingAuthority adms:identifier/skos:notation ?identifier .
-            }
-            GRAPH <{{zindex-graph}}> {
-              [] pccz:zindex ?_zindex ;
-                rov:registration/skos:notation ?identifier . 
-            }
-          }
-          BIND (COALESCE(?_zindex, 0.5) AS ?__zindex)
 
 {{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_tail.mustache}}

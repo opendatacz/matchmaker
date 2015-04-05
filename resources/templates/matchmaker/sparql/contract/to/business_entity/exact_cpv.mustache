@@ -3,6 +3,7 @@
 @param IRI matched-resource-graph
 @param IRI source-graph
 @param map additional-object-inhibition
+@param map main-object-inhibition
 @param int limit
 @param int offset (optional)
 }}
@@ -20,16 +21,10 @@
 }
 GRAPH <{{source-graph}}> {
   {{> templates/matchmaker/sparql/partials/object_property_outscore.mustache}}
-  {
-    ?contract pc:awardedTender [
-        pc:bidder ?match
-      ] ;
-      ?objectProperty ?cpvObject .
-  } UNION {
-    {{> templates/matchmaker/sparql/partials/business_entity_classes.mustache}}
-    ?match a ?businessEntityClass ;
-      ?objectProperty ?cpvObject .
-  }
+  ?contract pc:awardedTender [
+      pc:bidder ?match
+    ] ;
+    ?objectProperty ?cpvObject .
 }
 
 {{> templates/matchmaker/sparql/contract/to/business_entity/partials/cpv_query_tail.mustache}}

@@ -117,7 +117,7 @@
          (string? match-type)]}
   (let [matches (->> matchmaker-results
                      (map #(transform-match % additional-mappings match-type))
-                     (sort-by (comp #(get-in % ["vrank:hasRank" "vrank:hasValue"])))
+                     (sort-by #(get-in % ["vrank:hasRank" "vrank:hasValue"]))
                      reverse)]
     (wrap-in-collection uri matches paging limit)))
 
@@ -144,7 +144,10 @@
       (-> match
           (clojure.set/rename-keys mappings)
           (assoc "@type" match-type)
-          (update-in ["vrank:hasRank"] (fn [rank] {"vrank:hasValue" (edn/read-string rank)}))))))
+          (update-in ["vrank:hasRank"] (fn [rank]
+                                         {"vrank:hasValue" (if (string? rank)
+                                                             (edn/read-string rank)
+                                                             rank)}))))))
 
 (defn- wrap-in-collection
   "Wraps @matches for @uri hydra:Collection"

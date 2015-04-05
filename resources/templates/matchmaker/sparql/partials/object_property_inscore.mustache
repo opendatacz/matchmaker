@@ -1,9 +1,9 @@
 {{!
-@param int additional-object-inhibition
+@param map additional-object-inhibition
+@param map main-object-inhibition
 }}
 
 VALUES (?objectProperty     ?inScoreModifier) {
-       (pc:mainObject       1)
+       (pc:mainObject       {{main-object-inhibition.in}})
        (pc:additionalObject {{additional-object-inhibition.in}})
-       (gr:category         1)
 }

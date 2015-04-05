@@ -1,8 +1,9 @@
 {{!
-@param int additional-object-inhibition
+@param map additional-object-inhibition
+@param map main-object-inhibition
 }}
 
 VALUES (?objectProperty     ?outScoreModifier) {
-       (pc:mainObject       1)
+       (pc:mainObject       {{main-object-inhibition.out}})
        (pc:additionalObject {{additional-object-inhibition.out}}) 
 }

@@ -5,7 +5,11 @@
 (def matchmakers
   "Registry of available matchmakers"
   #{"exact-cpv"
+    "exact-cpv-goedel"
+    "exact-cpv-lot"
+    "exact-cpv-lukasiewicz"
     "exact-cpv-max"
+    "exact-cpv-product"
     "exact-cpv-with-idf"
     "exact-cpv-zindex"
     "expand-to-broader-cpv"

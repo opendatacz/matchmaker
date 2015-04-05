@@ -3,6 +3,7 @@
             [matchmaker.lib.util :as util]
             [matchmaker.web.views :as views]
             [matchmaker.core.sparql :as sparql-match]
+            [matchmaker.lib.sparql :as sparql]
             [slingshot.slingshot :refer [try+]]))
 
 ; Private functions
@@ -26,7 +27,7 @@
                                                       "firstPage" first-page-link}))))
 
 (defn- match-resource
-  "Match resource by using @matchmaking-fn.
+  "Match resource by using matchmaking @template.
   Render results using @view-fn."
   [params & {:keys [resource-key template view-fn]}]
   {:pre [(map? params)
@@ -53,6 +54,52 @@
                                :offset offset)]
         (view-fn uri
                  matchmaker-results
+                 :base-url base-url
+                 :paging paging
+                 :limit limit))
+      (views/error {:status 503
+                    :error-msg "SPARQL endpoint is hiding"}))))
+
+(defn- exact-cpv-product
+  [params & {:keys [resource-key template view-fn]}]
+  {:pre [(map? params)
+         (keyword? resource-key)
+         (vector? template)
+         (fn? view-fn)]}
+  (let [{:keys [graph_uri limit offset uri]} (get-in params [:request :params])
+        request-url (:request-url params)
+        sparql-endpoint (get-in params [:server :sparql-endpoint])
+        sparql-config (get-in sparql-endpoint [:config :matchmaker :sparql])
+        additional-data (merge sparql-config
+                               (select-keys (get-in sparql-endpoint [:config :data])
+                                            [:explicit-cpv-idfs-graph :inferred-cpv-idfs-graph]))
+        matchmaker-results (try+ (sparql/select-query-unlimited sparql-endpoint 
+                                                                template 
+                                                                :data (merge additional-data
+                                                                             {:matched-resource-graph graph_uri 
+                                                                              resource-key uri})
+                                                                :limit 5000)
+                                 (catch [:status 404] _ false))]
+    (if matchmaker-results
+      (let [aggregated-results (sort-by (comp - :score)
+                                        (map (fn [[match data]]
+                                               {:match match
+                                                :score (reduce (fn [a b] (- (+ a b) (* a b)))
+                                                               (map (comp #(Double/parseDouble %)
+                                                                          :contractScore)
+                                                                    data))
+                                                :label (first (map :label data))})
+                                             (group-by :match matchmaker-results)))
+            results-slice (seq (subvec (vec aggregated-results)
+                                       offset
+                                       (min (+ offset limit) (count aggregated-results))))
+            base-url (get-in params [:request :base-url])
+            paging (get-paging request-url
+                               :results-size (count results-slice)
+                               :limit limit
+                               :offset offset)]
+        (view-fn uri
+                 results-slice
                  :base-url base-url
                  :paging paging
                  :limit limit))
@@ -97,6 +144,36 @@
                              "to" "business_entity" "exact_cpv"]
                   :view-fn views/match-contract-to-business-entity))
 
+(defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv-goedel"
+                                   :source "contract"
+                                   :target "business-entity"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "exact_cpv_goedel"]
+                  :view-fn views/match-contract-to-business-entity))
+
+(defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv-lot"
+                                   :source "contract"
+                                   :target "business-entity"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "exact_cpv_lot"]
+                  :view-fn views/match-contract-to-business-entity))
+
+(defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv-lukasiewicz"
+                                   :source "contract"
+                                   :target "business-entity"}
+  [params]
+  (match-resource params
+                  :resource-key :contract
+                  :template ["matchmaker" "sparql" "contract"
+                             "to" "business_entity" "exact_cpv_lukasiewicz"]
+                  :view-fn views/match-contract-to-business-entity))
+
 (defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv-max"
                                    :source "contract"
                                    :target "business-entity"}
@@ -106,6 +183,16 @@
                   :template ["matchmaker" "sparql" "contract"
                              "to" "business_entity" "exact_cpv_max"]
                   :view-fn views/match-contract-to-business-entity))
+
+(defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv-product"
+                                   :source "contract"
+                                   :target "business-entity"}
+  [params]
+  (exact-cpv-product params
+                     :resource-key :contract
+                     :template ["matchmaker" "sparql" "contract"
+                                "to" "business_entity" "exact_cpv_product"]
+                     :view-fn views/match-contract-to-business-entity))
 
 (defmethod dispatch-to-matchmaker {:matchmaker "exact-cpv-with-idf"
                                    :source "contract"
