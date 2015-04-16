@@ -2,6 +2,7 @@
   (:require [taoensso.timbre :as timbre]
             [matchmaker.lib.util :refer [avg time-difference]]
             [matchmaker.lib.sparql :as sparql]
+            [matchmaker.lib.rdf :refer [map->turtle]]
             [matchmaker.lib.util :as util]
             [clj-http.client :as client]
             [clojure.set :refer [union]]
@@ -82,9 +83,10 @@
   (let [distinct-matches (atom {10 #{}
                                 20 #{}
                                 50 #{}})
+        prediction-coverage (atom 0)
         map-fn (if parallel? pmap map)
         get-matches-fn (fn [resource]
-                         (try {:matches (util/try-times 5
+                         (try {:matches (util/try-times max-retries
                                                         (get-matches matchmaking-endpoint
                                                                      resource
                                                                      :limit limit
@@ -97,6 +99,7 @@
                   (let [start-time (System/nanoTime)
                         matches (get-matches-fn resource)]
                   (when-not (:failed? matches)
+                    (when (seq (:matches matches)) (swap! prediction-coverage inc))
                     (swap! distinct-matches
                            (fn [a] (into {} (for [[n acc] a]
                                               [n (union acc (set (take n (:matches matches))))]))))
@@ -104,8 +107,9 @@
                      :resource resource
                      :time (time-difference start-time)})))
         results (doall (remove nil? (map-fn eval-fn correct-matches)))]
-    {:results results 
-     :distinct-matches (deref distinct-matches)}))
+    {:results results
+     :prediction-coverage @prediction-coverage 
+     :distinct-matches @distinct-matches}))
 
 (defn- evaluate-top-100-bidders
   "Evaluate top 100 matches from @template-path SPARQL query using @correct-matches."
@@ -275,7 +279,8 @@
   "Compare metrics of evaluation results @a and @b.
   For each metric compute p-value."
   [a b]
-  (let [diffs (util/format-numbers (merge-with - (:metrics b) (:metrics a)))
+  (let [get-simple-metrics (fn [evaluation-results] (dissoc (:metrics evaluation-results) :catalog-coverage))
+        diffs (util/format-numbers (merge-with - (get-simple-metrics b) (get-simple-metrics a)))
         results-a (apply concat (:results a))
         results-b (apply concat (:results b))
         ranks-a (map :rank results-a)
@@ -302,9 +307,11 @@
 
 (defn postprocess-results
   "Postprocess evaluation results.
-  So far computes only catalog coverage."
+  Computes catalog coverage and prediction coverage."
   [benchmark benchmark-results]
   {:catalog-coverage (aggregate-catalog-coverage benchmark benchmark-results)
+   :prediction-coverage (/ (apply + (map :prediction-coverage benchmark-results))
+                           (:contract-count benchmark))
    :results (map :results benchmark-results)})
 
 (defn top-n-curve-chart

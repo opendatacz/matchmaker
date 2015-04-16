@@ -85,20 +85,21 @@
       (when data-reduced?
         (timbre/debug (format "Reducing data to %s %%." (* data-reduction 100)))
         (setup/reduce-data sparql-endpoint contract-count data-reduction))
-      (assoc benchmark
-             :bidders-count (if data-reduced?
-                              ; If data was reduced, we need to re-COUNT bidders.
-                              (get-count sparql-endpoint ["count_business_entities"])
-                              (get-in sparql-endpoint [:counts :business-entities]))
-             :limits-and-offsets (get-limits-and-offsets
-                                   process
-                                   :contract-count (if data-reduced?
-                                                     ; If data was reduced, we need to
-                                                     ; recompute the contract count.
-                                                     (count-contracts sparql-endpoint sample)
-                                                     contract-count)
-                                   :number-of-runs number-of-runs
-                                   :sample-size (:size sample)))))
+      (let [reduced-contract-count (if data-reduced?
+                                     ; If data was reduced, we need to recompute the contract count.
+                                     (count-contracts sparql-endpoint sample)
+                                     contract-count)
+            reduced-bidders-count (if data-reduced?
+                                    ; If data was reduced, we need to re-COUNT bidders.
+                                    (get-count sparql-endpoint ["count_business_entities"])
+                                    (get-in sparql-endpoint [:counts :business-entities]))] 
+        (assoc benchmark
+               :bidders-count reduced-bidders-count
+               :contract-count reduced-contract-count
+               :limits-and-offsets (get-limits-and-offsets process
+                                                           :contract-count reduced-contract-count
+                                                           :number-of-runs number-of-runs
+                                                           :sample-size (:size sample))))))
   (stop [{{{:keys [data-reduction]} :benchmark} :config
           :keys [sparql-endpoint]
           :as benchmark}]
