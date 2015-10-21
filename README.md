@@ -4,7 +4,7 @@ Services for matchmaking offers and demands on the web of data.
 
 ## Usage
 
-A public demo of the application is available at <http://lod2.vse.cz:8080/matchmaker/>.
+A public demo of the application is available at <http://lod2-dev.vse.cz:8080/matchmaker/>.
 
 ## Deployment
 
